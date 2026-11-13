@@ -4,8 +4,33 @@
 
 2026 미래내일 일경험 프로젝트 · 팀 노란돌고래
 
-## 폴더
+## 실행
 
-| 폴더 | 내용 |
-|---|---|
-| `prototype/` | 화면 프로토타입. `index.html`을 브라우저로 열면 바로 눌러 볼 수 있음 |
+JDK 21이 필요하다.
+
+```bash
+./gradlew bootRun
+```
+
+Windows 명령 프롬프트에서는 `gradlew.bat bootRun`. 실행 후 http://localhost:8080 에 접속하면 화면이 열린다.
+
+테스트:
+
+```bash
+./gradlew test
+```
+
+## 구조
+
+| 위치 | 내용 | 담당 |
+|---|---|---|
+| `calculation/` | 룰 엔진, `POST /api/v1/calculations` | 이명균 |
+| `document/` | 서류 글자 인식, `POST /api/v1/documents/extract` | 유지환 |
+| `explanation/` | 산정 결과 해설, `POST /api/v1/calculations/{id}/explanation` | 정상연 |
+| `complaint/` | 진정서 초안, `POST /api/v1/calculations/{id}/complaint-draft` | 정상연 |
+| `src/main/resources/static/` | 화면 | 유지환 |
+| `src/main/resources/samples/` | 기능이 붙기 전까지 쓰는 예시 응답 | — |
+
+자바 코드는 `src/main/java/com/yellowdolphin/wageback/` 아래에 있다.
+
+지금 API는 입력과 상관없이 `samples/`의 예시 응답을 돌려준다. 각자 맡은 기능을 붙이면서 예시 응답을 실제 결과로 바꾼다. 응답 형식은 바꾸지 않는다.
