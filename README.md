@@ -14,6 +14,8 @@ JDK 21이 필요하다.
 
 Windows 명령 프롬프트에서는 `gradlew.bat bootRun`. 실행 후 http://localhost:8080 에 접속하면 화면이 열린다.
 
+브랜치: 작업은 `develop`에서 `feat/작업이름` 브랜치를 따서 하고 PR은 `develop`으로 보낸다. `main`은 시연·제출용이라 정해진 날에만 `develop`을 합친다.
+
 테스트:
 
 ```bash
