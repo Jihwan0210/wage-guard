@@ -1,0 +1,17 @@
+{
+  "docType": "{{docType}}",
+  "fields": [
+    { "key": "companyName", "value": "○○식당", "confidence": 0.97 },
+    { "key": "startDate", "value": "2025-03-03", "confidence": 0.93 },
+    { "key": "weeklyContractHours", "value": 40, "confidence": 0.9 },
+    { "key": "dailyContractHours", "value": 8, "confidence": 0.9 },
+    { "key": "workDaysPerWeek", "value": 5, "confidence": 0.88 },
+    { "key": "wageType", "value": "MONTHLY", "confidence": 0.95 },
+    { "key": "baseWage", "value": 2156880, "confidence": 0.94 },
+    { "key": "allowances", "value": [ { "name": "직책수당", "amount": 100000 } ], "confidence": 0.61 },
+    { "key": "payMonth", "value": "2026-09", "confidence": 0.88 },
+    { "key": "paidAmount", "value": 1800000, "confidence": 0.9 }
+  ],
+  "unreadable": ["overtimeHours", "nightHours", "holidayHours"],
+  "maskedCount": 1
+}

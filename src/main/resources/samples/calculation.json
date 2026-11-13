@@ -1,0 +1,48 @@
+{
+  "id": "{{id}}",
+  "engineVersion": "0.0.1",
+  "minimumWageYear": 2026,
+  "period": { "start": "2025-03-03", "end": "2026-10-31" },
+  "summary": { "totalDue": 6217844, "totalPaid": 1800000, "totalUnpaid": 4417844 },
+  "hourlyOrdinaryWage": { "value": "10798.46", "formula": "(2,156,880원 + 100,000원) ÷ 209시간" },
+  "dailyAverageWage": { "value": "75589", "formula": "3개월 임금 총액 ÷ 92일" },
+  "items": [
+    {
+      "code": "BASE_WAGE", "label": "못 받은 월급", "month": "2026-09", "status": "CALCULATED", "estimated": false,
+      "amount": 456880, "formula": "2,256,880원 − 받은 1,800,000원",
+      "legalBasis": [ { "law": "근로기준법", "article": "제43조", "summary": "임금은 매달 정해진 날에 전부 직접 줘야 해요." } ]
+    },
+    {
+      "code": "OVERTIME", "label": "연장근로수당", "month": "2026-09", "status": "CALCULATED", "estimated": false,
+      "amount": 161976, "formula": "10,798.46원 × 10시간 × 1.5",
+      "legalBasis": [ { "law": "근로기준법", "article": "제56조 제1항", "summary": "연장근로에는 통상임금의 50% 이상을 더 줘야 해요." } ]
+    },
+    {
+      "code": "NIGHT", "label": "야간근로수당", "month": "2026-09", "status": "CALCULATED", "estimated": false,
+      "amount": 21596, "formula": "10,798.46원 × 4시간 × 0.5",
+      "legalBasis": [ { "law": "근로기준법", "article": "제56조 제3항", "summary": "오후 10시~오전 6시 근로에는 통상임금의 50% 이상을 더 줘야 해요." } ]
+    },
+    {
+      "code": "HOLIDAY", "label": "휴일근로수당", "month": "2026-09", "status": "NO_DATA", "estimated": false,
+      "amount": null, "formula": "입력한 휴일 근무시간이 없어요",
+      "legalBasis": [ { "law": "근로기준법", "article": "제56조 제2항", "summary": "휴일근로 8시간까지는 50%, 넘는 시간은 100%를 더 줘야 해요." } ]
+    },
+    {
+      "code": "WEEKLY_HOLIDAY", "label": "주휴수당", "month": "2026-09", "status": "INCLUDED_IN_WAGE", "estimated": false,
+      "amount": null, "formula": "월 209시간 안에 주휴 시간이 포함돼요",
+      "legalBasis": [ { "law": "근로기준법", "article": "제55조", "summary": "한 주를 빠짐없이 일하면 하루치 유급휴일이 생겨요." } ]
+    },
+    {
+      "code": "SEVERANCE", "label": "퇴직금", "month": null, "status": "CALCULATED", "estimated": true,
+      "amount": 3777392, "formula": "75,589원 × 30일 × 608일 ÷ 365 (8~10월 월급이 같다고 가정)",
+      "legalBasis": [ { "law": "근로자퇴직급여 보장법", "article": "제8조", "summary": "1년 일할 때마다 30일분 이상의 평균임금을 줘야 해요." } ]
+    }
+  ],
+  "warnings": [
+    { "code": "BELOW_MINIMUM_WAGE", "message": "2026년 최저임금(시간급 10,320원)보다 적게 받은 달이 있어요." }
+  ],
+  "notApplied": [
+    { "code": "ANNUAL_LEAVE", "reason": "연차수당은 이번 버전에서 계산하지 않아요." },
+    { "code": "DISMISSAL_NOTICE", "reason": "해고예고수당은 이번 버전에서 계산하지 않아요." }
+  ]
+}
