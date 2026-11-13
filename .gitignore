@@ -1,0 +1,22 @@
+# 빌드
+build/
+out/
+.gradle/
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 비밀 정보
+.env
+.env.*
+!.env.example
+application-local.yml
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
