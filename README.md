@@ -25,10 +25,11 @@ Windows 명령 프롬프트에서는 `gradlew.bat bootRun`. 실행 후 http://lo
 | 위치 | 내용 | 담당 |
 |---|---|---|
 | `calculation/` | 룰 엔진, `POST /api/v1/calculations` | 이명균 |
-| `document/` | 서류 글자 인식, `POST /api/v1/documents/extract` | 유지환 |
+| `document/` | 서류 글자 인식, `POST /api/v1/documents/extract` | 이수환 |
 | `explanation/` | 산정 결과 해설, `POST /api/v1/calculations/{id}/explanation` | 정상연 |
 | `complaint/` | 진정서 초안, `POST /api/v1/calculations/{id}/complaint-draft` | 정상연 |
 | `src/main/resources/static/` | 화면 | 유지환 |
+| `application.properties`, 공통 예외 처리·요청 제한 | 서버 공통 설정, 배포 | 이수환 |
 | `src/main/resources/samples/` | 기능이 붙기 전까지 쓰는 예시 응답 | — |
 
 자바 코드는 `src/main/java/com/yellowdolphin/wageback/` 아래에 있다.
