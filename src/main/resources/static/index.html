@@ -301,17 +301,8 @@ dialog .stack { gap: 14px; }
   // 프로토타입 예시 값. 실제 금액은 룰 엔진 API(/calculations) 응답으로 바뀐다.
   var SAMPLE = { company: '○○식당', size: 'five', start: '2025-03-03', employed: 'no', end: '2026-10-31', days: [true, true, true, true, true, false, false], tStart: '9', tEnd: '18', brk: '1', wageType: 'month', wage: '2156880', allowance: '100000', paid: '1800000', ot: '10', night: '4', holiday: '' };
   var SAMPLE_SRC = { company: 'doc', size: 'self', start: 'doc', end: 'self', days: 'doc', time: 'doc', wage: 'doc', allowance: 'doc', paid: 'doc', ot: 'self', night: 'self' };
-  var RESULT = {
-    total: 4417844, due: 6217844, paid: 1800000, hourly: '10,798.46원', daily: '75,589원',
-    items: [
-      { code: 'BASE', label: '못 받은 월급 (9월)', amount: 456880, explain: '9월에 약속한 돈보다 적게 받았어요.', article: '근로기준법 제43조', gist: '임금은 매달 정해진 날에 전부 직접 줘야 해요.', formula: '2,256,880원 − 받은 1,800,000원' },
-      { code: 'OT', label: '연장근로수당', amount: 161976, explain: '정해진 시간보다 더 일한 10시간은 시급의 1.5배로 계산해요.', article: '근로기준법 제56조 제1항', gist: '연장근로에는 통상임금의 50% 이상을 더 줘야 해요.', formula: '10,798.46원 × 10시간 × 1.5' },
-      { code: 'NIGHT', label: '야간근로수당', amount: 21596, explain: '밤 10시~아침 6시에 일한 4시간은 시급의 절반을 더 받아요.', article: '근로기준법 제56조 제3항', gist: '오후 10시~오전 6시 근로에는 통상임금의 50% 이상을 더 줘야 해요.', formula: '10,798.46원 × 4시간 × 0.5' },
-      { code: 'HOLIDAY', label: '휴일근로수당', status: '정보 없음', missing: true, explain: '휴일에 일한 적이 있다면 입력해 주세요. 지금은 계산하지 않았어요.', article: '근로기준법 제56조 제2항', gist: '휴일근로 8시간까지는 50%, 넘는 시간은 100%를 더 줘야 해요.', formula: '입력한 휴일 근무시간이 없어요' },
-      { code: 'WEEKLY', label: '주휴수당', status: '월급에 포함', explain: '월급을 받는 경우 주휴수당은 월급 안에 들어 있어요.', article: '근로기준법 제55조', gist: '한 주를 빠짐없이 일하면 하루치 유급휴일이 생겨요.', formula: '월 209시간 안에 주휴 시간이 포함돼요' },
-      { code: 'SEV', label: '퇴직금', amount: 3777392, estimated: true, explain: '1년 넘게 일하고 그만두면 받아요. 8~10월 월급이 같다고 보고 계산했어요.', article: '근로자퇴직급여 보장법 제8조', gist: '1년 일할 때마다 30일분 이상의 평균임금을 줘야 해요.', formula: '75,589원 × 30일 × 608일 ÷ 365' }
-    ]
-  };
+  var STATUS_TEXT = { NO_DATA: '정보 없음', INCLUDED_IN_WAGE: '월급에 포함' };
+  var NEED_CALC = ['result', 'form', 'complaint', 'counselor'];
   var FACTS_SAMPLE = '피진정인은 다음 달에 지급하겠다고 하였으나 현재까지 지급하지 않고 있습니다.';
   var LANG_NOTE = {
     en: 'This prototype is in Korean for now. English screens come in the next version.',
@@ -333,7 +324,8 @@ dialog .stack { gap: 14px; }
       docType: 'payslip', up: { status: 'idle', name: '', msg: '' },
       f: blankFields(), src: {}, low: {}, ok: {},
       p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' },
-      formTried: false, factsText: null, editing: false, tr: true
+      formTried: false, factsText: null, editing: false, tr: true,
+      calc: null, explain: null, explainState: ''
     };
   }
   function load() {
@@ -390,6 +382,111 @@ dialog .stack { gap: 14px; }
     toast.timer = setTimeout(function () { t.hidden = true; }, 3200);
   }
 
+  // ---------- 서버 ----------
+  function api(method, url, body) {
+    return fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) throw new Error(data.detail || '계산하지 못했어요. 잠시 후 다시 시도해 주세요.');
+        return data;
+      });
+    }, function () {
+      throw new Error('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.');
+    });
+  }
+  function hoursOrNull(v) { return v === '' ? null : Number(v); }
+  // 화면 입력값 → POST /api/v1/calculations 요청 (API.md 형식)
+  function toRequest() {
+    var f = S.f;
+    var count = f.days.filter(Boolean).length;
+    var h = hours();
+    var lastDay = f.employed === 'no' && f.end ? f.end : new Date().toISOString().slice(0, 10);
+    var holiday = hoursOrNull(f.holiday);
+    return {
+      workplace: { size: f.size === 'under' ? 'UNDER_FIVE' : 'FIVE_OR_MORE' },
+      employment: { startDate: f.start, endDate: f.employed === 'yes' ? null : f.end },
+      schedule: { weeklyContractHours: h * count, dailyContractHours: h, workDaysPerWeek: count },
+      wage: {
+        type: { hour: 'HOURLY', day: 'DAILY', month: 'MONTHLY' }[f.wageType],
+        baseAmount: Number(f.wage),
+        ordinaryAllowances: f.allowance ? [{ name: '매달 받는 수당', amount: Number(f.allowance) }] : [],
+        otherAllowances: [],
+        annualBonus: 0
+      },
+      months: [{
+        month: lastDay.slice(0, 7),
+        paidAmount: Number(f.paid),
+        overtimeHours: hoursOrNull(f.ot),
+        nightHours: hoursOrNull(f.night),
+        holidayHoursWithin8: holiday == null ? null : Math.min(holiday, 8),
+        holidayHoursOver8: holiday == null ? null : Math.max(holiday - 8, 0),
+        absentWeeks: 0
+      }],
+      lastThreeMonthsWages: null
+    };
+  }
+  // POST /calculations 응답 → 화면에서 쓰는 값
+  function viewResult() {
+    var c = S.calc;
+    var explain = S.explain || {};
+    var pending = { loading: '설명을 불러오고 있어요.', fail: '설명을 불러오지 못했어요. 금액은 그대로 맞아요.' }[S.explainState] || '';
+    return {
+      total: c.summary.totalUnpaid,
+      due: c.summary.totalDue,
+      paid: c.summary.totalPaid,
+      hourly: c.hourlyOrdinaryWage ? Number(c.hourlyOrdinaryWage.value).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '원' : '—',
+      daily: c.dailyAverageWage ? Number(c.dailyAverageWage.value).toLocaleString('ko-KR') + '원' : '—',
+      notApplied: (c.notApplied || []).map(function (n) { return n.reason; }),
+      items: c.items.map(function (it) {
+        var b = (it.legalBasis || [])[0] || {};
+        return {
+          code: it.code,
+          name: it.label,
+          label: it.label + (it.month ? ' (' + Number(it.month.slice(5)) + '월)' : ''),
+          amount: it.status === 'CALCULATED' ? it.amount : null,
+          status: STATUS_TEXT[it.status] || '',
+          missing: it.status === 'NO_DATA',
+          estimated: !!it.estimated,
+          explain: explain[it.code] || pending,
+          article: [b.law, b.article].filter(Boolean).join(' '),
+          gist: b.summary || '',
+          formula: it.formula || ''
+        };
+      })
+    };
+  }
+  function calculate(btn) {
+    btn.disabled = true;
+    btn.textContent = '계산하고 있어요';
+    api('POST', '/api/v1/calculations', toRequest()).then(function (res) {
+      S.calc = res;
+      S.explain = null;
+      S.explainState = 'loading';
+      S.factsText = null;
+      go('result');
+      loadExplanation(res.id);
+    }, function (e) {
+      btn.disabled = false;
+      btn.textContent = '이 내용으로 계산하기';
+      toast(e.message);
+    });
+  }
+  function loadExplanation(id) {
+    api('POST', '/api/v1/calculations/' + encodeURIComponent(id) + '/explanation', { lang: S.lang }).then(function (res) {
+      var m = {};
+      (res.items || []).forEach(function (i) { m[i.code] = i.text; });
+      S.explain = m;
+      S.explainState = 'done';
+    }, function () {
+      S.explainState = 'fail';
+    }).then(function () {
+      if (S.route === 'result') render(); else save();
+    });
+  }
+
   // ---------- 검사 ----------
   function valid(r) {
     var f = S.f;
@@ -413,6 +510,7 @@ dialog .stack { gap: 14px; }
   function go(r, opts) {
     if (ALL.indexOf(r) < 0) r = 'start';
     if (r !== 'start' && !S.agreed) r = 'start';
+    if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
     if (!opts || !opts.back) stack.push(S.route);
     S.route = r;
     save();
@@ -470,7 +568,7 @@ dialog .stack { gap: 14px; }
     return '<button type="button" class="btn btn-primary" ' + attrs + (enabled === false ? ' disabled' : '') + '>' + label + '</button>';
   }
   function protoNote() {
-    return '<p class="proto">프로토타입이라 금액은 예시예요. 실제 금액은 룰 엔진 API를 연결하면 입력값으로 계산돼요.</p>';
+    return '<p class="proto">지금 서버는 예시 값을 돌려줘요. 룰 엔진이 연결되면 입력한 값으로 계산돼요.</p>';
   }
 
   // ---------- 화면: 시작 ----------
@@ -639,29 +737,28 @@ dialog .stack { gap: 14px; }
       '<div class="stack"><h1 tabindex="-1">읽은 내용이 맞는지<br>확인해 주세요</h1><p class="lead">잘못 읽힌 값이 있으면 계산 전체가 틀려져요.</p></div>' +
       '<div class="legend-row"><span><span class="tag">서류</span> 서류에서 읽은 값</span><span><span class="tag self">직접</span> 직접 입력한 값</span><span><span class="tag warn">노란 줄</span> 확인 필요</span></div>' +
       groups + '</div>' +
-      cta(primary('이 내용으로 계산하기', 'data-go="result"', ok) +
+      cta(primary('이 내용으로 계산하기', 'data-act="calculate"', ok) +
         (ok ? '' : '<p class="hint">' + (left ? '확인이 필요한 값이 ' + left + '개 남았어요' : '빠진 필수 항목을 채워 주세요') + '</p>'));
   }
 
   // ---------- 화면: 결과 ----------
   function vResult() {
-    var items = RESULT.items.map(function (it) {
-      var right = it.amount != null ? '<span class="item-amt">' + won(it.amount) + '</span>' : '<span class="item-status">' + it.status + '</span>';
-      var holiday = it.code === 'HOLIDAY' && Number(S.f.holiday) > 0;
-      if (holiday) right = '<span class="item-status">계산 연결 후 표시</span>';
-      return '<li><div class="item-head"><strong>' + it.label + '</strong>' + (it.estimated ? '<span class="tag">추정</span>' : '') + right + '</div>' +
-        '<p class="item-exp">' + it.explain + '</p>' +
-        '<div class="item-links"><details class="basis"><summary>근거 보기</summary><dl><dt>조문</dt><dd><strong>' + it.article + '</strong></dd><dt>요지</dt><dd>' + it.gist + '</dd><dt>계산</dt><dd>' + it.formula + '</dd></dl></details>' +
-        (it.missing && !holiday ? '<button type="button" class="btn-text" style="font-size:0.8125rem;font-weight:600" data-go="q6">입력하기</button>' : '') + '</div></li>';
+    var R = viewResult();
+    var items = R.items.map(function (it) {
+      var right = it.amount != null ? '<span class="item-amt">' + won(it.amount) + '</span>' : '<span class="item-status">' + esc(it.status) + '</span>';
+      return '<li><div class="item-head"><strong>' + esc(it.label) + '</strong>' + (it.estimated ? '<span class="tag">추정</span>' : '') + right + '</div>' +
+        '<p class="item-exp">' + esc(it.explain) + '</p>' +
+        '<div class="item-links"><details class="basis"><summary>근거 보기</summary><dl><dt>조문</dt><dd><strong>' + esc(it.article) + '</strong></dd><dt>요지</dt><dd>' + esc(it.gist) + '</dd><dt>계산</dt><dd>' + esc(it.formula) + '</dd></dl></details>' +
+        (it.missing ? '<button type="button" class="btn-text" style="font-size:0.8125rem;font-weight:600" data-go="q6">입력하기</button>' : '') + '</div></li>';
     }).join('');
     var size = S.f.size === 'under' ? '5명 미만' : '5명 이상';
     var period = dotDate(S.f.start) + ' ~ ' + (S.f.employed === 'yes' ? '재직 중' : dotDate(S.f.end));
     var summary = '<div class="stack" style="gap:6px">' +
       '<span class="total-label">아직 받지 못한 돈</span>' +
-      '<span class="total">' + RESULT.total.toLocaleString('ko-KR') + '<small>원</small></span>' +
-      '<span class="total-read">' + readable(RESULT.total) + '</span>' +
+      '<span class="total">' + R.total.toLocaleString('ko-KR') + '<small>원</small></span>' +
+      '<span class="total-read">' + readable(R.total) + '</span>' +
       '<p class="disclaim">법률 자문이 아닌 참고용 계산이에요. <button type="button" class="btn-text" data-act="disclaim">자세히</button></p></div>' +
-      '<p class="meta">' + esc(period) + ' · ' + size + ' 사업장 · 받은 돈 ' + won(RESULT.paid) + '</p>';
+      '<p class="meta">' + esc(period) + ' · ' + size + ' 사업장 · 받은 돈 ' + won(R.paid) + '</p>';
     var actions = '<div class="cta" style="margin-top:0">' + primary('진정서 초안 만들기', 'data-go="form"') +
       '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">결과 PDF 저장</button><button type="button" class="btn btn-line" data-go="counselor">상담원에게 보여주기</button></div>' +
       '<button type="button" class="btn-text" data-go="guide">진정 절차 먼저 보기</button>' +
@@ -671,12 +768,13 @@ dialog .stack { gap: 14px; }
       '<div class="result-grid"><div class="stack-lg r-sum">' + summary + '</div>' +
       '<div class="r-act">' + actions + '</div>' +
       '<div class="stack-lg r-items"><section><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px"><h2>항목별 금액</h2><span class="hint">설명: AI · 금액: 법 기준 계산</span></div><ul class="items">' + items + '</ul></section>' +
-      '<details><summary>계산 기준 · 입력한 내용</summary><dl class="kv" style="padding-bottom:8px"><dt>통상임금(시급)</dt><dd>' + RESULT.hourly + '</dd><dt>평균임금(하루)</dt><dd>' + RESULT.daily + '</dd><dt>계산하지 않은 것</dt><dd>연차수당, 해고예고수당</dd></dl>' +
+      '<details><summary>계산 기준 · 입력한 내용</summary><dl class="kv" style="padding-bottom:8px"><dt>통상임금(시급)</dt><dd>' + R.hourly + '</dd><dt>평균임금(하루)</dt><dd>' + R.daily + '</dd><dt>계산하지 않은 것</dt><dd>' + esc(R.notApplied.join(' ') || '없음') + '</dd></dl>' +
       '<button type="button" class="btn-text" data-go="review">입력한 내용 다시 보기</button></details></div></div></div>';
   }
 
   // ---------- 화면: 진정서 정보 ----------
   function vForm() {
+    var R = viewResult();
     var p = S.p;
     function inp(id, key, label, type, opts) {
       opts = opts || {};
@@ -688,7 +786,7 @@ dialog .stack { gap: 14px; }
     }
     return '<div class="col stack-lg">' + progress(4, '진정서') + langBanner() +
       '<div class="stack"><h1 tabindex="-1">진정서에 들어갈 내용을<br>적어 주세요</h1><p class="lead">계산 결과와 근무 정보는 자동으로 들어가요. 적은 정보는 초안을 만드는 데만 쓰고 저장하지 않아요.</p></div>' +
-      '<section class="note stack"><h2 style="font-size:0.9375rem">자동으로 들어가는 내용</h2><dl class="kv"><dt>사업장</dt><dd>' + esc(S.f.company || '[사업장 이름]') + ' · ' + (S.f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd><dt>일한 기간</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? '재직 중' : dotDate(S.f.end)) + '</dd><dt>못 받은 돈</dt><dd><strong>' + won(RESULT.total) + '</strong></dd></dl>' +
+      '<section class="note stack"><h2 style="font-size:0.9375rem">자동으로 들어가는 내용</h2><dl class="kv"><dt>사업장</dt><dd>' + esc(S.f.company || '[사업장 이름]') + ' · ' + (S.f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd><dt>일한 기간</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? '재직 중' : dotDate(S.f.end)) + '</dd><dt>못 받은 돈</dt><dd><strong>' + won(R.total) + '</strong></dd></dl>' +
       '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">내용 고치기</button></section>' +
       '<fieldset class="stack"><legend><h2>나 (진정인)</h2></legend>' +
       inp('p-name', 'name', '이름', 'text', { req: '이름을 적어 주세요', ac: 'name' }) +
@@ -713,21 +811,25 @@ dialog .stack { gap: 14px; }
 
   // ---------- 진정서 내용 ----------
   function complaintParts() {
+    var R = viewResult();
     var f = S.f, p = S.p;
     var company = f.company || p.company || '[사업장 이름]';
     var startK = f.start ? krDate(f.start) : '[입사일]';
     var endK = f.employed === 'yes' ? '현재' : (f.end ? krDate(f.end) : '[퇴사일]');
     var job = p.job || '[하는 일]';
-    var auto = '진정인은 ' + startK + '부터 ' + endK + '까지 피진정인 사업장에서 ' + job + ' 업무를 하였습니다. 2026년 9월분 임금 일부와 연장·야간근로수당을 받지 못하였' +
-      (f.employed === 'yes' ? '습니다. ' : '고, 퇴직 후 14일이 지나도록 퇴직금도 지급받지 못하였습니다. ');
+    var unpaid = R.items.filter(function (i) { return i.amount > 0 && i.code !== 'SEVERANCE'; }).map(function (i) { return i.code === 'BASE_WAGE' ? '임금 일부' : i.name; });
+    var severance = R.items.some(function (i) { return i.code === 'SEVERANCE' && i.amount > 0; });
+    var auto = '진정인은 ' + startK + '부터 ' + endK + '까지 피진정인 사업장에서 ' + job + ' 업무를 하였습니다. ' +
+      (unpaid.length ? '근무 기간 중 ' + unpaid.join(', ') + ' 등을 지급받지 못하였' : '임금 일부를 지급받지 못하였') +
+      (severance ? '고, 퇴직 후 14일이 지나도록 퇴직금도 지급받지 못하였습니다. ' : '습니다. ');
     var facts = S.factsText != null ? S.factsText : auto + (p.facts ? p.facts : FACTS_SAMPLE);
-    var rows = RESULT.items.filter(function (i) { return i.amount != null; });
+    var rows = R.items.filter(function (i) { return i.amount != null; });
     return {
       sections: [
         { ko: '진정인', en: 'Complainant', body: (p.name || '[이름]') + ' · ' + (p.phone || '[휴대폰 번호]') + '\n' + (p.addr || '[사는 곳 주소]'), tr: (p.name || '[Name]') + ' · ' + (p.phone || '[Mobile]') + '\n' + (p.addr || '[Home address]') },
         { ko: '피진정인', en: 'Respondent (employer)', body: company + ' (대표 ' + (p.owner || '[사장님 이름]') + ')\n' + (p.waddr || '[사업장 주소]') + (p.wphone ? ' · ' + p.wphone : '') + ' · 상시 근로자 ' + (f.size === 'under' ? '5명 미만' : '5명 이상'), tr: company + ' (owner ' + (p.owner || '[Owner]') + ')\n' + (p.waddr || '[Workplace address]') + ' · ' + (f.size === 'under' ? 'under 5' : '5 or more') + ' employees' },
         { ko: '근로 내용', en: 'Employment', body: dotDate(f.start) + ' ~ ' + (f.employed === 'yes' ? '재직 중' : dotDate(f.end) + ' (퇴직)') + '\n' + job + (hours() > 0 ? ' · 주 ' + (hours() * f.days.filter(Boolean).length) + '시간' : ''), tr: dotDate(f.start) + ' – ' + (f.employed === 'yes' ? 'still working' : dotDate(f.end) + ' (left)') + '\n' + job },
-        { ko: '체불 내역', en: 'Unpaid amounts', table: rows, tr: rows.map(function (r) { return r.label + '  KRW ' + r.amount.toLocaleString('en-US'); }).join('\n') + '\nTotal  KRW ' + RESULT.total.toLocaleString('en-US') },
+        { ko: '체불 내역', en: 'Unpaid amounts', table: rows, tr: rows.map(function (r) { return r.label + '  KRW ' + r.amount.toLocaleString('en-US'); }).join('\n') + '\nTotal  KRW ' + R.total.toLocaleString('en-US') },
         { ko: '진정 내용', en: 'Details', body: facts, editable: true, tr: 'I worked at the respondent\'s workplace and was not paid part of my September 2026 wages and my overtime and night-work allowances. My severance pay is still unpaid more than 14 days after I left. (Reference translation of the Korean text.)' },
         { ko: '요구 사항', en: 'Request', body: '위 체불 금품을 지급받을 수 있도록 조사하여 주시기 바랍니다.', tr: 'Please investigate so that I can receive the unpaid amounts above.' }
       ],
@@ -737,7 +839,7 @@ dialog .stack { gap: 14px; }
           out.push('[' + s.ko + ']');
           if (s.table) {
             s.table.forEach(function (r) { out.push(r.label + ': ' + won(r.amount)); });
-            out.push('합계: ' + won(RESULT.total));
+            out.push('합계: ' + won(R.total));
           } else out.push(s.body);
           out.push('');
         });
@@ -749,6 +851,7 @@ dialog .stack { gap: 14px; }
 
   // ---------- 화면: 진정서 초안 ----------
   function vComplaint() {
+    var R = viewResult();
     var c = complaintParts();
     var trLang = S.lang === 'ko' ? '' : ' lang="en"';
     var ko = c.sections.map(function (s) {
@@ -756,7 +859,7 @@ dialog .stack { gap: 14px; }
       if (s.table) {
         body = '<table><thead><tr><th scope="col">항목</th><th scope="col" class="n">금액(원)</th></tr></thead><tbody>' +
           s.table.map(function (r) { return '<tr><td>' + r.label + '</td><td class="n">' + r.amount.toLocaleString('ko-KR') + '</td></tr>'; }).join('') +
-          '<tr class="sum"><th scope="row">합계</th><td class="n">' + RESULT.total.toLocaleString('ko-KR') + '</td></tr></tbody></table>' +
+          '<tr class="sum"><th scope="row">합계</th><td class="n">' + R.total.toLocaleString('ko-KR') + '</td></tr></tbody></table>' +
           '<p class="hint no-print">금액은 계산 결과에서 가져와 여기서는 고칠 수 없어요. <button type="button" class="btn-text" style="font-size:inherit;min-height:32px" data-go="review">다시 계산하기</button></p>';
       } else if (s.editable && S.editing) {
         body = '<label class="sr" for="facts-edit">진정 내용 고치기</label><textarea id="facts-edit" class="input" rows="7">' + esc(s.body) + '</textarea>' +
@@ -823,17 +926,18 @@ dialog .stack { gap: 14px; }
 
   // ---------- 화면: 상담원 ----------
   function vCounselor() {
+    var R = viewResult();
     var f = S.f, p = S.p;
     var top = { ko: '상담원에게 휴대폰을 그대로 보여 주세요.', en: 'This page is in Korean so the counselor can read it. Hand your phone to them.', vi: 'Trang này bằng tiếng Hàn để nhân viên tư vấn đọc được. Hãy đưa điện thoại cho họ.' }[S.lang];
     var langName = { ko: '', en: '영어', vi: '베트남어' }[S.lang];
-    var rows = RESULT.items.map(function (it) {
+    var rows = R.items.map(function (it) {
       return '<tr><th scope="row" style="text-align:left;font-weight:400;padding:8px 0;border-top:1px solid var(--line)">' + it.label + (it.estimated ? ' (추정)' : '') + '</th><td style="text-align:right;padding:8px 0;border-top:1px solid var(--line)">' + (it.amount != null ? won(it.amount) : it.status) + '</td></tr>';
     }).join('');
     return '<div class="col stack-lg">' +
       '<p class="banner" lang="' + S.lang + '">' + esc(top) + '</p>' + protoNote() +
       '<article class="paper counsel" lang="ko"><div class="stack" style="gap:6px"><h1 tabindex="-1">임금체불 상담 요청</h1>' +
       (langName ? '<p>저는 ' + langName + '를 씁니다. 통역이 필요할 수 있습니다.</p>' : '') + '</div>' +
-      '<div class="stack" style="gap:2px;padding-block:16px;border-block:1px solid var(--line)"><span class="total-label">받지 못한 돈 (참고 계산)</span><span class="total" style="font-size:2rem">' + won(RESULT.total) + '</span><span>' + readable(RESULT.total) + '</span></div>' +
+      '<div class="stack" style="gap:2px;padding-block:16px;border-block:1px solid var(--line)"><span class="total-label">받지 못한 돈 (참고 계산)</span><span class="total" style="font-size:2rem">' + won(R.total) + '</span><span>' + readable(R.total) + '</span></div>' +
       '<dl class="kv"><dt>사업장</dt><dd>' + esc(f.company || p.company || '[사업장 이름]') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
       '<dt>일한 기간</dt><dd>' + esc(dotDate(f.start)) + ' ~ ' + esc(f.employed === 'yes' ? '재직 중' : dotDate(f.end) + ' (퇴직)') + '</dd>' +
       '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ' · ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + '</dd>' +
@@ -957,6 +1061,7 @@ dialog .stack { gap: 14px; }
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
     else if (a === 'ok') { S.ok[t.dataset.k] = true; render(); }
     else if (a === 'disclaim') toast('이 서비스는 법률 자문이 아니에요. 정확한 판단은 1350이나 노무사 상담을 받으세요.');
+    else if (a === 'calculate') calculate(t);
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
     else if (a === 'make') make();
@@ -990,6 +1095,7 @@ dialog .stack { gap: 14px; }
 
   var start = (location.hash || '').slice(1);
   if (ALL.indexOf(start) >= 0 && (start === 'start' || S.agreed)) S.route = start;
+  if (NEED_CALC.indexOf(S.route) >= 0 && !S.calc) S.route = 'review';
   render(false);
 })();
 </script>
