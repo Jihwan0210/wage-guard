@@ -43,6 +43,7 @@
   --paper: #FFFFFF;
   --tr-bg: #F3F5F9;
   --scrim: rgba(10, 16, 28, 0.55);
+  --qr-bg: #FFFFFF;
   /* 글자 */
   --font: "Noran Sans", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
   --fs-sm: 0.875rem;
@@ -289,12 +290,45 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 
 /* 서류 올리기 */
 .capture { position: relative; padding: var(--s5) var(--s4) var(--s4); border-radius: var(--r-lg); background: var(--surface); display: flex; flex-direction: column; gap: var(--s4); }
-.frame { position: relative; height: 128px; margin-inline: auto; width: min(100%, 220px); display: grid; place-items: center; color: var(--muted); }
-.frame::before, .frame::after { content: ""; position: absolute; inset: 0; border: 3px solid var(--fg); border-radius: var(--r-sm); clip-path: polygon(0 0, 22% 0, 22% 4px, 4px 4px, 4px 26%, 0 26%, 0 74%, 4px 74%, 4px calc(100% - 4px), 22% calc(100% - 4px), 22% 100%, 0 100%); }
-.frame::after { transform: scaleX(-1); }
-.frame svg { width: 96px; height: 96px; }
 .capture .btn-row { grid-template-columns: minmax(0, 1fr); }
 .capture .hint { text-align: center; }
+/* 찍기 전 안내 그림 · 여러 장 카드 · QR */
+.howto { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.howto li { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s3) var(--s2); border-radius: var(--r); background: var(--surface); text-align: center; font-weight: 600; line-height: 1.4; }
+.howto svg { width: 72px; height: 52px; flex-shrink: 0; fill: none; stroke: var(--fg); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.howto .pf { fill: var(--bg); }
+.howto .hl { stroke: var(--brand-deep); stroke-width: 2.25; }
+@media (max-width: 400px) {
+  .howto { grid-template-columns: minmax(0, 1fr); }
+  .howto li { flex-direction: row; text-align: left; padding: var(--s2) var(--s3); }
+}
+.capture.drag { background: var(--brand-soft); box-shadow: inset 0 0 0 3px var(--fg); }
+.pages { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s3); }
+.pg { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: var(--s3); padding: var(--s3); border: 1.5px solid var(--line); border-radius: var(--r); background: var(--bg); }
+.pg.ok { border-color: var(--ok); }
+.pg.fail, .pg.bad { border-color: var(--warn-line); }
+.pg-thumb { position: relative; width: 76px; height: 100px; border-radius: var(--r-sm); overflow: hidden; background: var(--surface); display: grid; place-items: center; color: var(--muted); }
+.pg-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pg.reading .pg-thumb::after, .pg.prep .pg-thumb::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--brand); box-shadow: 0 0 12px var(--brand); animation: scan-pg 1.2s ease-in-out infinite alternate; }
+@keyframes scan-pg { to { transform: translateY(97px); } }
+.pg-body { min-width: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.pg-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--s2); }
+.pg-state { font-size: var(--fs-sm); font-weight: 700; color: var(--muted); }
+.pg.ok .pg-state { color: var(--ok); }
+.pg.fail .pg-state { color: var(--warn-fg); }
+.pg-name { font-size: var(--fs-sm); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-type { min-height: 48px; }
+.pg-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.pg-btn { min-height: 44px; padding: 0 var(--s3); display: inline-flex; align-items: center; gap: 6px; border-radius: var(--r-sm); border: 1.5px solid var(--input-line); background: var(--bg); color: var(--fg); font-size: var(--fs-md); font-weight: 600; cursor: pointer; }
+.pg-btn:hover:not(:disabled) { border-color: var(--fg); background: var(--surface); }
+.pg-btn:disabled { color: var(--off-fg); border-color: var(--line); cursor: not-allowed; }
+.pg-btn .ico { width: 18px; height: 18px; }
+.qual { padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--warn-bg); color: var(--warn-fg); box-shadow: inset 4px 0 0 var(--warn-line); }
+.qual ul { margin: 0; padding-left: 1.1em; font-weight: 600; }
+.qual p { font-size: var(--fs-sm); }
+.qr { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--s4); align-items: start; padding: var(--s4); border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--bg); margin-bottom: var(--s4); }
+.qr-code { width: 120px; height: 120px; padding: 8px; border-radius: var(--r-sm); background: var(--qr-bg); }
+.qr-code svg { display: block; width: 100%; height: 100%; }
 .filecard { border: 1.5px solid var(--line); border-radius: var(--r); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
 .filecard-head { display: flex; align-items: center; gap: var(--s3); font-weight: 700; min-width: 0; }
 .filecard-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -305,9 +339,6 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .scan i:nth-child(2) { width: 82%; } .scan i:nth-child(3) { width: 64%; }
 .scan::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--brand); box-shadow: 0 0 12px var(--brand); animation: scan 1.4s ease-in-out infinite alternate; }
 @keyframes scan { to { transform: translateY(46px); } }
-.tips { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s2); }
-.tips li { display: flex; align-items: center; gap: var(--s3); }
-.tips b { width: 28px; height: 28px; flex-shrink: 0; border-radius: var(--r-xs); background: var(--brand-soft); color: var(--brand-deep); display: grid; place-items: center; font-size: var(--fs-sm); }
 
 /* 내용 확인 */
 .legend-row { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: var(--fs-sm); color: var(--muted); }

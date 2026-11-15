@@ -10,7 +10,7 @@
   var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', guide: 'title.guide', counselor: 'title.counselor' };
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor'];
   // 영어·베트남어로 보여 주는 화면 (나머지는 한국어)
-  var TRANSLATED = ['start', 'result', 'guide'];
+  var TRANSLATED = ['start', 'upload', 'result', 'guide'];
   // 추출 키 → 확인 화면 줄 이름
   var ROW_OF = { companyName: 'company', employeeCount: 'size', startDate: 'start', endDate: 'end', workDaysPerWeek: 'days', dailyContractHours: 'time', weeklyContractHours: 'time', wageType: 'wage', baseWage: 'wage', allowances: 'allowance', payMonth: 'month', paidAmount: 'paid', overtimeHours: 'ot', nightHours: 'night', holidayHours: 'holiday' };
   // 오류 field 앞부분 → 확인 화면 줄 · 진정서 입력칸
@@ -30,8 +30,8 @@
   function fresh() {
     return {
       route: 'start', agreed: false, lang: detectLang(), big: false, path: '',
-      docType: 'payslip', up: { status: 'idle', name: '', msg: '' },
-      f: blankFields(), src: {}, low: {}, ok: {}, unread: {}, fieldErr: {},
+      up: { status: 'idle' },
+      f: blankFields(), src: {}, from: {}, conf: {}, low: {}, ok: {}, unread: {}, fieldErr: {},
       p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' }, pErr: {},
       formTried: false, factsText: null, editing: false, tr: true,
       calc: null, explain: null, explainState: '', draft: null
@@ -119,6 +119,8 @@
     print: '<path d="M7 9V3h10v6M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/>',
     copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
     pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    rotate: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
     out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
   };
   function icon(name, cls) {
@@ -403,40 +405,101 @@
   }
 
   // ---------- 화면: 서류 올리기 ----------
+  // 찍기 전 안내 그림 (72x52, 선 1.75)
+  var HOWTO = {
+    flat: '<rect class="pf" x="27" y="3" width="18" height="13" rx="2.5"/><path class="hl" d="M36 20v8M33 25l3 3 3-3"/><path class="pf" d="M10 47h52l-8-13H18z"/><path d="M22 38h20M20 42h26"/>',
+    corner: '<rect class="pf" x="22" y="9" width="28" height="34" rx="2"/><path d="M27 17h18M27 22h18M27 27h12"/><path class="hl" d="M16 13V5h8M48 5h8v8M56 39v8h-8M24 47h-8v-8"/>',
+    light: '<rect class="pf" x="12" y="13" width="30" height="36" rx="2"/><path d="M17 21h20M17 26h20M17 31h14"/><circle class="hl" cx="57" cy="13" r="5"/><path class="hl" d="M57 3v2M57 21v2M47 13h2M65 13h2M50 6l1.5 1.5M62.5 18.5L64 20M64 6l-1.5 1.5"/>'
+  };
   function vUpload() {
     var u = S.up;
-    var docs = [['payslip', '급여명세서', '달마다 실제로 받은 금액을 확인해요'], ['contract', '근로계약서', '약속한 시급·월급과 근무시간을 확인해요']].map(function (d) {
-      return '<label class="choice"><input type="radio" name="doc" data-act="doctype" value="' + d[0] + '"' + (S.docType === d[0] ? ' checked' : '') + '><span style="flex:1">' + d[1] + '<small>' + d[2] + '</small></span>' + icon(d[0]) + '</label>';
+    var busy = u.status === 'reading';
+    var how = [['flat', 'up.how1'], ['corner', 'up.how2'], ['light', 'up.how3']].map(function (h) {
+      return '<li><svg viewBox="0 0 72 52" aria-hidden="true" focusable="false">' + HOWTO[h[0]] + '</svg><span>' + t(h[1]) + '</span></li>';
     }).join('');
     var status = '';
-    if (u.status === 'reading') {
-      status = '<div class="filecard"><div class="filecard-head">' + icon('file') + '<span>' + esc(u.name) + '</span></div><div class="scan" aria-hidden="true"><i></i><i></i><i></i></div><p class="hint" role="status">' + t('up.reading') + '</p></div>';
+    if (busy) {
+      status = '<div class="filecard" role="status"><div class="scan" aria-hidden="true"><i></i><i></i><i></i></div><p>' + t('up.reading', { n: u.n }) + '</p></div>';
     } else if (u.status === 'done') {
-      status = '<div class="filecard done"><div class="filecard-head">' + icon('check') + '<span>' + esc(u.name) + '</span></div><p role="status">' + t('up.done', { n: u.n }) +
-        (u.unread ? ' ' + t('up.unread', { n: u.unread }) : '') + (u.masked ? ' ' + t('up.masked', { n: u.masked }) : '') + '</p></div>';
+      status = '<div class="filecard done" role="status"><div class="filecard-head">' + icon('check') + '<span>' + t('up.done', { n: u.n }) + '</span></div>' +
+        (u.unread || u.masked ? '<p>' + (u.unread ? t('up.unread', { n: u.unread }) : '') + (u.masked ? ' ' + t('up.masked', { n: u.masked }) : '') + '</p>' : '') + '</div>';
     } else if (u.status === 'error') {
       status = '<div class="warnbox" role="alert"><strong>' + esc(u.msg) + '</strong></div>';
     } else if (u.status === 'fail') {
-      status = '<div class="warnbox stack" role="alert"><strong>' + esc(u.msg) + '</strong><p>사진이 흐리거나 그림자가 졌을 수 있어요. 다시 찍거나 직접 입력해 주세요.</p><button type="button" class="btn btn-line" data-act="path" data-v="manual">직접 입력하기</button></div>';
+      status = '<div class="warnbox stack" role="alert"><strong>' + esc(u.msg) + '</strong><p>' + t('up.fail') + '</p><button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('up.manual') + '</button></div>';
     }
+    var list = PAGES.length
+      ? '<section class="stack" aria-labelledby="pages-title"><h2 id="pages-title" tabindex="-1">' + t('up.listTitle', { n: PAGES.length, max: MAX_PAGES }) + '</h2><ol class="pages">' + PAGES.map(function (p, i) { return pageCard(p, i, busy); }).join('') + '</ol></section>'
+      : '';
+    var waiting = PAGES.some(function (p) { return p.state === 'prep'; });
+    var bad = PAGES.some(function (p) { return p.state === 'bad'; });
+    var unread = PAGES.some(function (p) { return p.state === 'ready'; });
+    var read = Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; });
+    // 다 읽었으면 '확인하기', 아니면(못 읽음 포함) '읽기'
+    var main = (u.status === 'done' && !unread && !waiting) || (!PAGES.length && read)
+      ? primary(t('up.reviewBtn'), 'data-go="review"', true)
+      : primary(PAGES.length ? t('up.readBtn', { n: PAGES.length }) : t('up.readNone'), 'data-act="read"', PAGES.length > 0 && !waiting && !bad && !busy);
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(1) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">어떤 서류가 있나요?</h1><p class="lead">사진을 찍거나 파일을 올리면 글자를 읽어 칸을 채워 드려요.</p></div>' +
-      '<fieldset class="stack"><legend class="sr">서류 종류</legend><div class="choices">' + docs + '</div><p class="hint">둘 다 있으면 하나씩 올려 주세요.</p></fieldset>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('up.h1') + '</h1><p class="lead">' + t('up.lead') + '</p></div>' +
+      '<section><h2 class="sr">' + t('up.howTitle') + '</h2><ul class="howto">' + how + '</ul></section>' +
       '<div class="capture">' +
-      '<div class="frame" aria-hidden="true">' + icon(S.docType) + '</div>' +
       '<div class="btn-row">' +
-      '<label class="btn btn-primary" for="cam">' + icon('camera') + '<span>사진 찍기</span></label>' +
-      '<label class="btn btn-line" for="file">' + icon('file') + '<span>파일에서 고르기</span></label></div>' +
-      '<input id="cam" class="sr" type="file" accept="image/jpeg,image/png" capture="environment" data-act="file">' +
-      '<input id="file" class="sr" type="file" accept="application/pdf,image/jpeg,image/png,.hwp" data-act="file">' +
-      '<p class="hint">PDF, JPG, PNG · 파일당 10MB까지<br>한글(HWP) 파일은 PDF로 바꿔서 올려 주세요</p></div>' +
-      status + '</div>' +
-      '<aside class="side no-print"><section class="stack"><h2>잘 읽히는 사진 찍는 법</h2><ol class="tips"><li><b>1</b>평평한 곳에 놓고 위에서 찍기</li><li><b>2</b>네 모서리가 다 보이게</li><li><b>3</b>그림자와 빛 반사 없이</li></ol></section>' +
-      '<p class="note">' + icon('lock') + ' 올린 서류는 글자만 읽고 저장하지 않아요. 주민등록번호는 가려서 읽지 않아요.</p>' +
-      cta(primary('읽은 내용 확인하기', 'data-go="review"', u.status === 'done' || Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; })) +
-        '<button type="button" class="btn-text" data-act="path" data-v="manual">서류 없이 직접 입력하기</button>', ' ') +
+      '<label class="btn btn-primary" for="cam">' + icon('camera') + '<span>' + t('up.cam') + '</span></label>' +
+      '<label class="btn btn-line" for="file">' + icon('file') + '<span>' + t('up.pick') + '</span></label></div>' +
+      '<input id="cam" class="sr" type="file" accept="image/*" capture="environment" data-act="files"' + (busy ? ' disabled' : '') + '>' +
+      '<input id="file" class="sr" type="file" accept="application/pdf,image/*,.hwp" multiple data-act="files"' + (busy ? ' disabled' : '') + '>' +
+      '<input id="retake" class="sr" type="file" accept="application/pdf,image/*" capture="environment" data-act="retake-file" tabindex="-1" aria-hidden="true">' +
+      '<p class="hint only-d">' + t('up.dropHint') + '</p>' +
+      '<p class="hint">' + t('up.limits', { max: MAX_PAGES }) + '<br>' + t('up.hwpHint') + '</p></div>' +
+      list + status + '</div>' +
+      '<aside class="side no-print">' + qrBox() +
+      '<p class="note">' + icon('lock') + ' ' + t('up.privacy') + '</p>' +
+      cta(main + (bad && !busy ? '<p class="hint">' + t('up.removeBad') + '</p>' : '') +
+        '<button type="button" class="btn-text" data-act="path" data-v="manual">' + t('up.manual') + '</button>', ' ') +
       '</aside></div>';
+  }
+  // 사진 한 장 카드: 미리보기 · 서류 종류 · 검사 결과 · 돌리기/다시 찍기/빼기
+  function pageCard(p, i, busy) {
+    var thumb = p.url ? '<img src="' + p.url + '" alt="">' : icon('file');
+    var state = { prep: t('up.preparing'), reading: t('up.readingOne'), ok: t('up.pageOk', { n: p.n }), fail: t('up.pageFail') }[p.state] || '';
+    var types = ['payslip', 'contract'].map(function (d) { return '<option value="' + d + '"' + (p.type === d ? ' selected' : '') + '>' + t('up.' + d) + '</option>'; }).join('');
+    var warn = p.state === 'bad' ? '<p class="err">' + esc(p.msg) + '</p>'
+      : p.warn.length ? '<div class="qual"><ul>' + p.warn.map(function (w) { return '<li>' + t('up.q.' + w) + '</li>'; }).join('') + '</ul><p>' + t('up.qStill') + '</p></div>' : '';
+    var dis = busy ? ' disabled' : '';
+    function btn(act, ico, label) {
+      return '<button type="button" class="pg-btn" id="' + act + p.id + '" data-act="pg-' + act + '" data-id="' + p.id + '"' + dis + '>' + icon(ico) + '<span>' + label + '</span></button>';
+    }
+    return '<li class="pg ' + p.state + '">' +
+      '<div class="pg-thumb">' + thumb + '</div>' +
+      '<div class="pg-body"><p class="pg-title"><b>' + t('up.page', { n: i + 1 }) + '</b>' + (state ? '<span class="pg-state">' + state + '</span>' : '') + '</p>' +
+      '<p class="pg-name">' + esc(p.file.name) + '</p>' +
+      (p.state === 'bad' ? '' : '<label class="sr" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
+      warn +
+      '<div class="pg-acts">' + (p.url ? btn('rotate', 'rotate', t('up.rotate')) : '') + btn('retake', 'camera', t('up.retake')) + btn('remove', 'x', t('up.remove')) + '</div></div></li>';
+  }
+  // 데스크톱: 휴대폰으로 이 주소 열기 QR (주소만 담는다. 사진은 주고받지 않음)
+  var qrSvg = '';
+  function qrBox() {
+    if (!window.matchMedia('(min-width: 960px)').matches) return '';
+    if (!qrSvg) {
+      if (!window.qrcode) { loadQr(); return ''; }
+      var q = window.qrcode(0, 'M');
+      q.addData(location.origin + location.pathname);
+      q.make();
+      qrSvg = q.createSvgTag(4, 0);
+    }
+    var local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+    return '<section class="qr"><div class="qr-code" role="img" aria-label="' + t('up.qrAlt') + '">' + qrSvg + '</div>' +
+      '<div class="stack"><h2>' + t('up.qrTitle') + '</h2><p>' + t('up.qrText') + '</p><p class="hint">' + t(local ? 'up.qrLocal' : 'up.qrNote') + '</p></div></section>';
+  }
+  function loadQr() {
+    if (loadQr.on) return;
+    loadQr.on = true;
+    var s = document.createElement('script');
+    s.src = 'js/vendor/qrcode.js';
+    s.onload = function () { if (S.route === 'upload') rerender(); };
+    document.head.appendChild(s);
   }
 
   // ---------- 화면: 직접 입력 ----------
@@ -542,11 +605,11 @@
       var checked = S.low[key] && S.ok[key];
       var err = S.fieldErr[key];
       var val = value ? '<span>' + esc(value) + '</span>' : '<span class="empty">' + (S.unread[key] ? t('review.unread') : '입력 안 함') + '</span>';
-      var tag = src === 'doc' ? '<span class="tag">서류</span>' : src === 'self' ? '<span class="tag self">직접</span>' : '';
+      var tag = src === 'doc' ? '<span class="tag">서류' + (S.from[key] ? ' · ' + S.from[key] + '번 사진' : '') + '</span>' : src === 'self' ? '<span class="tag self">직접</span>' : '';
       return '<div class="row' + (low ? ' low' : '') + '"><div class="row-main"><dt>' + label + '</dt><dd>' + val + tag + (checked ? '<span class="checked">' + icon('check') + '확인함</span>' : '') + '</dd>' +
         '<button type="button" class="row-edit" data-go="' + goTo + '" aria-label="' + label + ' 수정">수정</button></div>' +
         (err ? '<p class="err" role="alert">' + esc(err) + '</p>' : '') +
-        (low ? '<p class="row-note">흐리게 읽혔어요. 서류와 같은 값인가요?</p><button type="button" class="ok-btn" data-act="ok" data-k="' + key + '">' + icon('check') + '네, 맞아요</button>' : '') + '</div>';
+        (low ? '<p class="row-note">' + (S.conf[key] ? '사진마다 값이 달라요 (' + esc(S.conf[key]) + '). 더 또렷하게 읽힌 값을 넣었어요. 맞나요?' : '흐리게 읽혔어요. 서류와 같은 값인가요?') + '</p><button type="button" class="ok-btn" data-act="ok" data-k="' + key + '">' + icon('check') + '네, 맞아요</button>' : '') + '</div>';
     }
     var wageLabel = { hour: '시급', day: '일급', month: '월급' }[f.wageType] || '';
     var timeText = f.tStart !== '' && f.tEnd !== '' ? hh(f.tStart) + ' ~ ' + hh(f.tEnd) + (f.brk !== '' ? ' · 쉬는 시간 ' + ({ '0': '없음', '0.5': '30분', '1': '1시간', '1.5': '1시간 30분' }[f.brk]) : '') : f.dayHours ? f.dayHours + '시간' : '';
@@ -768,9 +831,145 @@
     save();
   }
 
+  // ---------- 서류 사진 ----------
+  // 사진 · 미리보기는 이 페이지 메모리에만 둔다 (sessionStorage 에도 저장하지 않음)
+  // state: prep(다듬는 중) · ready · reading · ok · fail(못 읽음) · bad(올릴 수 없는 파일)
+  var MAX_PAGES = 6;
+  var LONG_SIDE = 2000;
+  // 바로 검사 기준: 선명도 · 밝기 평균(0~255) · 원래 긴 변(px)
+  var BLUR_MIN = 60, DARK_MAX = 70, SMALL_MIN = 1000;
+  var PAGES = [];
+  var pageId = 1, retakeId = 0;
+
+  function pageOf(id) { return PAGES.filter(function (p) { return p.id === Number(id); })[0]; }
+  function addFiles(list) {
+    Array.prototype.forEach.call(list, function (file) {
+      if (PAGES.length >= MAX_PAGES) { toast(t('up.tooMany', { max: MAX_PAGES })); return; }
+      var p = { id: pageId++, type: 'payslip' };
+      PAGES.push(p);
+      setFile(p, file);
+    });
+    if (S.up.status !== 'reading') S.up = { status: 'idle' };
+    rerender();
+  }
+  function setFile(p, file) {
+    var name = (file.name || '').toLowerCase();
+    setUrl(p, null);
+    p.file = file; p.rot = 0; p.warn = []; p.msg = '';
+    p.pdf = /\.pdf$/.test(name) || file.type === 'application/pdf';
+    if (/\.hwp$/.test(name)) bad(p, t('up.hwp'));
+    else if (p.pdf) {
+      if (file.size > MAX_SIZE) bad(p, t('err.413'));
+      else { p.blob = file; p.state = 'ready'; }
+    } else if (/^image\//.test(file.type) || /\.(jpe?g|png)$/.test(name)) prep(p);
+    else bad(p, t('err.415'));
+  }
+  function bad(p, msg) { p.state = 'bad'; p.msg = msg; }
+  function setUrl(p, blob) {
+    if (p.url) URL.revokeObjectURL(p.url);
+    p.blob = blob;
+    p.url = blob ? URL.createObjectURL(blob) : '';
+  }
+  // 브라우저에서 다듬기: 회전(사진 정보는 브라우저가 반영, 돌리기 단추는 90도씩) · 긴 변 2000px · JPEG 로 10MB 아래
+  function prep(p) {
+    p.state = 'prep';
+    var src = URL.createObjectURL(p.file);
+    var im = new Image();
+    im.onload = function () {
+      URL.revokeObjectURL(src);
+      var w = im.naturalWidth, h = im.naturalHeight, k = Math.min(1, LONG_SIDE / Math.max(w, h));
+      var turn = p.rot % 180 !== 0;
+      var c = document.createElement('canvas');
+      c.width = Math.round((turn ? h : w) * k);
+      c.height = Math.round((turn ? w : h) * k);
+      var g = c.getContext('2d');
+      g.translate(c.width / 2, c.height / 2);
+      g.rotate(p.rot * Math.PI / 180);
+      g.drawImage(im, -w * k / 2, -h * k / 2, w * k, h * k);
+      p.warn = quality(c, Math.max(w, h));
+      encode(c, 0.85, function (blob) {
+        if (blob) { setUrl(p, blob); p.state = 'ready'; } else bad(p, t('err.413'));
+        if (S.route === 'upload') rerender();
+      });
+    };
+    im.onerror = function () {
+      URL.revokeObjectURL(src);
+      bad(p, t('err.415'));
+      if (S.route === 'upload') rerender();
+    };
+    im.src = src;
+  }
+  function encode(c, q, done) {
+    c.toBlob(function (b) {
+      if (b && b.size > MAX_SIZE && q > 0.45) encode(c, q - 0.2, done);
+      else done(b && b.size <= MAX_SIZE ? b : null);
+    }, 'image/jpeg', q);
+  }
+  // 바로 검사: 선명도(라플라시안 분산) · 밝기 평균 · 원래 크기. 기준값은 시험 사진으로 맞춘 어림값
+  function quality(c, origLong) {
+    var k = Math.min(1, 800 / Math.max(c.width, c.height));
+    var w = Math.round(c.width * k), h = Math.round(c.height * k);
+    var s = document.createElement('canvas');
+    s.width = w; s.height = h;
+    var g = s.getContext('2d');
+    g.drawImage(c, 0, 0, w, h);
+    var d = g.getImageData(0, 0, w, h).data, gray = new Float32Array(w * h), sum = 0, i;
+    for (i = 0; i < w * h; i++) { gray[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; sum += gray[i]; }
+    var n = 0, m = 0, m2 = 0;
+    for (var y = 1; y < h - 1; y++) {
+      for (var x = 1; x < w - 1; x++) {
+        i = y * w + x;
+        var v = gray[i - 1] + gray[i + 1] + gray[i - w] + gray[i + w] - 4 * gray[i];
+        n++; m += v; m2 += v * v;
+      }
+    }
+    var out = [];
+    if (n && m2 / n - (m / n) * (m / n) < BLUR_MIN) out.push('blur');
+    if (sum / (w * h) < DARK_MAX) out.push('dark');
+    if (origLong < SMALL_MIN) out.push('small');
+    return out;
+  }
+  // 모두 한 번에 보내고, 장별 결과를 카드에 · 합친 값을 확인 화면에
+  function readAll() {
+    var form = new FormData();
+    PAGES.forEach(function (p, i) {
+      form.append('files', p.blob, 'page' + (i + 1) + (p.pdf ? '.pdf' : '.jpg'));
+      form.append('docTypes', p.type.toUpperCase());
+      p.state = 'reading';
+    });
+    S.up = { status: 'reading', n: PAGES.length };
+    render();
+    var sent = PAGES.slice();
+    api('/api/v1/documents/extract-batch', form).then(function (res) {
+      res.pages.forEach(function (r) { var p = sent[r.page - 1]; p.state = r.ok ? 'ok' : 'fail'; p.n = r.fields.length; });
+      applyExtract(res);
+      S.up.status = 'done';
+      toast(t('up.toast'));
+      if (S.route === 'upload') go('review'); else save();
+    }, function (e) {
+      sent.forEach(function (p, i) {
+        if (e.field === 'files[' + i + ']') bad(p, e.message);
+        else p.state = e.status === 422 ? 'fail' : 'ready';
+      });
+      S.up = { status: e.status === 422 ? 'fail' : 'error', msg: e.message };
+      if (S.route === 'upload') render(); else save();
+    });
+  }
+  // 다시 그려도 누르던 단추에 포커스를 둔다 (없어졌으면 목록 제목)
+  function rerender() {
+    var id = document.activeElement && document.activeElement.id;
+    render();
+    var el = (id && document.getElementById(id)) || document.getElementById('pages-title');
+    if (el && id) el.focus();
+  }
+
   // ---------- 동작 ----------
-  // POST /documents/extract 응답 → 확인 화면 값. 0.8 미만은 노란 줄, unreadable 은 빈칸
-  // 서류를 하나씩 올리면 앞 서류에서 읽은 값에 덧붙인다
+  // POST /documents/extract-batch 응답 → 확인 화면 값. 0.8 미만 · 사진끼리 다른 값은 노란 줄, unreadable 은 빈칸
+  // 다시 읽으면 앞에서 읽은 값에 덧붙인다
+  function shown(v) {
+    if (Array.isArray(v)) return won(v.reduce(function (s, a) { return s + Number(a.amount); }, 0));
+    return typeof v === 'number' ? v.toLocaleString('ko-KR') : String(v);
+  }
   function applyExtract(res) {
     var f = S.f;
     var weekly = 0;
@@ -792,41 +991,24 @@
       else if (x.key === 'paidAmount') f.paid = String(v);
       else f[row] = String(v);
       S.src[row] = 'doc';
+      S.from[row] = x.page || 0;
       S.low[row] = x.confidence < 0.8;
       S.ok[row] = false;
     });
     var cnt = f.days.filter(Boolean).length;
     if (!f.dayHours && weekly && cnt) f.dayHours = String(weekly / cnt);
     (res.unreadable || []).forEach(function (k) { if (ROW_OF[k]) S.unread[ROW_OF[k]] = true; });
+    // 사진마다 값이 다르면 노란 줄 + 어느 사진에서 무엇을 읽었는지
+    (res.conflicts || []).forEach(function (c) {
+      var row = ROW_OF[c.key];
+      if (!row) return;
+      S.conf[row] = c.values.map(function (v) { return v.page + '번 사진 ' + shown(v.value); }).join(' · ');
+      S.low[row] = true;
+      S.ok[row] = false;
+    });
     S.up.n = res.fields.length;
     S.up.unread = (res.unreadable || []).length;
     S.up.masked = res.maskedCount || 0;
-  }
-  function handleFile(input) {
-    var file = input.files && input.files[0];
-    if (!file) return;
-    var name = file.name.toLowerCase();
-    var okType = /\.(pdf|jpe?g|png)$/.test(name) || /^(application\/pdf|image\/jpeg|image\/png)$/.test(file.type);
-    if (/\.hwp$/.test(name)) S.up = { status: 'error', name: file.name, msg: t('up.hwp') };
-    else if (!okType) S.up = { status: 'error', name: file.name, msg: t('err.415') };
-    else if (file.size > MAX_SIZE) S.up = { status: 'error', name: file.name, msg: t('err.413') };
-    else {
-      var form = new FormData();
-      form.append('file', file);
-      form.append('docType', S.docType.toUpperCase());
-      S.up = { status: 'reading', name: file.name, msg: '' };
-      api('/api/v1/documents/extract', form).then(function (res) {
-        applyExtract(res);
-        S.up.status = 'done';
-        toast(t('up.toast'));
-      }, function (e) {
-        // 422 는 직접 입력 안내, 나머지(413·415·429 등)는 안내 문구
-        S.up = { status: e.status === 422 ? 'fail' : 'error', name: file.name, msg: e.message };
-      }).then(function () {
-        if (S.route === 'upload') render(); else save();
-      });
-    }
-    render();
   }
   function setField(el) {
     var key = el.dataset.f;
@@ -898,14 +1080,18 @@
     else if (a === 'path') {
       S.path = t.dataset.v;
       // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
-      if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
-      if (S.path === 'doc') S.up = { status: 'idle', name: '', msg: '' };
+      if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
+      if (S.path === 'doc') { S.up = { status: 'idle' }; PAGES.forEach(function (p) { setUrl(p, null); }); PAGES = []; }
       go(S.path === 'manual' ? 'q1' : 'upload');
     }
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
     else if (a === 'ok') { S.ok[t.dataset.k] = true; render(); }
     else if (a === 'disclaim') toastT('result.disclaimToast');
     else if (a === 'calculate') calculate(t);
+    else if (a === 'read') readAll();
+    else if (a === 'pg-rotate') { var rp = pageOf(t.dataset.id); rp.rot = (rp.rot + 90) % 360; prep(rp); rerender(); }
+    else if (a === 'pg-retake') { retakeId = Number(t.dataset.id); document.getElementById('retake').click(); }
+    else if (a === 'pg-remove') { var gone = pageOf(t.dataset.id); setUrl(gone, null); PAGES.splice(PAGES.indexOf(gone), 1); rerender(); }
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
     else if (a === 'make') make();
@@ -921,8 +1107,9 @@
     var a = t.dataset.act;
     if (a === 'agree') { S.agreed = t.checked; render(); var c = document.getElementById('agree'); if (c) c.focus(); }
     else if (a === 'lang-select') setLang(t.value).then(function () { var s = document.getElementById('lang-top'); if (s) s.focus(); });
-    else if (a === 'doctype') { S.docType = t.value; render(); var r2 = app.querySelector('[data-act="doctype"][value="' + t.value + '"]'); if (r2) r2.focus(); }
-    else if (a === 'file') handleFile(t);
+    else if (a === 'files') { addFiles(t.files); t.value = ''; }
+    else if (a === 'retake-file') { var rp = pageOf(retakeId); if (rp && t.files[0]) { setFile(rp, t.files[0]); rerender(); } t.value = ''; }
+    else if (a === 'pg-type') { var tp = pageOf(t.dataset.id); tp.type = t.value; if (tp.state === 'ok' || tp.state === 'fail') tp.state = 'ready'; rerender(); }
     else if (t.dataset.f !== undefined && !t.hasAttribute('data-live')) {
       setField(t);
       var id = t.id, val = t.value;
@@ -937,10 +1124,28 @@
     else if (t.dataset.p !== undefined) { S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; save(); }
   });
 
+  // 데스크톱: 끌어다 놓기 · 붙여넣기(Ctrl+V)
+  function dropZone(on) { var z = app.querySelector('.capture'); if (z) z.classList.toggle('drag', on); }
+  document.addEventListener('dragover', function (e) { if (S.route !== 'upload' || S.up.status === 'reading') return; e.preventDefault(); dropZone(true); });
+  document.addEventListener('dragleave', function (e) { if (!e.relatedTarget) dropZone(false); });
+  document.addEventListener('drop', function (e) {
+    if (S.route !== 'upload' || S.up.status === 'reading') return;
+    e.preventDefault();
+    dropZone(false);
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  document.addEventListener('paste', function (e) {
+    if (S.route !== 'upload' || S.up.status === 'reading' || !e.clipboardData) return;
+    var files = Array.prototype.map.call(e.clipboardData.items, function (it) { return it.kind === 'file' ? it.getAsFile() : null; }).filter(Boolean);
+    if (files.length) { e.preventDefault(); addFiles(files); }
+  });
+
   var start = (location.hash || '').slice(1);
   if (ALL.indexOf(start) >= 0 && (start === 'start' || S.agreed)) S.route = start;
   if (NEED_CALC.indexOf(S.route) >= 0 && !S.calc) S.route = 'review';
   if (S.route === 'complaint' && !S.draft) S.route = 'form';
+  // 사진은 메모리에만 있어 새로고침하면 사라진다 → 읽는 중 표시도 지운다
+  if (S.up.status === 'reading') S.up = { status: 'idle' };
   // 한국어(기본 문구)와 고른 언어 문구를 받은 뒤 그린다
   Promise.all([loadLang('ko'), loadLang(S.lang)]).then(function () { render(false); });
 })();
