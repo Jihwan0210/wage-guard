@@ -5,11 +5,15 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,7 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Allowance;
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Month;
+import com.yellowdolphin.wageback.calculation.CalculationRequest.WorkDay;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Basis;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Item;
 import com.yellowdolphin.wageback.calculation.CalculationResult.NotApplied;
@@ -29,14 +34,15 @@ import com.yellowdolphin.wageback.calculation.CalculationResult.Notice;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Period;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Summary;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Value;
+import com.yellowdolphin.wageback.calculation.CalculationResult.WorkWeek;
 
 // 룰 엔진: 항목별 체불액을 계산한다. 금액은 여기서만 만든다
 final class RuleEngine {
 
-    static final String VERSION = "1.0.0";
+    static final String VERSION = "1.1.0";
     static final Map<Integer, BigDecimal> MIN_WAGES = loadMinWages();
 
-    private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40);
+    private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40), SIXTY = dec(60);
 
     private static final Map<String, String> LABELS = Map.of(
             "BASE_WAGE", "못 받은 월급",
@@ -69,6 +75,9 @@ final class RuleEngine {
     private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly;
     private final String hourlyFormula;
     private final Map<String, Notice> warnings = new LinkedHashMap<>();
+    private final List<WorkWeek> workWeeks = new ArrayList<>();
+    private final Map<String, Integer> recordedDays = new LinkedHashMap<>(); // 달 → 하루 기록 수
+    private final List<Month> months;
 
     private RuleEngine(CalculationRequest req) {
         this.req = req;
@@ -99,6 +108,7 @@ final class RuleEngine {
             hourlyFormula = f;
         }
         hourly = perHour.setScale(2, RoundingMode.DOWN);
+        months = withWorkDays();
     }
 
     static CalculationResult calculate(CalculationRequest req, String id) {
@@ -140,7 +150,7 @@ final class RuleEngine {
                 new Period(start.toString(), end == null ? null : end.toString()),
                 new Summary(due, paid, unpaid),
                 new Value(hourly.toPlainString(), hourlyFormula),
-                dailyAverage, items, List.copyOf(warnings.values()), notApplied);
+                dailyAverage, items, List.copyOf(warnings.values()), notApplied, List.copyOf(workWeeks));
     }
 
     // 한 달 치 항목 (받은 돈을 빼기 전 받아야 할 금액)
@@ -174,7 +184,8 @@ final class RuleEngine {
             paidHours = div(weekly.multiply(dec(days)), SEVEN);
         }
 
-        String rateNote = underFive ? " (5인 미만: 가산 없음)" : "";
+        String rateNote = (underFive ? " (5인 미만: 가산 없음)" : "")
+                + (recordedDays.containsKey(mo) ? " (하루 기록 " + recordedDays.get(mo) + "일에서 나눈 시간)" : "");
         items.add(rateItem("OVERTIME", mo, m.overtimeHours(), underFive ? "1.0" : "1.5", rateNote, "입력한 연장 근무시간이 없어요"));
         items.add(rateItem("NIGHT", mo, m.nightHours(), underFive ? "0" : "0.5", rateNote, "입력한 야간 근무시간이 없어요"));
 
@@ -271,6 +282,93 @@ final class RuleEngine {
         return new Severance(item, new Value(Long.toString(average), averageFormula));
     }
 
+    // ---- 하루 기록 (v2) ----
+
+    // 하루 기록이 있는 달은 연장 · 야간 · 휴일 시간을 기록에서 나눈 값으로 바꾼다 (그 달에 적은 월 합계 시간 대신)
+    private List<Month> withWorkDays() {
+        List<Month> given = req.months() == null ? List.of() : req.months();
+        List<WorkDay> days = req.workDays() == null ? List.of() : req.workDays();
+        if (days.isEmpty()) {
+            return given;
+        }
+        List<Month> out = new ArrayList<>();
+        for (Month m : given) {
+            List<WorkDay> mine = days.stream().filter(d -> YearMonth.from(d.date()).toString().equals(m.month()))
+                    .sorted(Comparator.comparing(WorkDay::date)).toList();
+            out.add(mine.isEmpty() ? m : fromDays(m, mine));
+        }
+        warn("DAILY_RECORDS", "하루 기록이 있는 달은 기록에서 연장·야간·휴일 시간을 나눠 계산했어요. 쉬는 시간은 밤 10시~아침 6시가 아닌 때에 쉬었다고 보고, 달이 바뀌는 주는 그 달 날짜만으로 셌어요.");
+        return out;
+    }
+
+    // 주(월요일 시작)마다: 평일 연장 = max(하루 8시간 넘은 합, 주 40시간 넘은 시간).
+    // 휴일에 일한 시간은 주 40시간에 넣지 않고 휴일근로(8시간까지 · 넘은 시간)로 따로 센다
+    private Month fromDays(Month m, List<WorkDay> days) {
+        Map<LocalDate, List<WorkDay>> weeks = new TreeMap<>();
+        for (WorkDay d : days) {
+            weeks.computeIfAbsent(d.date().with(DayOfWeek.MONDAY), k -> new ArrayList<>()).add(d);
+        }
+        BigDecimal ot = BigDecimal.ZERO, night = BigDecimal.ZERO, within8 = BigDecimal.ZERO, over8 = BigDecimal.ZERO;
+        for (Map.Entry<LocalDate, List<WorkDay>> w : weeks.entrySet()) {
+            List<BigDecimal> weekdays = new ArrayList<>();
+            BigDecimal worked = BigDecimal.ZERO, wNight = BigDecimal.ZERO, w8 = BigDecimal.ZERO, wOver = BigDecimal.ZERO, dailyOver = BigDecimal.ZERO;
+            for (WorkDay d : w.getValue()) {
+                int[] t = minutes(d);
+                BigDecimal h = div(dec(t[0]), SIXTY);
+                worked = worked.add(h);
+                wNight = wNight.add(div(dec(t[1]), SIXTY));
+                if (Boolean.TRUE.equals(d.holiday())) {
+                    w8 = w8.add(h.min(EIGHT));
+                    wOver = wOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                } else {
+                    weekdays.add(h);
+                    dailyOver = dailyOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                }
+            }
+            BigDecimal weekdayTotal = weekdays.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal wOt = weeklyOvertimeHours(weekdays.toArray(BigDecimal[]::new));
+            String f = "평일 " + weekdays.size() + "일 " + plain(weekdayTotal) + "시간: 하루 8시간 넘은 합 " + plain(dailyOver)
+                    + "시간과 주 40시간 넘은 " + plain(weekdayTotal.subtract(FORTY).max(BigDecimal.ZERO)) + "시간 중 큰 값 → 연장 " + plain(wOt) + "시간"
+                    + (w8.signum() > 0 ? " · 휴일 " + plain(w8.add(wOver)) + "시간 (8시간까지 " + plain(w8) + " · 넘은 " + plain(wOver) + ")" : "")
+                    + " · 밤 10시~아침 6시 " + plain(wNight) + "시간";
+            workWeeks.add(new WorkWeek(m.month(), w.getKey().toString(), w.getValue().size(), plain(worked), plain(wOt), plain(wNight),
+                    plain(w8), plain(wOver), f));
+            ot = ot.add(wOt);
+            night = night.add(wNight);
+            within8 = within8.add(w8);
+            over8 = over8.add(wOver);
+        }
+        recordedDays.put(m.month(), days.size());
+        return new Month(m.month(), m.paidAmount(), h2(ot), h2(night), h2(within8), h2(over8), m.absentWeeks());
+    }
+
+    // 하루 기록 → {일한 분, 그중 밤 10시~아침 6시 분}. 퇴근 시각이 출근보다 이르거나 같으면 다음 날 퇴근
+    static int[] minutes(WorkDay d) {
+        int s = clock(d.start()), e = clock(d.end());
+        if (e <= s) {
+            e += 1440;
+        }
+        int worked = e - s - (d.breakMinutes() == null ? 0 : d.breakMinutes());
+        int night = 0;
+        for (int day = -1440; day <= 1440; day += 1440) { // 전날 · 그날 · 다음 날의 22:00 ~ 다음 날 06:00
+            night += Math.max(0, Math.min(e, day + 1800) - Math.max(s, day + 1320));
+        }
+        return new int[] { worked, Math.min(night, worked) };
+    }
+
+    private static int clock(String hhmm) {
+        LocalTime t = LocalTime.parse(hhmm);
+        return t.getHour() * 60 + t.getMinute();
+    }
+
+    private static BigDecimal h2(BigDecimal v) {
+        return v.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static String plain(BigDecimal v) {
+        return h2(v).stripTrailingZeros().toPlainString();
+    }
+
     // 한 주의 하루별 근무시간 → 연장시간 (1일 8시간 초과 합과 1주 40시간 초과 중 큰 쪽)
     static BigDecimal weeklyOvertimeHours(BigDecimal... dailyHours) {
         BigDecimal daily = BigDecimal.ZERO, week = BigDecimal.ZERO;
@@ -312,7 +410,7 @@ final class RuleEngine {
     }
 
     private List<Month> months() {
-        return req.months() == null ? List.of() : req.months();
+        return months;
     }
 
     private void warn(String key, String message) {
@@ -370,6 +468,39 @@ final class RuleEngine {
             hours(m.holidayHoursOver8(), p + "holidayHoursOver8");
             if (m.absentWeeks() != null && m.absentWeeks() < 0) {
                 throw new InvalidCalculationException("INVALID_VALUE", p + "absentWeeks", "결근 주 수는 0 이상이어야 해요.");
+            }
+        }
+        Set<String> monthKeys = new HashSet<>();
+        months.forEach(m -> monthKeys.add(m.month()));
+        Set<LocalDate> seen = new HashSet<>();
+        List<WorkDay> workDays = r.workDays() == null ? List.of() : r.workDays();
+        for (int i = 0; i < workDays.size(); i++) {
+            WorkDay d = workDays.get(i);
+            String p = "workDays[" + i + "].";
+            need(d.date() != null, p + "date");
+            need(d.start() != null, p + "start");
+            need(d.end() != null, p + "end");
+            if (!seen.add(d.date())) {
+                throw new InvalidCalculationException("INVALID_VALUE", p + "date", "같은 날짜가 두 번 있어요.");
+            }
+            if (d.date().isBefore(s) || (e != null && d.date().isAfter(e))) {
+                throw new InvalidCalculationException("INVALID_PERIOD", p + "date", "일한 기간 밖의 날짜예요.");
+            }
+            if (!monthKeys.contains(YearMonth.from(d.date()).toString())) {
+                throw new InvalidCalculationException("INVALID_MONTH", p + "date", "months 에 없는 달의 기록이에요. 그 달에 받은 돈도 함께 보내 주세요.");
+            }
+            for (String key : List.of("start", "end")) {
+                try {
+                    clock(key.equals("start") ? d.start() : d.end());
+                } catch (DateTimeParseException ex) {
+                    throw new InvalidCalculationException("INVALID_VALUE", p + key, "시각은 HH:mm 형식으로 적어 주세요.");
+                }
+            }
+            if (d.breakMinutes() != null && d.breakMinutes() < 0) {
+                throw new InvalidCalculationException("INVALID_HOURS", p + "breakMinutes", "쉬는 시간은 0 이상이어야 해요.");
+            }
+            if (minutes(d)[0] <= 0) {
+                throw new InvalidCalculationException("INVALID_HOURS", p + "breakMinutes", "쉬는 시간을 빼면 일한 시간이 없어요.");
             }
         }
     }

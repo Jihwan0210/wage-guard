@@ -11,7 +11,8 @@ public record CalculationRequest(
         Schedule schedule,
         Wage wage,
         List<Month> months,
-        Long lastThreeMonthsWages) {
+        Long lastThreeMonthsWages,
+        List<WorkDay> workDays) {
 
     public record Workplace(String size) {
     }
@@ -36,5 +37,9 @@ public record CalculationRequest(
             BigDecimal holidayHoursWithin8,
             BigDecimal holidayHoursOver8,
             Integer absentWeeks) {
+    }
+
+    // v2: 달력에서 넣은 하루 기록. start · end 는 "HH:mm", end 가 start 보다 이르면 다음 날로 본다
+    public record WorkDay(LocalDate date, String start, String end, Integer breakMinutes, Boolean holiday) {
     }
 }

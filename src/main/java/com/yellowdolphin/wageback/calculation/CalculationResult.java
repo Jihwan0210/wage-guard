@@ -13,7 +13,8 @@ public record CalculationResult(
         Value dailyAverageWage,
         List<Item> items,
         List<Notice> warnings,
-        List<NotApplied> notApplied) {
+        List<NotApplied> notApplied,
+        List<WorkWeek> workWeeks) {
 
     public record Period(String start, String end) {
     }
@@ -36,5 +37,10 @@ public record CalculationResult(
     }
 
     public record NotApplied(String code, String reason) {
+    }
+
+    // v2: 하루 기록(workDays)을 주(월요일 시작)별로 나눈 시간. 하루 기록이 없으면 빈 목록
+    public record WorkWeek(String month, String weekStart, int days, String workedHours, String overtimeHours,
+            String nightHours, String holidayHoursWithin8, String holidayHoursOver8, String formula) {
     }
 }
