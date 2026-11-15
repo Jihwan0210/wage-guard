@@ -1,54 +1,82 @@
 (function () {
   'use strict';
 
-  var KEY = 'wage-proto-v1';
+  // 입력값은 이 휴대폰에만(localStorage), 이름 · 연락처 · 진정서는 탭을 닫으면 지워지게(sessionStorage)
+  var KEY = 'wageback-v2', PKEY = 'wageback-v2-p';
   var DAYS = ['월', '화', '수', '목', '금', '토', '일'];
   var MIN_WAGE = 10320;
   var MAX_SIZE = 10 * 1024 * 1024;
-  var ALL = ['start', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'review', 'result', 'form', 'complaint', 'guide', 'counselor'];
-  var STEP = { upload: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, review: 2, result: 3, form: 4, complaint: 4 };
-  var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', guide: 'title.guide', counselor: 'title.counselor' };
+  var ALL = ['start', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words'];
+  var STEP = { upload: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, cal: 1, review: 2, result: 3, form: 4, complaint: 4 };
+  var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words' };
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor'];
-  // 영어·베트남어로 보여 주는 화면 (나머지는 한국어)
-  var TRANSLATED = ['start', 'upload', 'result', 'guide'];
+  // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
+  var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
+  var ITEM_WORD = { OVERTIME: 'overtime', NIGHT: 'night', HOLIDAY: 'holidayWork', WEEKLY_HOLIDAY: 'weeklyHoliday', SEVERANCE: 'severance', MIN_WAGE_SHORTFALL: 'minWage' };
   // 추출 키 → 확인 화면 줄 이름
   var ROW_OF = { companyName: 'company', employeeCount: 'size', startDate: 'start', endDate: 'end', workDaysPerWeek: 'days', dailyContractHours: 'time', weeklyContractHours: 'time', wageType: 'wage', baseWage: 'wage', allowances: 'allowance', payMonth: 'month', paidAmount: 'paid', overtimeHours: 'ot', nightHours: 'night', holidayHours: 'holiday' };
   // 오류 field 앞부분 → 확인 화면 줄 · 진정서 입력칸
-  var FIELD_ROW = [['workplace', 'size'], ['employment.startDate', 'start'], ['employment.endDate', 'end'], ['schedule', 'time'], ['wage.ordinaryAllowances', 'allowance'], ['wage', 'wage'], ['months[0].month', 'month'], ['months[0].paidAmount', 'paid'], ['months[0].overtime', 'ot'], ['months[0].night', 'night'], ['months[0].holiday', 'holiday']];
+  var FIELD_ROW = [['workplace', 'size'], ['employment.startDate', 'start'], ['employment.endDate', 'end'], ['schedule', 'time'], ['wage.ordinaryAllowances', 'allowance'], ['wage', 'wage'], ['months[0].month', 'month'], ['months[0].paidAmount', 'paid'], ['months[0].overtime', 'ot'], ['months[0].night', 'night'], ['months[0].holiday', 'holiday'], ['months', 'more'], ['workDays', 'work']];
   var FIELD_P = { 'complainant.name': 'name', 'complainant.phone': 'phone', 'complainant.address': 'addr', 'respondent.companyName': 'company', 'respondent.ownerName': 'owner', 'respondent.address': 'waddr', 'respondent.phone': 'wphone', job: 'job', extraFacts: 'facts' };
   var L = {};
 
   function blankFields() {
-    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '' };
+    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '', more: [], work: {} };
   }
+  // 언어 목록은 i18n/languages.json (언어 파일을 더하고 여기에 한 줄 넣으면 늘어난다)
+  var LANGS = [{ code: 'ko', name: '한국어' }];
   function detectLang() {
-    var l = (navigator.language || 'ko').toLowerCase();
-    if (l.indexOf('vi') === 0) return 'vi';
-    if (l.indexOf('ko') === 0) return 'ko';
-    return 'en';
+    var l = (navigator.language || 'ko').toLowerCase().slice(0, 2);
+    return LANGS.some(function (x) { return x.code === l; }) ? l : LANGS.some(function (x) { return x.code === 'en'; }) ? 'en' : 'ko';
   }
   function fresh() {
     return {
-      route: 'start', agreed: false, lang: detectLang(), big: false, path: '',
+      route: 'start', agreed: false, lang: 'ko', big: false, path: '',
       up: { status: 'idle' },
       f: blankFields(), src: {}, from: {}, conf: {}, low: {}, ok: {}, unread: {}, fieldErr: {},
       p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' }, pErr: {},
       formTried: false, factsText: null, editing: false, tr: true,
-      calc: null, explain: null, explainState: '', draft: null
+      calc: null, explain: null, explainState: '', draft: null,
+      calM: '', calSel: '', ready: {}, office: { sido: '', sgg: '' }, dj: {}
     };
   }
+  var PRIVATE = ['p', 'draft', 'factsText', 'pErr'];
   function load() {
+    var s = fresh();
     try {
-      var raw = sessionStorage.getItem(KEY);
-      if (raw) return Object.assign(fresh(), JSON.parse(raw));
+      var raw = localStorage.getItem(KEY);
+      if (raw) { s = Object.assign(s, JSON.parse(raw)); s.saved = true; }
+      var p = JSON.parse(sessionStorage.getItem(PKEY) || 'null');
+      if (p) PRIVATE.forEach(function (k) { if (p[k] !== undefined) s[k] = p[k]; });
     } catch (e) {}
-    return fresh();
+    s.f = Object.assign(blankFields(), s.f);
+    return s;
   }
   function save() {
-    try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    var keep = {}, priv = {};
+    Object.keys(S).forEach(function (k) { if (k !== 'saved') (PRIVATE.indexOf(k) >= 0 ? priv : keep)[k] = S[k]; });
+    try {
+      localStorage.setItem(KEY, JSON.stringify(keep));
+      sessionStorage.setItem(PKEY, JSON.stringify(priv));
+    } catch (e) {}
+  }
+  // 내 정보 지우기: 이 휴대폰에 남긴 입력값 · 결과를 모두 지운다 (언어 · 큰 글씨만 남김)
+  function wipe() {
+    if (!window.confirm(t('wipe.confirm'))) return;
+    try { localStorage.removeItem(KEY); sessionStorage.removeItem(PKEY); } catch (e) {}
+    var lang = S.lang, big = S.big;
+    PAGES.forEach(function (p) { setUrl(p, null); });
+    PAGES = [];
+    S = fresh();
+    S.lang = lang; S.big = big;
+    stack = [];
+    resumeTo = '';
+    go('start');
+    toast(t('wipe.done'));
   }
 
   var S = load();
+  var resumeTo = '';
   var stack = [];
   var app = document.getElementById('app');
   var inFrame = window.self !== window.top;
@@ -59,10 +87,9 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  // 화면 문구: i18n/<언어>.json, 번역 안 된 화면이나 빠진 문구는 한국어
+  // 화면 문구: i18n/<언어>.json, 빠진 문구는 한국어
   function t(k, vars) {
-    var lang = TRANSLATED.indexOf(S.route) >= 0 || k.indexOf('err.') === 0 ? S.lang : 'ko';
-    var s = (L[lang] && L[lang][k]) || (L.ko && L.ko[k]) || k;
+    var s = (L[S.lang] && L[S.lang][k]) || (L.ko && L.ko[k]) || k;
     return s.replace(/\{(\w+)\}/g, function (_, v) { return (vars || {})[v]; });
   }
   function loadLang(lang) {
@@ -71,12 +98,25 @@
   }
   function money(n) { return t('money', { n: Number(n).toLocaleString('ko-KR') }); }
   function won(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
-  function readable(n) {
+  // 읽기 쉬운 금액: 한국어 '18만 4천 원', 다른 언어 'about 184 thousand won' (보여 주기만, 계산에 쓰지 않음)
+  function korRead(n) {
+    if (!n) return '0원';
+    var eok = Math.floor(n / 1e8), man = Math.floor(n % 1e8 / 1e4), rest = n % 1e4, out = [];
+    if (eok) out.push(eok.toLocaleString('ko-KR') + '억');
+    if (man) out.push(man.toLocaleString('ko-KR') + '만');
+    if (rest) out.push(rest % 1000 ? rest.toLocaleString('ko-KR') : rest / 1000 + '천');
+    return out.join(' ') + (rest % 1000 ? '원' : ' 원');
+  }
+  function readable(n, lang) {
+    if (n === '' || n == null) return '';
     n = Number(n);
-    if (!n) return n === 0 ? '0원' : '';
-    var man = Math.floor(n / 10000), rest = n % 10000;
-    if (!man) return rest.toLocaleString('ko-KR') + '원';
-    return man.toLocaleString('ko-KR') + '만' + (rest ? ' ' + rest.toLocaleString('ko-KR') + '원' : ' 원');
+    if ((lang || S.lang) === 'ko') return korRead(n);
+    if (n < 1000) return '';
+    var u = n >= 1e6 ? [1e6, 'read.million'] : [1e3, 'read.thousand'];
+    return t('read.about', { n: (n / u[0]).toLocaleString(S.lang, { maximumFractionDigits: 2 }), u: t(u[1]) });
+  }
+  function term(id, label) {
+    return '<button type="button" class="term" data-act="term" data-v="' + id + '">' + (label || t('w.' + id)) + '</button>';
   }
   function krDate(d) {
     if (!d) return '';
@@ -84,6 +124,14 @@
     return Number(p[0]) + '년 ' + Number(p[1]) + '월 ' + Number(p[2]) + '일';
   }
   function dotDate(d) { return d ? d.replace(/-/g, '.') : ''; }
+  // 연도까지: '2026년 9월' · 'Sep 2026'
+  function ymName(ym) { return S.lang === 'ko' ? ym.slice(0, 4) + '년 ' + Number(ym.slice(5)) + '월' : monthName(ym); }
+  // '2026-09' → '9월' · 'Sep 2026' · 'thg 9 2026' (브라우저 날짜 표기)
+  function monthName(ym, lang) {
+    lang = lang || S.lang;
+    if (lang === 'ko') return Number(ym.slice(5)) + '월';
+    return new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5) - 1, 1)).toLocaleDateString(lang, { year: 'numeric', month: 'short', timeZone: 'UTC' });
+  }
   function hours() {
     var f = S.f;
     if (f.tStart === '' || f.tEnd === '' || f.brk === '') return Number(f.dayHours) || 0;
@@ -121,7 +169,16 @@
     pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
     rotate: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
-    out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
+    out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    sound: '<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+    stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+    cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>',
+    book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 7.5h8M8 11h5"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4 6.5l1 1 2-2M4 12l1 1 2-2M4 17.5l1 1 2-2"/>',
+    coin: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 9l1.8 6.5L12 10.5l1.7 5L15.5 9M7.5 12h9"/>',
+    trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>'
   };
   function icon(name, cls) {
     return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ICONS[name] + '</svg>';
@@ -169,12 +226,36 @@
     return m && m[1];
   }
   function hoursOrNull(v) { return v === '' ? null : Number(v); }
-  // 화면 입력값 → POST /api/v1/calculations 요청 (API.md 형식)
+  function lastMonth() {
+    var f = S.f;
+    return (f.employed === 'no' && f.end ? f.end : new Date().toISOString()).slice(0, 7);
+  }
+  // 못 받은 달 목록: 첫 달(질문 6) + 더한 달
+  function monthList() {
+    var out = [S.f.month || lastMonth()];
+    S.f.more.forEach(function (m) { if (m.month && out.indexOf(m.month) < 0) out.push(m.month); });
+    return out;
+  }
+  // 달력 하루 기록 → 일한 분 (퇴근이 출근보다 이르면 다음 날). 화면 표시용, 연장 · 야간 나누기는 서버 룰 엔진이 한다
+  function mins(hm) { var p = hm.split(':'); return Number(p[0]) * 60 + Number(p[1]); }
+  function workedMin(w) {
+    var s = mins(w.s), e = mins(w.e);
+    if (e <= s) e += 1440;
+    return e - s - Number(w.b || 0);
+  }
+  function hrs(m) { return Math.round(m / 6) / 10; }
+  function workDays() {
+    var ms = monthList();
+    return Object.keys(S.f.work).filter(function (d) { return ms.indexOf(d.slice(0, 7)) >= 0; }).sort().map(function (d) {
+      var w = S.f.work[d];
+      return { date: d, start: w.s, end: w.e, breakMinutes: Number(w.b || 0), holiday: !!w.h };
+    });
+  }
+  // 화면 입력값 → POST /api/v1/calculations 요청 (API.md 형식 + v2 workDays)
   function toRequest() {
     var f = S.f;
     var count = f.days.filter(Boolean).length;
     var h = hours();
-    var lastDay = f.employed === 'no' && f.end ? f.end : new Date().toISOString().slice(0, 10);
     var holiday = hoursOrNull(f.holiday);
     return {
       workplace: { size: f.size === 'under' ? 'UNDER_FIVE' : 'FIVE_OR_MORE' },
@@ -188,15 +269,18 @@
         annualBonus: 0
       },
       months: [{
-        month: f.month || lastDay.slice(0, 7),
+        month: f.month || lastMonth(),
         paidAmount: Number(f.paid),
         overtimeHours: hoursOrNull(f.ot),
         nightHours: hoursOrNull(f.night),
         holidayHoursWithin8: holiday == null ? null : Math.min(holiday, 8),
         holidayHoursOver8: holiday == null ? null : Math.max(holiday - 8, 0),
         absentWeeks: 0
-      }],
-      lastThreeMonthsWages: null
+      }].concat(f.more.filter(function (m) { return m.month; }).map(function (m) {
+        return { month: m.month, paidAmount: Number(m.paid) || 0, overtimeHours: null, nightHours: null, holidayHoursWithin8: null, holidayHoursOver8: null, absentWeeks: 0 };
+      })),
+      lastThreeMonthsWages: null,
+      workDays: workDays()
     };
   }
   // POST /calculations 응답 → 화면에서 쓰는 값
@@ -210,15 +294,22 @@
       due: c.summary.totalDue,
       paid: c.summary.totalPaid,
       hourly: c.hourlyOrdinaryWage ? Number(c.hourlyOrdinaryWage.value).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '원' : '—',
+      hourlyFormula: c.hourlyOrdinaryWage ? c.hourlyOrdinaryWage.formula : '',
       daily: c.dailyAverageWage ? Number(c.dailyAverageWage.value).toLocaleString('ko-KR') + '원' : '—',
+      dailyFormula: c.dailyAverageWage ? c.dailyAverageWage.formula : '',
       notApplied: (c.notApplied || []).map(function (n) { return n.reason; }),
+      warnings: (c.warnings || []).map(function (n) { return n.message; }),
+      weeks: c.workWeeks || [],
       items: c.items.map(function (it) {
         var b = (it.legalBasis || [])[0] || {};
         var name = names['item.' + it.code] || it.label;
         return {
           code: it.code,
           name: name,
-          label: name + (it.month ? ' (' + (S.lang === 'ko' ? Number(it.month.slice(5)) + '월' : it.month) + ')' : ''),
+          month: it.month,
+          ko: it.label,
+          basis: it.legalBasis || [],
+          label: name + (it.month ? ' (' + monthName(it.month) + ')' : ''),
           amount: it.status === 'CALCULATED' ? it.amount : null,
           status: it.status === 'CALCULATED' ? '' : t('status.' + it.status),
           missing: it.status === 'NO_DATA',
@@ -302,7 +393,7 @@
       case 'q3': return f.employed === 'yes' || (f.employed === 'no' && !!f.end && f.end >= f.start);
       case 'q4': return f.days.some(Boolean) && hours() > 0;
       case 'q5': return !!f.wageType && Number(f.wage) > 0;
-      case 'q6': return f.paid !== '';
+      case 'q6': return f.paid !== '' && f.more.every(function (m) { return m.month && m.paid !== ''; }) && monthList().length === f.more.length + 1;
       case 'review':
         return ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'].every(valid) && Object.keys(S.low).every(function (k) { return !S.low[k] || S.ok[k]; });
       default: return true;
@@ -319,6 +410,7 @@
     if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
     if (r === 'complaint' && !S.draft) r = 'form';
     if (!opts || !opts.back) stack.push(S.route);
+    if (canSpeak) { window.speechSynthesis.cancel(); speaking = ''; }
     S.route = r;
     save();
     var url = '#' + r;
@@ -358,14 +450,19 @@
       '<button type="button" class="big-btn" data-act="big" aria-pressed="' + S.big + '" aria-label="' + t('top.big') + '">가<span aria-hidden="true">+</span></button>' +
       '<label class="sr" for="lang-top">' + t('top.lang') + '</label>' +
       '<span class="lang-wrap">' + icon('globe') + '<select id="lang-top" class="lang-select" data-act="lang-select">' +
-      opt('ko', '한국어') + opt('en', 'English') + opt('vi', 'Tiếng Việt') +
+      LANGS.map(function (l) { return '<option value="' + l.code + '" lang="' + l.code + '"' + (S.lang === l.code ? ' selected' : '') + '>' + l.name + '</option>'; }).join('') +
       '</select></span></div></div></header>';
-    function opt(v, t) { return '<option value="' + v + '"' + (S.lang === v ? ' selected' : '') + '>' + t + '</option>'; }
   }
-  // 번역 안 된 화면에서만 '한국어로만 나와요' 안내
+  // 번역이 직접 번역(검수 전)이면 알림
   function langBanner() {
-    var note = S.lang !== 'ko' && TRANSLATED.indexOf(S.route) < 0 && (L[S.lang] || {}).langNote;
-    return note ? '<p class="banner" lang="' + S.lang + '">' + esc(note) + '</p>' : '';
+    var note = S.lang !== 'ko' && t('langNote');
+    return note && note !== 'langNote' ? '<p class="banner no-print">' + esc(note) + '</p>' : '';
+  }
+  // 모든 화면 아래: 저장 안내 + 내 정보 지우기 + 쉬운 말 사전
+  function footer() {
+    return '<footer class="foot-bar no-print"><div class="foot-in">' + icon('lock') + '<p>' + t('foot.saved') + '</p>' +
+      '<div class="foot-acts"><button type="button" class="btn-text" data-go="words">' + t('title.words') + '</button>' +
+      '<button type="button" class="btn-text" data-act="wipe">' + t('wipe.btn') + '</button></div></div></footer>';
   }
   function progress(step) {
     var bars = [1, 2, 3, 4].map(function (i) { return '<span' + (i < step ? ' class="on"' : i === step ? ' class="now"' : '') + '></span>'; }).join('');
@@ -381,9 +478,13 @@
 
   // ---------- 화면: 시작 ----------
   function vStart() {
-    var langs = [['ko', '한국어'], ['en', 'English'], ['vi', 'Tiếng Việt']].map(function (l) {
-      return '<button type="button" data-act="lang" data-v="' + l[0] + '" aria-pressed="' + (S.lang === l[0]) + '" lang="' + l[0] + '">' + l[1] + '</button>';
+    var langs = LANGS.map(function (l) {
+      return '<button type="button" data-act="lang" data-v="' + l.code + '" aria-pressed="' + (S.lang === l.code) + '" lang="' + l.code + '">' + l.name + '</button>';
     }).join('');
+    // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
+    var resume = resumeTo ? '<section class="resume stack" aria-labelledby="resume-t"><h2 id="resume-t">' + t('resume.title') + '</h2><p>' + t('resume.body', { where: t(TITLE[resumeTo] || 'title.q') }) + '</p>' +
+      '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="resume"><span>' + t('resume.go') + '</span>' + icon('arrow-r') + '</button>' +
+      '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     return '<div class="split wide-side">' +
       '<div class="stack-lg">' +
       '<section class="hero">' + dolphin('mascot') + '<span class="eyebrow">' + t('start.eyebrow') + '</span>' +
@@ -392,8 +493,8 @@
       '<ul class="trust"><li>' + icon('user') + t('start.trust1') + '</li><li>' + icon('lock') + t('start.trust2') + '</li><li>' + icon('globe') + t('start.trust3') + '</li></ul></section>' +
       '<ol class="steps-list"><li>' + t('start.step1') + '</li><li>' + t('start.step2') + '</li><li>' + t('start.step3') + '</li></ol>' +
       '</div>' +
-      '<div class="side start-side">' +
-      '<fieldset class="stack"><legend class="label" style="margin-bottom:8px">언어 · Language · Ngôn ngữ</legend><div class="lang-btns">' + langs + '</div>' +
+      '<div class="side start-side">' + resume +
+      '<fieldset class="stack"><legend class="label" style="margin-bottom:8px">언어 · Language · Ngôn ngữ</legend><div class="lang-btns" style="--n:' + LANGS.length + '">' + langs + '</div>' +
       '<p class="hint">' + t('start.langHint') + '</p></fieldset>' +
       '<section class="agree-box stack"><h2>' + t('start.noteTitle') + '</h2>' +
       '<p>' + t('start.noteBody') + '</p>' +
@@ -503,27 +604,25 @@
   }
 
   // ---------- 화면: 직접 입력 ----------
-  var Q_NAMES = ['직원 수', '일 시작한 날', '지금도 일하는지', '요일과 시간', '약속한 급여', '실제로 받은 돈'];
   // 질문 화면 틀. 넓은 화면에서는 옆 칸에 질문 6개 목록 + 다음 버튼
   function qShell(n, legend, help, body) {
-    var bars = Q_NAMES.map(function (_, i) { return '<span' + (i + 1 < n ? ' class="on"' : i + 1 === n ? ' class="now"' : '') + '></span>'; }).join('');
-    var list = Q_NAMES.map(function (name, i) {
-      var q = 'q' + (i + 1), cur = i + 1 === n, done = !cur && valid(q);
-      var inner = '<b>' + (done ? icon('check') : i + 1) + '</b>' + name;
+    var bars = [1, 2, 3, 4, 5, 6].map(function (i) { return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
+    var list = [1, 2, 3, 4, 5, 6].map(function (i) {
+      var q = 'q' + i, cur = i === n, done = !cur && valid(q);
+      var inner = '<b>' + (done ? icon('check') : i) + '</b>' + t('q.name' + i);
       return '<li>' + (cur ? '<span aria-current="step">' + inner + '</span>' : '<button type="button" data-go="' + q + '"' + (done ? ' class="done"' : '') + '>' + inner + '</button>') + '</li>';
     }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' +
-      '<div class="progress"><div class="bar" style="--n:6" aria-hidden="true">' + bars + '</div><span class="hint">필수 질문 ' + n + ' / 6</span></div>' + langBanner() +
+      '<div class="progress"><div class="bar" style="--n:6" aria-hidden="true">' + bars + '</div><span class="hint">' + t('q.progress', { n: n }) + '</span></div>' + langBanner() +
       '<fieldset class="stack"><legend class="q-legend"><h1 tabindex="-1">' + legend + '</h1></legend>' +
       (help ? '<p class="lead">' + help + '</p>' : '') + body + '</fieldset></div>' +
-      '<aside class="side"><nav class="qnav only-d" aria-label="질문 목록"><p class="qlist-title">필수 질문 6개</p><ol class="qlist">' + list + '</ol></nav>' + nextCta('q' + n) + '</aside></div>';
+      '<aside class="side"><nav class="qnav only-d" aria-label="' + t('q.listNav') + '"><p class="qlist-title">' + t('q.listTitle') + '</p><ol class="qlist">' + list + '</ol></nav>' + nextCta('q' + n) + '</aside></div>';
   }
   function nextCta(r) {
     var next = { q1: 'q2', q2: 'q3', q3: 'q4', q4: 'q5', q5: 'q6', q6: 'review' }[r];
-    var label = r === 'q6' ? '입력한 내용 확인하기' : '다음 질문';
-    return cta(primary(label, 'data-go="' + next + '" data-next', valid(r)) +
-      '<p class="hint" data-next-hint' + (valid(r) ? ' hidden' : '') + '>답을 고르거나 입력하면 넘어갈 수 있어요</p>', ' ');
+    return cta(primary(t(r === 'q6' ? 'q.toReview' : 'q.next'), 'data-go="' + next + '" data-next', valid(r)) +
+      '<p class="hint" data-next-hint' + (valid(r) ? ' hidden' : '') + '>' + t('q.nextHint') + '</p>', ' ');
   }
   function radios(name, key, list) {
     return '<div class="choices">' + list.map(function (o) {
@@ -531,70 +630,145 @@
     }).join('') + '</div>';
   }
   function vQ1() {
-    return qShell(1, '일하는 곳에 직원이<br>몇 명인가요?', '사장님은 빼고, 아르바이트·일용직까지 평소 함께 일하는 사람 수예요.',
-      radios('size', 'size', [['five', '5명 이상'], ['under', '5명 미만'], ['unsure', '잘 모르겠어요']]) +
-      (S.f.size === 'unsure' ? '<p class="note" role="status">괜찮아요. 5명 이상으로 계산하고 결과에 \'추정\'이라고 표시할게요.</p>' : '') +
-      '<details class="more"><summary>왜 물어보나요?</summary><p class="lead">직원이 5명보다 적은 곳은 연장·야간·휴일에 더 얹어 주는 수당이 법으로 정해져 있지 않아요. 주휴수당과 퇴직금은 직원 수와 상관없이 받을 수 있어요.</p></details>');
+    return qShell(1, t('q1.title'), t('q1.help'),
+      radios('size', 'size', [['five', t('q1.five')], ['under', t('q1.under')], ['unsure', t('q1.unsure')]]) +
+      (S.f.size === 'unsure' ? '<p class="note" role="status">' + t('q1.unsureNote') + '</p>' : '') +
+      '<details class="more"><summary>' + t('q1.why') + '</summary><p class="lead">' + t('q1.whyBody') + ' ' + term('underFive') + '</p></details>');
   }
   function vQ2() {
-    return qShell(2, '언제부터 일했나요?', '근로계약서에 적힌 날이나, 처음 출근한 날을 골라 주세요.',
-      '<div class="field"><label for="start">입사일</label><input id="start" class="input" type="date" data-f="start" value="' + esc(S.f.start) + '" max="2026-12-31"></div>');
+    return qShell(2, t('q2.title'), t('q2.help'),
+      '<div class="field"><label for="start">' + t('q2.label') + '</label><input id="start" class="input" type="date" data-f="start" value="' + esc(S.f.start) + '" max="2026-12-31"></div>');
   }
   function vQ3() {
     var f = S.f;
     var bad = f.employed === 'no' && f.end && f.start && f.end < f.start;
-    return qShell(3, '지금도 그곳에서<br>일하고 있나요?', '그만뒀다면 퇴직금도 함께 계산해요.',
-      radios('employed', 'employed', [['yes', '지금도 다니고 있어요'], ['no', '그만뒀어요']]) +
-      (f.employed === 'no' ? '<div class="field"><label for="end">마지막으로 일한 날</label><input id="end" class="input" type="date" data-f="end" value="' + esc(f.end) + '"' + (bad ? ' aria-invalid="true" aria-describedby="end-err"' : '') + '>' +
-        (bad ? '<p id="end-err" class="err">입사일보다 빠른 날이에요. 날짜를 다시 골라 주세요.</p>' : '') + '</div>' : ''));
+    return qShell(3, t('q3.title'), t('q3.help'),
+      radios('employed', 'employed', [['yes', t('q3.yes')], ['no', t('q3.no')]]) +
+      (f.employed === 'no' ? '<div class="field"><label for="end">' + t('q3.end') + '</label><input id="end" class="input" type="date" data-f="end" value="' + esc(f.end) + '"' + (bad ? ' aria-invalid="true" aria-describedby="end-err"' : '') + '>' +
+        (bad ? '<p id="end-err" class="err">' + t('q3.endErr') + '</p>' : '') + '</div>' : ''));
   }
+  function brkName(v) { return t('brk.' + v); }
   function vQ4() {
     var f = S.f;
-    var days = DAYS.map(function (d, i) {
-      return '<button type="button" class="day" data-act="day" data-i="' + i + '" aria-pressed="' + f.days[i] + '">' + d + '</button>';
+    var days = DAYS.map(function (_, i) {
+      return '<button type="button" class="day" data-act="day" data-i="' + i + '" aria-pressed="' + f.days[i] + '">' + t('day.' + i) + '</button>';
     }).join('');
     function sel(id, key, from, to, label) {
-      var o = '<option value="">고르기</option>';
+      var o = '<option value="">' + t('q.pick') + '</option>';
       for (var h = from; h <= to; h++) o += '<option value="' + h + '"' + (String(h) === f[key] ? ' selected' : '') + '>' + hh(h) + '</option>';
       return '<div class="field"><label for="' + id + '">' + label + '</label><select id="' + id + '" class="input" data-f="' + key + '">' + o + '</select></div>';
     }
-    var brk = [['0', '없음'], ['0.5', '30분'], ['1', '1시간'], ['1.5', '1시간 30분']].map(function (b) {
-      return '<option value="' + b[0] + '"' + (f.brk === b[0] ? ' selected' : '') + '>' + b[1] + '</option>';
+    var brk = ['0', '0.5', '1', '1.5'].map(function (b) {
+      return '<option value="' + b + '"' + (f.brk === b ? ' selected' : '') + '>' + brkName(b) + '</option>';
     }).join('');
     var h = hours(), cnt = f.days.filter(Boolean).length;
     var sum = '';
-    if (f.tStart !== '' && f.tEnd !== '' && f.brk !== '' && h <= 0) sum = '<p class="err" role="alert">퇴근 시각이 출근 시각보다 늦어야 해요.</p>';
-    else if (h > 0 && cnt) sum = '<p class="sumline" role="status">하루 <strong>' + h + '시간</strong> · 일주일 <strong>' + (h * cnt) + '시간</strong>으로 계산할게요.</p>';
-    return qShell(4, '평소 일한 요일과<br>시간을 골라 주세요', '',
-      '<div class="stack"><span class="label" id="days-label">일한 요일 <span class="opt">(여러 개 고르기)</span></span><div class="days" role="group" aria-labelledby="days-label">' + days + '</div></div>' +
-      '<div class="grid2">' + sel('tstart', 'tStart', 5, 14, '출근 시각') + sel('tend', 'tEnd', 12, 24, '퇴근 시각') + '</div>' +
-      '<div class="field"><label for="brk">쉬는 시간</label><select id="brk" class="input" data-f="brk"><option value="">고르기</option>' + brk + '</select></div>' +
+    if (f.tStart !== '' && f.tEnd !== '' && f.brk !== '' && h <= 0) sum = '<p class="err" role="alert">' + t('q4.timeErr') + '</p>';
+    else if (h > 0 && cnt) sum = '<p class="sumline" role="status">' + t('q4.sum', { h: h, w: h * cnt }) + '</p>';
+    return qShell(4, t('q4.title'), '',
+      '<div class="stack"><span class="label" id="days-label">' + t('q4.days') + ' <span class="opt">' + t('q4.multi') + '</span></span><div class="days" role="group" aria-labelledby="days-label">' + days + '</div></div>' +
+      '<div class="grid2">' + sel('tstart', 'tStart', 5, 14, t('q4.start')) + sel('tend', 'tEnd', 12, 24, t('q4.end')) + '</div>' +
+      '<div class="field"><label for="brk">' + t('q4.break') + '</label><select id="brk" class="input" data-f="brk"><option value="">' + t('q.pick') + '</option>' + brk + '</select></div>' +
       sum +
-      '<details class="more"><summary>요일마다 시간이 달랐어요</summary><p class="lead">실제 서비스에서는 요일별로 따로 고를 수 있어요. 교대 근무였다면 노동청 상담을 함께 받아 보세요.</p></details>');
+      '<details class="more"><summary>' + t('q4.diff') + '</summary><div class="stack" style="padding-bottom:12px"><p class="lead">' + t('q4.diffBody') + '</p>' +
+      '<button type="button" class="btn btn-line" data-go="cal">' + icon('cal') + '<span>' + t('cal.open') + '</span></button></div></details>');
   }
   function vQ5() {
     var f = S.f;
     var w = Number(f.wage);
     var warn = f.wageType === 'hour' && w > 0 && w < MIN_WAGE
-      ? '<p class="warnbox" role="status">2026년 최저시급(10,320원)보다 적어요. 실제로 받은 돈이 아니라 약속한 금액이 맞는지 확인해 주세요.</p>' : '';
-    return qShell(5, '급여는 어떻게<br>약속했나요?', '실제로 받은 돈이 아니라, 처음에 약속한 금액이에요.',
-      radios('wageType', 'wageType', [['hour', '시급'], ['day', '일급'], ['month', '월급']]) +
-      '<div class="field"><label for="wage">약속한 금액 (원)</label><input id="wage" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="wage" data-live value="' + esc(f.wage) + '"><p class="readable" data-readable="wage" aria-live="polite">' + readable(f.wage) + '</p></div>' + warn);
+      ? '<p class="warnbox" role="status">' + t('q5.minWarn') + ' ' + term('minWage') + '</p>' : '';
+    return qShell(5, t('q5.title'), t('q5.help'),
+      radios('wageType', 'wageType', [['hour', t('q5.hour')], ['day', t('q5.day')], ['month', t('q5.month')]]) +
+      '<div class="field"><label for="wage">' + t('q5.amount') + '</label><input id="wage" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="wage" data-live value="' + esc(f.wage) + '"><p class="readable" data-readable="wage" aria-live="polite">' + readable(f.wage) + '</p></div>' + warn);
   }
   function vQ6() {
     var f = S.f;
     function num(id, key, label, unit) {
       return '<div class="field"><label for="' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="' + key + '" data-live value="' + esc(f[key]) + '"></div>';
     }
-    return qShell(6, '못 받은 달에 실제로<br>받은 돈은 얼마인가요?', '한 푼도 못 받았다면 0을 적어 주세요.',
-      '<div class="field"><label for="paid">실제로 받은 돈 (원)</label><input id="paid" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
-      '<details class="more"' + (f.ot || f.night || f.holiday || f.allowance || f.month ? ' open' : '') + '><summary>자세히 · 연장·야간·휴일 근무, 그 밖의 수당 <span class="opt" style="margin-left:4px">선택</span></summary><div class="stack" style="padding-bottom:8px">' +
-      '<p class="hint">입력하지 않으면 결과에 0원이 아니라 \'정보 없음\'으로 나와요.</p>' +
-      '<div class="field"><label for="month">못 받은 달 <span class="opt">(비우면 마지막으로 일한 달)</span></label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month) + '"></div>' +
-      num('ot', 'ot', '정해진 시간보다 더 일한 시간', '시간') + num('night', 'night', '그중 밤 10시~아침 6시', '시간') + num('holiday', 'holiday', '휴일에 일한 시간', '시간') + num('allow', 'allowance', '매달 같은 금액으로 받은 수당', '원') +
-      '</div></details>');
+    var recorded = workDays().length;
+    var dup = monthList().length !== f.more.filter(function (m) { return m.month; }).length + 1;
+    // 못 받은 달 더하기: 달 + 그 달에 받은 돈
+    var more = f.more.map(function (m, i) {
+      return '<li class="month-row"><div class="field"><label for="mm' + i + '">' + t('q6.extraMonth') + '</label><input id="mm' + i + '" class="input" type="month" data-m="' + i + '" data-k="month" value="' + esc(m.month) + '"></div>' +
+        '<div class="field"><label for="mp' + i + '">' + t('q6.extraPaid') + '</label><input id="mp' + i + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-m="' + i + '" data-k="paid" value="' + esc(m.paid) + '"><p class="readable" data-readable-m="' + i + '" aria-live="polite">' + readable(m.paid) + '</p></div>' +
+        '<button type="button" class="pg-btn" data-act="month-del" data-i="' + i + '">' + icon('x') + '<span>' + t('q6.removeMonth') + '</span></button></li>';
+    }).join('');
+    return qShell(6, t('q6.title'), t('q6.help'),
+      '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
+      '<section class="calcard stack">' + icon('cal', 'ico-lg') + '<h2>' + t('q6.calTitle') + '</h2><p>' + (recorded ? t('q6.calHas', { n: recorded }) : t('q6.calBody')) + '</p>' +
+      '<button type="button" class="btn btn-line" data-go="cal"><span>' + t(recorded ? 'cal.edit' : 'cal.open') + '</span></button></section>' +
+      '<details class="more"' + (f.ot || f.night || f.holiday || f.allowance || f.month ? ' open' : '') + '><summary>' + t('q6.more') + ' <span class="opt" style="margin-left:4px">' + t('opt') + '</span></summary><div class="stack" style="padding-bottom:8px">' +
+      '<p class="hint">' + t('q6.noData') + (recorded ? ' ' + t('q6.calWins') : '') + '</p>' +
+      '<div class="field"><label for="month">' + t('q6.month') + ' <span class="opt">' + t('q6.monthHint') + '</span></label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month) + '"></div>' +
+      num('ot', 'ot', t('q6.ot'), t('unit.hours')) + num('night', 'night', t('q6.night'), t('unit.hours')) + num('holiday', 'holiday', t('q6.holiday'), t('unit.hours')) + num('allow', 'allowance', t('q6.allow'), t('unit.won')) +
+      '</div></details>' +
+      '<details class="more"' + (f.more.length ? ' open' : '') + '><summary>' + t('q6.extra') + ' <span class="opt" style="margin-left:4px">' + t('opt') + '</span></summary><div class="stack" style="padding-bottom:12px">' +
+      '<p class="hint">' + t('q6.extraHelp') + '</p>' + (more ? '<ol class="months">' + more + '</ol>' : '') +
+      (dup && f.more.every(function (m) { return m.month; }) ? '<p class="err" role="alert">' + t('q6.dup') + '</p>' : '') +
+      '<button type="button" class="btn btn-line" data-act="month-add">' + icon('plus') + '<span>' + t('q6.addMonth') + '</span></button></div></details>');
   }
 
+  // ---------- 화면: 근무 달력 ----------
+  // 날짜를 누르면 아래에 출근 · 퇴근 · 쉬는 시간 · 휴일 칸. 연장 · 야간 · 휴일 시간 나누기는 계산할 때 룰 엔진이 한다
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function inPeriod(d) {
+    var f = S.f;
+    return (!f.start || d >= f.start) && (f.employed !== 'no' || !f.end || d <= f.end);
+  }
+  function vCal() {
+    var f = S.f, ms = monthList();
+    if (ms.indexOf(S.calM) < 0) S.calM = ms[0];
+    var ym = S.calM, y = +ym.slice(0, 4), m = +ym.slice(5);
+    var n = new Date(Date.UTC(y, m, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+    var cells = '';
+    for (var i = 0; i < lead; i++) cells += '<span class="cal-blank" aria-hidden="true"></span>';
+    var total = 0, count = 0;
+    for (var d = 1; d <= n; d++) {
+      var date = ym + '-' + pad(d), w = f.work[date], wd = (lead + d - 1) % 7, ok = inPeriod(date);
+      if (w) { total += workedMin(w); count++; }
+      var label = krOrLocal(date) + (w ? ' · ' + w.s + '~' + w.e + ' · ' + t('cal.hoursShort', { h: hrs(workedMin(w)) }) + (w.h ? ' · ' + t('cal.holiday') : '') : '');
+      cells += '<button type="button" id="cd' + date + '" class="cal-day' + (wd > 4 ? ' we' : '') + (w ? ' has' : '') + (w && w.h ? ' hol' : '') + '" data-act="cal-day" data-d="' + date + '" aria-pressed="' + (S.calSel === date) + '" aria-label="' + esc(label) + '"' + (ok ? '' : ' disabled') + '>' +
+        '<b>' + d + '</b>' + (w ? '<small>' + (w.h ? t('cal.holShort') : '') + hrs(workedMin(w)) + 'h</small>' : '') + '</button>';
+    }
+    var heads = DAYS.map(function (_, i) { return '<span aria-hidden="true">' + t('day.' + i) + '</span>'; }).join('');
+    var nav = ms.length > 1 ? '<div class="field"><label for="cal-month">' + t('cal.month') + '</label><select id="cal-month" class="input" data-act="cal-month">' +
+      ms.map(function (x) { return '<option value="' + x + '"' + (x === ym ? ' selected' : '') + '>' + ymName(x) + '</option>'; }).join('') + '</select></div>' : '';
+    var usual = f.days.some(Boolean) && f.tStart !== '' && f.tEnd !== '';
+    var editor = '';
+    if (S.calSel && S.calSel.slice(0, 7) === ym) {
+      var cur = f.work[S.calSel] || { s: usual ? hh(f.tStart).replace('24:00', '00:00') : '09:00', e: usual ? hh(f.tEnd).replace('24:00', '00:00') : '18:00', b: f.brk !== '' ? Number(f.brk) * 60 : 60, h: false };
+      var bopts = [0, 30, 60, 90, 120].map(function (b) { return '<option value="' + b + '"' + (Number(cur.b) === b ? ' selected' : '') + '>' + t('cal.min', { n: b }) + '</option>'; }).join('');
+      editor = '<section class="cal-edit stack" aria-labelledby="ce-title"><h2 id="ce-title" tabindex="-1">' + krOrLocal(S.calSel) + '</h2>' +
+        '<div class="grid2"><div class="field"><label for="ce-s">' + t('q4.start') + '</label><input id="ce-s" class="input" type="time" step="600" value="' + cur.s + '"></div>' +
+        '<div class="field"><label for="ce-e">' + t('q4.end') + '</label><input id="ce-e" class="input" type="time" step="600" value="' + cur.e + '"></div></div>' +
+        '<p class="hint">' + t('cal.nextDay') + '</p>' +
+        '<div class="field"><label for="ce-b">' + t('q4.break') + '</label><select id="ce-b" class="input">' + bopts + '</select></div>' +
+        '<label class="check" for="ce-h"><input id="ce-h" type="checkbox"' + (cur.h ? ' checked' : '') + '><span>' + t('cal.holidayQ') + ' ' + '</span></label>' +
+        '<p class="hint">' + t('cal.holidayHint') + ' ' + term('holidayWork') + '</p>' +
+        '<p class="err" id="ce-err" role="alert" hidden>' + t('cal.err') + '</p>' +
+        '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="cal-save"><span>' + t('cal.save') + '</span></button>' +
+        (f.work[S.calSel] ? '<button type="button" class="btn btn-line" data-act="cal-del">' + icon('trash') + '<span>' + t('cal.del') + '</span></button>' : '<button type="button" class="btn btn-line" data-act="cal-close">' + t('cal.close') + '</button>') + '</div></section>';
+    }
+    var usualText = usual ? t('cal.fillBody', { days: f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(' · '), s: hh(f.tStart), e: hh(f.tEnd) }) : '';
+    return '<div class="split">' +
+      '<div class="stack-lg">' + progress(1) + langBanner() +
+      '<div class="stack"><h1 tabindex="-1">' + t('cal.title') + '</h1><p class="lead">' + t('cal.lead') + ' ' + term('overtime') + ' ' + term('night') + '</p></div>' +
+      nav +
+      '<div class="cal" role="group" aria-label="' + esc(ymName(ym)) + '"><p class="cal-head">' + ymName(ym) + '</p><div class="cal-grid"><div class="cal-week" aria-hidden="true">' + heads + '</div><div class="cal-days">' + cells + '</div></div></div>' +
+      editor + '</div>' +
+      '<aside class="side"><div class="note stack" role="status"><h2>' + t('cal.sumTitle') + '</h2><p>' + t('cal.sum', { n: count, h: hrs(total) }) + '</p><p class="hint">' + t('cal.sumHint') + '</p></div>' +
+      (usual ? '<section class="stack"><button type="button" class="btn btn-line" data-act="cal-fill">' + icon('cal') + '<span>' + t('cal.fill') + '</span></button><p class="hint">' + usualText + '</p></section>' : '') +
+      (count ? '<button type="button" class="btn-text" data-act="cal-clear">' + t('cal.clear') + '</button>' : '') +
+      cta(primary(t('cal.done'), 'data-act="back"'), ' ') + '</aside></div>';
+  }
+  // 날짜를 그 언어로: 2026년 9월 7일 (월) · Mon, Sep 7, 2026
+  function krOrLocal(d) {
+    var dt = new Date(d + 'T00:00:00Z');
+    if (S.lang === 'ko') return krDate(d) + ' (' + DAYS[(dt.getUTCDay() + 6) % 7] + ')';
+    return dt.toLocaleDateString(S.lang, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
   // ---------- 화면: 내용 확인 ----------
   function vReview() {
     var f = S.f;
@@ -604,67 +778,164 @@
       var low = S.low[key] && !S.ok[key];
       var checked = S.low[key] && S.ok[key];
       var err = S.fieldErr[key];
-      var val = value ? '<span>' + esc(value) + '</span>' : '<span class="empty">' + (S.unread[key] ? t('review.unread') : '입력 안 함') + '</span>';
-      var tag = src === 'doc' ? '<span class="tag">서류' + (S.from[key] ? ' · ' + S.from[key] + '번 사진' : '') + '</span>' : src === 'self' ? '<span class="tag self">직접</span>' : '';
-      return '<div class="row' + (low ? ' low' : '') + '"><div class="row-main"><dt>' + label + '</dt><dd>' + val + tag + (checked ? '<span class="checked">' + icon('check') + '확인함</span>' : '') + '</dd>' +
-        '<button type="button" class="row-edit" data-go="' + goTo + '" aria-label="' + label + ' 수정">수정</button></div>' +
+      var val = value ? '<span>' + esc(value) + '</span>' : '<span class="empty">' + t(S.unread[key] ? 'review.unread' : 'review.empty') + '</span>';
+      var tag = src === 'doc' ? '<span class="tag">' + t('review.doc') + (S.from[key] ? ' · ' + t('up.page', { n: S.from[key] }) : '') + '</span>' : src === 'self' ? '<span class="tag self">' + t('review.self') + '</span>' : '';
+      return '<div class="row' + (low ? ' low' : '') + '"><div class="row-main"><dt>' + label + '</dt><dd>' + val + tag + (checked ? '<span class="checked">' + icon('check') + t('review.checked') + '</span>' : '') + '</dd>' +
+        '<button type="button" class="row-edit" data-go="' + goTo + '" aria-label="' + esc(t('review.editOf', { what: label })) + '">' + t('review.edit') + '</button></div>' +
         (err ? '<p class="err" role="alert">' + esc(err) + '</p>' : '') +
-        (low ? '<p class="row-note">' + (S.conf[key] ? '사진마다 값이 달라요 (' + esc(S.conf[key]) + '). 더 또렷하게 읽힌 값을 넣었어요. 맞나요?' : '흐리게 읽혔어요. 서류와 같은 값인가요?') + '</p><button type="button" class="ok-btn" data-act="ok" data-k="' + key + '">' + icon('check') + '네, 맞아요</button>' : '') + '</div>';
+        (low ? '<p class="row-note">' + (S.conf[key] ? t('review.conflict', { v: esc(S.conf[key]) }) : t('review.blurry')) + '</p><button type="button" class="ok-btn" data-act="ok" data-k="' + key + '">' + icon('check') + t('review.yes') + '</button>' : '') + '</div>';
     }
-    var wageLabel = { hour: '시급', day: '일급', month: '월급' }[f.wageType] || '';
-    var timeText = f.tStart !== '' && f.tEnd !== '' ? hh(f.tStart) + ' ~ ' + hh(f.tEnd) + (f.brk !== '' ? ' · 쉬는 시간 ' + ({ '0': '없음', '0.5': '30분', '1': '1시간', '1.5': '1시간 30분' }[f.brk]) : '') : f.dayHours ? f.dayHours + '시간' : '';
+    var timeText = f.tStart !== '' && f.tEnd !== '' ? hh(f.tStart) + ' ~ ' + hh(f.tEnd) + (f.brk !== '' ? ' · ' + t('q4.break') + ' ' + brkName(f.brk) : '') : f.dayHours ? t('cal.hoursShort', { h: f.dayHours }) : '';
+    var dayText2 = f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(' ');
+    var rec = workDays().length;
+    var moreRows = f.more.map(function (m) { return row(m.month ? ymName(m.month) : t('q6.extraMonth'), m.paid !== '' ? won(m.paid) : '', 'more', 'q6'); }).join('');
     var groups = [
-      ['일한 곳', (f.company ? row('사업장 이름', f.company, 'company', 'q1') : '') + row('직원 수', { five: '5명 이상', under: '5명 미만', unsure: '모름 (5명 이상으로 추정)' }[f.size], 'size', 'q1')],
-      ['일한 기간', row('입사일', krDate(f.start), 'start', 'q2') + row('퇴사일', f.employed === 'yes' ? '지금도 다니는 중' : krDate(f.end), 'end', 'q3')],
-      ['근무 시간', row('일한 요일', dayText(), 'days', 'q4') + row('하루', timeText, 'time', 'q4')],
-      ['약속한 급여', row(wageLabel || '급여', f.wage ? won(f.wage) : '', 'wage', 'q5') + row('매달 받는 수당', f.allowance ? won(f.allowance) : '', 'allowance', 'q6')],
-      ['받은 돈 · 추가 근무', (f.month || S.unread.month ? row('못 받은 달', f.month ? Number(f.month.slice(0, 4)) + '년 ' + Number(f.month.slice(5)) + '월' : '', 'month', 'q6') : '') + row('실제 받은 돈', f.paid !== '' ? won(f.paid) : '', 'paid', 'q6') + row('연장 근무', f.ot ? f.ot + '시간' : '', 'ot', 'q6') + row('그중 야간', f.night ? f.night + '시간' : '', 'night', 'q6') + row('휴일 근무', f.holiday ? f.holiday + '시간' : '', 'holiday', 'q6')]
+      [t('review.g1'), (f.company ? row(t('review.company'), f.company, 'company', 'q1') : '') + row(t('q.name1'), { five: t('q1.five'), under: t('q1.under'), unsure: t('review.unsure') }[f.size], 'size', 'q1')],
+      [t('review.g2'), row(t('q2.label'), f.start ? krOrLocal(f.start) : '', 'start', 'q2') + row(t('review.end'), f.employed === 'yes' ? t('q3.yes') : f.end ? krOrLocal(f.end) : '', 'end', 'q3')],
+      [t('review.g3'), row(t('q4.days'), dayText2, 'days', 'q4') + row(t('review.day'), timeText, 'time', 'q4') + row(t('review.work'), rec ? t('review.workN', { n: rec }) : '', 'work', 'cal')],
+      [t('review.g4'), row({ hour: t('q5.hour'), day: t('q5.day'), month: t('q5.month') }[f.wageType] || t('q.name5'), f.wage ? won(f.wage) : '', 'wage', 'q5') + row(t('q6.allow'), f.allowance ? won(f.allowance) : '', 'allowance', 'q6')],
+      [t('review.g5'), (f.month || S.unread.month ? row(t('q6.extraMonth'), f.month ? ymName(f.month) : '', 'month', 'q6') : '') + row(t('q.name6'), f.paid !== '' ? won(f.paid) : '', 'paid', 'q6') + moreRows +
+        row(t('review.ot'), f.ot ? t('cal.hoursShort', { h: f.ot }) : '', 'ot', 'q6') + row(t('review.night'), f.night ? t('cal.hoursShort', { h: f.night }) : '', 'night', 'q6') + row(t('review.holiday'), f.holiday ? t('cal.hoursShort', { h: f.holiday }) : '', 'holiday', 'q6')]
     ].map(function (g) { return '<section class="group"><h2>' + g[0] + '</h2><dl class="rows">' + g[1] + '</dl></section>'; }).join('');
     var left = lowLeft();
     var ok = valid('review');
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(2) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">읽은 내용이 맞는지<br>확인해 주세요</h1><p class="lead">잘못 읽힌 값이 있으면 계산 전체가 틀려져요.</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('review.title') + '</h1><p class="lead">' + t('review.lead') + '</p></div>' +
       groups + '</div>' +
-      '<aside class="side"><div class="note stack"><h2>표시 보는 법</h2><div class="legend-row" style="flex-direction:column"><span><span class="tag">서류</span> 서류에서 읽은 값</span><span><span class="tag self">직접</span> 직접 입력한 값</span><span><span class="tag warn">노란 줄</span> 확인이 필요한 값</span></div></div>' +
-      '<p class="hint">금액은 AI가 아니라 근로기준법 계산식으로만 정해져요.</p>' +
+      '<aside class="side"><div class="note stack"><h2>' + t('review.legend') + '</h2><div class="legend-row" style="flex-direction:column"><span><span class="tag">' + t('review.doc') + '</span> ' + t('review.legDoc') + '</span><span><span class="tag self">' + t('review.self') + '</span> ' + t('review.legSelf') + '</span><span><span class="tag warn">' + t('review.legWarnTag') + '</span> ' + t('review.legWarn') + '</span></div></div>' +
+      '<p class="hint">' + t('review.rule') + '</p>' +
       cta(primary(t('calc.btn'), 'data-act="calculate"', ok) +
-        (ok ? '' : '<p class="hint">' + (left ? '확인이 필요한 값이 ' + left + '개 남았어요' : '빠진 필수 항목을 채워 주세요') + '</p>'), ' ') +
+        (ok ? '' : '<p class="hint">' + (left ? t('review.left', { n: left }) : t('review.missing')) + '</p>'), ' ') +
       '</aside></div>';
   }
 
   // ---------- 화면: 결과 ----------
+  // 달별 못 받은 돈 막대 (직접 SVG). 막대 높이는 서버가 준 항목 금액을 달마다 더한 것뿐, 새 금액을 만들지 않는다
+  function chart(R) {
+    var by = {};
+    R.items.forEach(function (it) { if (it.month && it.amount) by[it.month] = (by[it.month] || 0) + it.amount; });
+    var ms = Object.keys(by).sort();
+    if (!ms.length) return '';
+    var max = Math.max.apply(null, ms.map(function (m) { return by[m]; }));
+    var W = Math.max(320, ms.length * 64), H = 200, top = 34, base = H - 30, bw = Math.min(44, W / ms.length - 20);
+    var bars = ms.map(function (m, i) {
+      var cx = (i + 0.5) * W / ms.length, h = Math.max(4, (base - top) * by[m] / max), y = base - h;
+      return '<g><title>' + esc(monthName(m) + ' ' + money(by[m])) + '</title>' +
+        '<path class="bar-m" d="M' + (cx - bw / 2) + ' ' + base + 'V' + (y + 4) + 'q0 -4 4 -4h' + (bw - 8) + 'q4 0 4 4V' + base + 'z"/>' +
+        '<text class="bar-v" x="' + cx + '" y="' + (y - 8) + '" text-anchor="middle">' + esc(short(by[m])) + '</text>' +
+        '<text class="bar-l" x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(monthName(m)) + '</text></g>';
+    }).join('');
+    var sev = R.items.filter(function (it) { return it.code === 'SEVERANCE' && it.amount; })[0];
+    var rows = ms.map(function (m) { return '<tr><th scope="row">' + esc(monthName(m)) + '</th><td>' + money(by[m]) + '</td></tr>'; }).join('');
+    return '<section class="chart stack" aria-labelledby="chart-t"><h2 id="chart-t">' + t('result.chart') + '</h2>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-labelledby="chart-t" focusable="false"><line class="bar-base" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/>' + bars + '</svg>' +
+      '<table class="sr"><caption>' + t('result.chart') + '</caption><tbody>' + rows + '</tbody></table>' +
+      (sev ? '<p class="hint">' + t('result.chartSev', { n: money(sev.amount) }) + '</p>' : '') + '</section>';
+  }
+  // 막대 위 짧은 표기: 한국어 '18.4만', 다른 언어 '184K'
+  function short(n) {
+    if (S.lang === 'ko') return n >= 1e4 ? (Math.round(n / 1e3) / 10).toLocaleString('ko-KR') + '만' : n.toLocaleString('ko-KR');
+    return n >= 1e6 ? (Math.round(n / 1e4) / 100) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n);
+  }
+  // '왜 이 금액인가요?' 단계 풀이: 기준 금액 → (하루 기록) → 계산식 → 받은 돈 빼기 → 법 근거
+  function steps(it, R) {
+    var out = [], f = it.formula, paidAt = f.indexOf(' − 받은 ');
+    if (/HOLIDAY|OVERTIME|NIGHT|WEEKLY|MIN_WAGE/.test(it.code) || (it.code === 'BASE_WAGE' && S.f.wageType !== 'month')) {
+      out.push([t('why.hourly', { w: term('ordinaryWage') }), R.hourlyFormula + ' = ' + R.hourly]);
+    }
+    if (it.code === 'SEVERANCE' && R.dailyFormula) out.push([t('why.daily', { w: term('averageWage') }), R.dailyFormula + ' = ' + R.daily]);
+    if (/OVERTIME|NIGHT|HOLIDAY/.test(it.code)) {
+      R.weeks.filter(function (w) { return w.month === it.month; }).forEach(function (w) {
+        out.push([t('why.week', { d: krOrLocal(w.weekStart) }), w.formula]);
+      });
+    }
+    out.push([t('why.calc'), (paidAt > 0 ? f.slice(0, paidAt) : f)]);
+    if (paidAt > 0) out.push([t('why.paid'), f.slice(paidAt + 3)]);
+    var law = it.basis.map(function (b) { return '<a href="' + esc(b.url) + '" target="_blank" rel="noopener">' + esc(b.law + ' ' + b.article) + icon('out') + '</a> ' + esc(b.summary); }).join('<br>');
+    return '<ol class="why">' + out.map(function (s) { return '<li><b>' + s[0] + '</b><span lang="ko">' + esc(s[1]) + '</span></li>'; }).join('') +
+      (law ? '<li><b>' + t('why.law') + '</b><span lang="ko">' + law + '</span></li>' : '') + '</ol>';
+  }
   function vResult() {
     var R = viewResult();
     var items = R.items.map(function (it) {
       var right = it.amount != null ? '<span class="item-amt">' + money(it.amount) + '</span>' : '<span class="item-status">' + esc(it.status) + '</span>';
       // 막대 길이는 서버가 준 금액의 비율일 뿐, 새 숫자를 만들지 않는다
       var share = it.amount > 0 && R.due > 0 ? '<div class="share" aria-hidden="true"><span style="width:' + Math.min(100, Math.max(2, it.amount / R.due * 100)).toFixed(1) + '%"></span></div>' : '';
-      return '<li><div class="item-head"><strong>' + esc(it.label) + '</strong>' + (it.estimated ? '<span class="tag">' + t('result.estimated') + '</span>' : '') + right + '</div>' + share +
+      var word = ITEM_WORD[it.code];
+      return '<li><div class="item-head"><strong>' + esc(it.label) + '</strong>' + (it.estimated ? '<span class="tag">' + t('result.estimated') + '</span>' : '') + right + '</div>' +
+        (it.amount ? '<span class="item-read">' + esc(readable(it.amount)) + '</span>' : '') + share +
         '<p class="item-exp">' + esc(it.explain) + '</p>' +
-        '<div class="item-links"><details class="basis"><summary>' + t('result.basis') + '</summary><dl lang="ko"><dt>' + t('result.article') + '</dt><dd><strong>' + esc(it.article) + '</strong></dd><dt>' + t('result.gist') + '</dt><dd>' + esc(it.gist) + '</dd><dt>' + t('result.formula') + '</dt><dd>' + esc(it.formula) + '</dd></dl></details>' +
-        (it.missing ? '<button type="button" class="btn-text" style="font-size:var(--fs-sm)" data-go="q6">' + t('result.input') + '</button>' : '') + '</div></li>';
+        '<div class="item-links"><details class="basis"><summary>' + t('result.why') + '</summary>' + steps(it, R) + '</details>' +
+        (word ? term(word, t('result.wordOf', { w: t('w.' + word) })) : '') +
+        (it.missing ? '<button type="button" class="btn-text" style="font-size:var(--fs-sm)" data-go="' + (/OVERTIME|NIGHT|HOLIDAY/.test(it.code) ? 'cal' : 'q6') + '">' + t('result.input') + '</button>' : '') + '</div></li>';
     }).join('');
     var size = t(S.f.size === 'under' ? 'size.under' : 'size.five');
     var period = dotDate(S.f.start) + ' ~ ' + (S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end));
     var summary = '<div class="receipt">' +
       '<span class="total-label">' + t('result.total') + '</span>' +
       '<span class="total">' + R.total.toLocaleString('ko-KR') + '<small>' + t('unit') + '</small></span>' +
-      (S.lang === 'ko' ? '<span class="total-read">' + readable(R.total) + '</span>' : '') +
+      '<span class="total-read">' + esc(readable(R.total)) + '</span>' +
       '<p class="disclaim">' + t('result.disclaim') + ' <button type="button" class="btn-text" data-act="disclaim">' + t('result.more') + '</button></p></div>' +
-      '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
+      '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>' + speakBtn('result');
+    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul lang="ko">' + R.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></section>' : '';
+    var weeks = R.weeks.length ? '<dt>' + t('result.weeks') + '</dt><dd><ul class="weeks" lang="ko">' + R.weeks.map(function (w) { return '<li><b>' + esc(krOrLocal(w.weekStart)) + '~</b> ' + esc(w.formula) + '</li>'; }).join('') + '</ul></dd>' : '';
     var actions = '<div class="cta">' + primary(t('result.make'), 'data-go="form"') +
       '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('result.pdf') + '</span></button><button type="button" class="btn btn-line" data-go="counselor">' + icon('chat') + '<span>' + t('result.counselor') + '</span></button></div>' +
-      '<button type="button" class="btn-text" data-go="guide">' + t('result.guide') + '</button>' +
+      '<nav class="tiles" aria-label="' + t('result.next') + '">' +
+      tile('guide', 'list', 'result.guide') + tile('help', 'pin', 'title.help') + tile('ready', 'check', 'title.ready') + tile('daeji', 'coin', 'title.daeji') + '</nav>' +
       '<p class="hint">' + t('result.expire') + '</p></div>';
-    return '<div class="wide col">' + progress(3) +
+    return '<div class="wide col">' + progress(3) + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
-      '<div class="result-grid"><div class="stack r-sum">' + summary + '</div>' +
+      '<div class="result-grid"><div class="stack r-sum">' + summary + chart(R) + '</div>' +
       '<div class="r-act">' + actions + '</div>' +
-      '<div class="stack-lg r-items"><section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul></section>' +
-      '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv" style="padding-bottom:8px"><dt>' + t('result.hourly') + '</dt><dd>' + R.hourly + '</dd><dt>' + t('result.daily') + '</dt><dd>' + R.daily + '</dd><dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl>' +
+      '<div class="stack-lg r-items">' + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul></section>' +
+      '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv" style="padding-bottom:8px"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl>' +
       '<button type="button" class="btn-text" data-go="review">' + t('result.review') + '</button></details></div></div></div>';
   }
+  function tile(go, ico, key) {
+    return '<button type="button" class="tile" data-go="' + go + '">' + icon(ico) + '<span>' + t(key) + '</span></button>';
+  }
+
+  // ---------- 읽어 주기 (Web Speech API) ----------
+  // 지원하지 않거나, 그 언어 목소리가 없으면 단추를 숨긴다
+  var canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
+  var speaking = '';
+  function voiceFor() {
+    var vs = window.speechSynthesis.getVoices();
+    if (!vs.length) return null;
+    return vs.filter(function (v) { return v.lang.toLowerCase().replace('_', '-').indexOf(S.lang) === 0; })[0] || false;
+  }
+  function speakBtn(kind) {
+    if (!canSpeak || voiceFor() === false) return '';
+    var on = speaking === kind;
+    return '<button type="button" class="btn btn-line speak no-print" data-act="speak" data-v="' + kind + '" aria-pressed="' + on + '">' + icon(on ? 'stop' : 'sound') + '<span>' + t(on ? 'speak.stop' : 'speak.btn') + '</span></button>';
+  }
+  function plain(html) { var d = document.createElement('div'); d.innerHTML = html.replace(/<br>/g, ' '); return d.textContent; }
+  function speechText(kind) {
+    if (kind === 'result') {
+      var R = viewResult();
+      return [t('speak.total', { n: readable(R.total) || money(R.total) })].concat(R.items.filter(function (it) { return it.amount; }).map(function (it) {
+        return it.label + ', ' + (readable(it.amount) || money(it.amount));
+      }), [t('result.disclaim')]).join('. ');
+    }
+    return [plain(t('guide.title')), plain(t('guide.lead'))].concat([1, 2, 3, 4, 5, 6].map(function (n) { return n + '. ' + t('guide.s' + n) + '. ' + t('guide.s' + n + 'b'); })).join(' ');
+  }
+  function speak(kind) {
+    var ss = window.speechSynthesis;
+    ss.cancel();
+    if (speaking === kind) { speaking = ''; render(); return; }
+    var u = new window.SpeechSynthesisUtterance(speechText(kind));
+    var v = voiceFor();
+    if (v) u.voice = v;
+    u.lang = v ? v.lang : S.lang;
+    u.rate = 0.95;
+    u.onend = u.onerror = function () { if (speaking === kind) { speaking = ''; if (S.route === kind) rerender(); } };
+    speaking = kind;
+    ss.speak(u);
+    rerender();
+  }
+  if (canSpeak) window.speechSynthesis.onvoiceschanged = function () { if (S.route === 'result' || S.route === 'guide') rerender(); };
 
   // ---------- 화면: 진정서 정보 ----------
   function vForm() {
@@ -673,39 +944,43 @@
     function inp(id, key, label, type, opts) {
       opts = opts || {};
       var miss = (opts.req && S.formTried && !p[key] && opts.req) || S.pErr[key];
-      return '<div class="field"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(선택)</span>') + '</label>' +
-        '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + opts.ph + '"' : '') +
+      return '<div class="field"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(' + t('opt') + ')</span>') + '</label>' +
+        '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
         ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>' +
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
-    var auto = '<dl class="kv"><dt>사업장</dt><dd>' + esc(S.f.company || '[사업장 이름]') + ' · ' + (S.f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd><dt>일한 기간</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? '재직 중' : dotDate(S.f.end)) + '</dd><dt>못 받은 돈</dt><dd><strong>' + won(R.total) + '</strong></dd></dl>';
+    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd>' + esc(S.f.company || t('form.noCompany')) + ' · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
+    var got = READY.filter(function (k) { return S.ready[k]; }).length;
+    var readyBox = '<section class="note stack"><h2>' + t('title.ready') + '</h2><p>' + t('form.ready', { n: got, m: READY.length }) + '</p><button type="button" class="btn-text" style="align-self:flex-start" data-go="ready">' + t('form.readyGo') + '</button></section>';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(4) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">진정서에 들어갈 내용을<br>적어 주세요</h1><p class="lead">계산 결과와 근무 정보는 자동으로 들어가요. 적은 정보는 초안을 만드는 데만 쓰고 저장하지 않아요.</p></div>' +
-      '<section class="note stack only-m"><h2>자동으로 들어가는 내용</h2>' + auto +
-      '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">내용 고치기</button></section>' +
-      '<fieldset class="stack"><legend><h2>나 (진정인)</h2></legend>' +
-      inp('p-name', 'name', '이름', 'text', { req: '이름을 적어 주세요', ac: 'name' }) +
-      inp('p-phone', 'phone', '휴대폰 번호', 'tel', { req: '연락받을 번호를 적어 주세요', mode: 'tel', ac: 'tel', ph: '010-0000-0000' }) +
-      inp('p-addr', 'addr', '사는 곳 주소', 'text', { ac: 'street-address' }) + '</fieldset>' +
-      '<fieldset class="stack"><legend><h2>일한 곳 (피진정인)</h2></legend>' +
-      (S.f.company ? '' : inp('p-company', 'company', '사업장 이름', 'text', { req: '사업장 이름을 적어 주세요' })) +
-      inp('p-owner', 'owner', '사장님 이름', 'text', { req: '사장님 이름을 적어 주세요. 모르면 \'모름\'이라고 적어도 돼요' }) +
-      inp('p-waddr', 'waddr', '사업장 주소', 'text', { req: '사업장 주소를 적어 주세요' }) +
-      inp('p-wphone', 'wphone', '사업장 전화번호', 'tel', { mode: 'tel' }) +
-      inp('p-job', 'job', '내가 한 일', 'text', { req: '어떤 일을 했는지 적어 주세요', ph: '예: 주방 보조' }) + '</fieldset>' +
-      '<div class="field"><label for="p-facts">있었던 일 <span class="opt">(선택)</span></label><p id="facts-help" class="hint">언제부터 못 받았는지, 사장님이 뭐라고 했는지 편하게 적어 주세요. 문장은 진정서에 맞게 다듬어 드려요.</p>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('form.title') + '</h1><p class="lead">' + t('form.lead') + '</p></div>' +
+      '<section class="note stack only-m"><h2>' + t('form.auto') + '</h2>' + auto +
+      '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
+      '<div class="only-m">' + readyBox + '</div>' +
+      '<fieldset class="stack"><legend><h2>' + t('form.me') + '</h2></legend>' +
+      inp('p-name', 'name', t('form.name'), 'text', { req: t('form.nameReq'), ac: 'name' }) +
+      inp('p-phone', 'phone', t('form.phone'), 'tel', { req: t('form.phoneReq'), mode: 'tel', ac: 'tel', ph: '010-0000-0000' }) +
+      inp('p-addr', 'addr', t('form.addr'), 'text', { ac: 'street-address' }) + '</fieldset>' +
+      '<fieldset class="stack"><legend><h2>' + t('form.work') + '</h2></legend>' +
+      (S.f.company ? '' : inp('p-company', 'company', t('form.company'), 'text', { req: t('form.companyReq') })) +
+      inp('p-owner', 'owner', t('form.owner'), 'text', { req: t('form.ownerReq') }) +
+      inp('p-waddr', 'waddr', t('form.waddr'), 'text', { req: t('form.waddrReq') }) +
+      inp('p-wphone', 'wphone', t('form.wphone'), 'tel', { mode: 'tel' }) +
+      inp('p-job', 'job', t('form.job'), 'text', { req: t('form.jobReq'), ph: t('form.jobPh') }) + '</fieldset>' +
+      '<div class="field"><label for="p-facts">' + t('form.facts') + ' <span class="opt">(' + t('opt') + ')</span></label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
       '<textarea id="p-facts" class="input" rows="5" aria-describedby="facts-help" data-p="facts">' + esc(p.facts) + '</textarea>' +
       (S.pErr.facts ? '<p class="err">' + esc(S.pErr.facts) + '</p>' : '') + '</div>' +
       '</div>' +
-      '<aside class="side"><section class="note stack only-d"><h2>자동으로 들어가는 내용</h2>' + auto + '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">내용 고치기</button></section>' +
-      '<p class="hint">' + icon('lock') + ' 적은 이름·주소는 AI에 보내지 않고, 초안을 만든 뒤 저장하지 않아요.</p>' +
-      cta(primary('진정서 초안 만들기', 'data-act="make"'), ' ') + '</aside></div>' +
-      '<dialog id="confirm" aria-labelledby="confirm-title"><div class="stack"><h2 id="confirm-title">만들기 전에 확인해 주세요</h2>' +
-      '<p>이 초안은 법률 자문이 아니라, 진정서 서식을 채우는 걸 돕는 자료예요. 내용이 사실과 같은지는 직접 확인해야 해요.</p>' +
-      '<ul class="hint" style="margin:0;padding-left:18px"><li>금액은 계산 결과 그대로 들어가요</li><li>있었던 일 문단은 미리보기에서 고칠 수 있어요</li></ul>' +
+      '<aside class="side"><section class="note stack only-d"><h2>' + t('form.auto') + '</h2>' + auto + '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
+      '<div class="only-d">' + readyBox + '</div>' +
+      '<p class="hint">' + icon('lock') + ' ' + t('form.privacy') + '</p>' +
+      cta(primary(t('form.make'), 'data-act="make"'), ' ') + '</aside></div>' +
+      '<dialog id="confirm" aria-labelledby="confirm-title"><div class="stack"><h2 id="confirm-title">' + t('confirm.title') + '</h2>' +
+      '<p>' + t('confirm.body') + '</p>' +
+      '<ul class="hint" style="margin:0;padding-left:18px"><li>' + t('confirm.l1') + '</li><li>' + t('confirm.l2') + '</li></ul>' +
       primary(t('make.btn'), 'data-act="confirm-make"') +
-      '<button type="button" class="btn-text" data-act="close-dialog">돌아가기</button></div></dialog>';
+      '<button type="button" class="btn-text" data-act="close-dialog">' + t('confirm.back') + '</button></div></dialog>';
   }
 
   // ---------- 진정서 내용 (complaint-draft 응답) ----------
@@ -724,6 +999,7 @@
   }
 
   // ---------- 화면: 진정서 초안 ----------
+  // 진정서 본문은 노동청에 내는 한국어 원문 그대로, 화면 안내만 고른 언어로
   function vComplaint() {
     var d = S.draft;
     // 번역은 참고용. 문단 순서가 한국어 원문과 같다고 보고 나란히 붙인다
@@ -734,36 +1010,37 @@
       var editable = s.heading === EDITABLE;
       var body;
       if (editable && S.editing) {
-        body = '<label class="sr" for="facts-edit">진정 내용 고치기</label><textarea id="facts-edit" class="input" rows="7">' + esc(s.body) + '</textarea>' +
-          '<div class="btn-row no-print"><button type="button" class="btn btn-line" data-act="facts-cancel">취소</button><button type="button" class="btn btn-primary" style="min-height:48px;font-size:1rem" data-act="facts-save">이대로 저장</button></div>';
+        body = '<label class="sr" for="facts-edit">' + t('cp.editLabel') + '</label><textarea id="facts-edit" class="input" rows="7">' + esc(s.body) + '</textarea>' +
+          '<div class="btn-row no-print"><button type="button" class="btn btn-line" data-act="facts-cancel">' + t('cp.cancel') + '</button><button type="button" class="btn btn-primary" style="min-height:48px;font-size:1rem" data-act="facts-save">' + t('cp.save') + '</button></div>';
       } else {
-        body = '<p>' + esc(s.body) + '</p>' + (editable ? '<button type="button" class="small-btn no-print" data-act="facts-edit">' + icon('pen') + '이 문단 고치기</button>' : '');
+        body = '<p>' + esc(s.body) + '</p>' + (editable ? '<button type="button" class="small-btn no-print" data-act="facts-edit">' + icon('pen') + t('cp.editBtn') + '</button>' : '');
       }
-      var head = '<h3>' + esc(s.heading) + (editable ? '<span>AI가 다듬은 문장</span>' : '') + '</h3>';
+      var head = '<h3>' + esc(s.heading) + (editable ? '<span class="no-print">' + t('cp.aiTag') + '</span>' : '') + '</h3>';
       var inline = showTr && trs[i] ? '<p class="tr-inline" lang="' + trLang + '">' + esc(trs[i].body) + '</p>' : '';
       return '<section>' + head + body + inline + '</section>';
     }).join('');
     var tr = trs.map(function (s) {
       return '<section><h3>' + esc(s.heading) + '</h3><p>' + esc(s.body) + '</p></section>';
     }).join('');
+    var trName = (LANGS.filter(function (l) { return l.code === trLang; })[0] || { name: trLang }).name;
     var seg = trs.length ?
-      '<div class="seg no-print" role="group" aria-label="보기 방식"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">한국어 원문</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">번역 함께 보기</button></div>' : '';
+      '<div class="seg no-print" role="group" aria-label="' + t('cp.view') + '"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">' + t('cp.ko') + '</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">' + t('cp.both') + '</button></div>' : '';
     return '<div class="wide col stack-lg">' + progress(4) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">진정서 초안</h1><p class="note">법률 자문이 아닌 서식 작성 보조 자료예요. 사실과 같은지 확인한 뒤 내세요. 노동청에는 한국어 원문만 내요.</p>' +
-      '<p class="hint no-print">금액은 계산 결과에서 가져와 여기서는 고칠 수 없어요. 고치려면 <button type="button" class="btn-text" style="font-size:inherit" data-go="review">입력한 내용을 바꿔 다시 계산</button>해 주세요.</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('title.complaint') + '</h1><p class="note">' + t('cp.note') + '</p>' +
+      '<p class="hint no-print">' + t('cp.fixHint') + ' <button type="button" class="btn-text" style="font-size:inherit" data-go="review">' + t('cp.recalc') + '</button></p></div>' +
       seg +
       '<div class="paper-grid' + (showTr ? ' tr-on' : '') + '">' +
       '<article class="paper" lang="ko"><h2 class="doc-title">' + esc(d.draftKo.title) + '</h2>' + ko +
       '<p class="sign">2026년 11월 [  ]일<br>진정인 ' + esc(S.p.name || '[이름]') + ' (서명)</p>' +
       '<p class="foot">' + esc(d.disclaimer) + ' 제출 전 내용이 사실과 같은지 확인하세요.</p></article>' +
-      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="참고용 번역"><p class="hint">' + ({ en: 'English', vi: 'Tiếng Việt' }[trLang] || trLang) + ' · 참고용 번역</p>' + tr + '</article>' : '') +
+      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(trName) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') +
       '</div>' +
-      (S.copyFallback ? '<div class="field no-print"><label for="copybox">아래 글을 길게 눌러 전체 선택 후 복사해 주세요</label><textarea id="copybox" class="input copybox" readonly>' + esc(plainText()) + '</textarea></div>' : '') +
+      (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(plainText()) + '</textarea></div>' : '') +
       '</div>' +
-      cta(primary('PDF로 저장', 'data-act="print"') +
-        '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>인쇄</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>전체 복사</span></button></div>' +
-        '<p class="hint">전체 복사는 노동포털 온라인 진정 입력란에 붙여 넣을 때 써요.</p>' +
-        '<button type="button" class="btn-text" data-go="guide">어디에 어떻게 내나요?</button>', 'col wide');
+      cta(primary(t('cp.pdf'), 'data-act="print"') +
+        '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>' +
+        '<p class="hint">' + t('cp.copyHint') + '</p>' +
+        '<button type="button" class="btn-text" data-go="guide">' + t('cp.where') + '</button>', 'col wide');
   }
 
   // ---------- 화면: 절차 ----------
@@ -771,58 +1048,185 @@
     var steps = [1, 2, 3, 4, 5, 6].map(function (n) {
       return '<li><div class="tl-mark" aria-hidden="true"><span class="tl-num">' + n + '</span>' + (n < 6 ? '<span class="tl-line"></span>' : '') + '</div>' +
         '<div class="tl-body"><strong>' + t('guide.s' + n) + '</strong><p>' + t('guide.s' + n + 'b') + '</p>' +
-        (n === 1 ? '<div class="links"><a href="https://labor.moel.go.kr" target="_blank" rel="noopener">' + t('guide.link1') + icon('out') + '</a><a href="https://www.moel.go.kr" target="_blank" rel="noopener">' + t('guide.link2') + icon('out') + '</a></div>' : '') + '</div></li>';
+        (n === 1 ? '<div class="links"><a href="https://labor.moel.go.kr" target="_blank" rel="noopener">' + t('guide.link1') + icon('out') + '</a><button type="button" class="btn-text" data-go="help">' + t('guide.link2') + '</button></div>' + '<p class="hint">' + term('complaint') + ' ' + term('laborOffice') + '</p>' : '') +
+        (n === 6 ? '<div class="links"><button type="button" class="btn-text" data-go="daeji">' + t('title.daeji') + '</button></div>' : '') + '</div></li>';
     }).join('');
     function phone(name, sub, num, tel) {
       return '<a class="phone" href="tel:' + tel + '">' + icon('phone') + '<span><strong>' + name + '</strong><small>' + sub + '</small></span><b>' + num + '</b></a>';
     }
     var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('check') + t('guide.bring' + n) + '</li>'; }).join('');
     return '<div class="split">' +
-      '<div class="stack-lg">' +
-      '<div class="stack"><span class="eyebrow">' + t('title.guide') + '</span><h1 tabindex="-1">' + t('guide.title') + '</h1><p class="lead">' + t('guide.lead') + '</p></div>' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><span class="eyebrow">' + t('title.guide') + '</span><h1 tabindex="-1">' + t('guide.title') + '</h1><p class="lead">' + t('guide.lead') + '</p>' + speakBtn('guide') + '</div>' +
       '<ol class="timeline">' + steps + '</ol>' +
-      '<section class="stack"><h2>' + t('guide.bring') + '</h2><ul class="bring">' + bring + '</ul></section></div>' +
+      '<section class="stack"><h2>' + t('guide.bring') + '</h2><ul class="bring">' + bring + '</ul><button type="button" class="btn btn-line" data-go="ready">' + icon('list') + '<span>' + t('guide.readyGo') + '</span></button></section></div>' +
       '<aside class="side">' +
       '<button type="button" class="callout" data-go="counselor">' + icon('chat', 'ico-lg') + '<span><strong>' + t('guide.callout') + '</strong><small>' + t('guide.calloutSub') + '</small></span>' + icon('arrow-r') + '</button>' +
       '<section class="note stack"><h2>' + t('guide.help') + '</h2><div class="phones">' +
       phone(t('guide.p1'), t('guide.p1s'), '1350', '1350') +
       phone(t('guide.p2'), t('guide.p2s'), '1577-0071', '15770071') +
       phone(t('guide.p3'), t('guide.p3s'), '132', '132') +
-      '</div><p class="hint">' + t('guide.phoneHint') + '</p></section>' +
+      '</div><p class="hint">' + t('guide.phoneHint') + '</p><button type="button" class="btn btn-line" data-go="help">' + icon('pin') + '<span>' + t('title.help') + '</span></button></section>' +
       cta(primary(t('guide.cta'), 'data-go="form"'), ' ') + '</aside></div>';
   }
 
-  // ---------- 화면: 상담원 ----------
+  // ---------- 화면: 상담원 (창구에서 보여 주거나 인쇄. 본문은 늘 한국어 · 큰 글씨) ----------
   function vCounselor() {
     var R = viewResult();
     var f = S.f, p = S.p;
-    var top = { ko: '상담원에게 휴대폰을 그대로 보여 주세요.', en: 'This page is in Korean so the counselor can read it. Hand your phone to them.', vi: 'Trang này bằng tiếng Hàn để nhân viên tư vấn đọc được. Hãy đưa điện thoại cho họ.' }[S.lang];
-    var langName = { ko: '', en: '영어', vi: '베트남어' }[S.lang];
-    var rows = R.items.map(function (it) {
-      return '<tr><th scope="row" style="text-align:left;font-weight:400">' + it.label + (it.estimated ? ' (추정)' : '') + '</th><td style="text-align:right;font-weight:700">' + (it.amount != null ? won(it.amount) : it.status) + '</td></tr>';
+    var me = LANGS.filter(function (l) { return l.code === S.lang; })[0] || {};
+    var by = {};
+    R.items.forEach(function (it) { if (it.month && it.amount) by[it.month] = (by[it.month] || 0) + it.amount; });
+    var ms = monthList().slice().sort();
+    var rows = R.items.filter(function (it) { return it.amount != null || it.missing; }).map(function (it) {
+      var name = it.ko;
+      return '<tr><th scope="row">' + esc(name + (it.month ? ' (' + Number(it.month.slice(5)) + '월)' : '') + (it.estimated ? ' (추정)' : '')) + '</th><td class="n">' + (it.amount != null ? won(it.amount) : '정보 없음') + '</td></tr>';
     }).join('');
+    var monthsRows = ms.map(function (m) { return '<li>' + m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월 · 못 받은 돈 ' + won(by[m] || 0) + '</li>'; }).join('');
+    loadOffices();
+    var office = officeOf();
+    var brought = READY.filter(function (k) { return S.ready[k]; }).map(function (k) { return L.ko['ready.' + k]; });
     return '<div class="col stack-lg">' +
-      '<p class="banner" lang="' + S.lang + '">' + esc(top) + '</p>' +
+      '<p class="banner no-print">' + esc(t('counsel.top')) + '</p>' +
       '<article class="paper counsel" lang="ko"><div class="stack" style="gap:6px"><h1 tabindex="-1">임금체불 상담 요청</h1>' +
-      (langName ? '<p>저는 ' + langName + '를 씁니다. 통역이 필요할 수 있습니다.</p>' : '') + '</div>' +
-      '<div class="big-sum"><span class="total-label">받지 못한 돈 (참고 계산)</span><span class="total" style="font-size:2rem">' + won(R.total) + '</span><span>' + readable(R.total) + '</span></div>' +
-      '<dl class="kv"><dt>사업장</dt><dd>' + esc(f.company || p.company || '[사업장 이름]') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
+      (S.lang !== 'ko' ? '<p class="counsel-lang">저는 ' + esc(me.koName || me.name || S.lang) + '를 씁니다. 통역이 필요할 수 있습니다.</p>' : '') + '</div>' +
+      '<div class="big-sum"><span class="total-label">받지 못한 돈 합계 (참고 계산)</span><span class="total">' + won(R.total) + '</span><span>' + korRead(R.total) + '</span></div>' +
+      '<dl class="kv"><dt>체불 기간</dt><dd>' + (ms.length ? ms[0].slice(0, 4) + '년 ' + Number(ms[0].slice(5)) + '월' + (ms.length > 1 ? ' ~ ' + ms[ms.length - 1].slice(0, 4) + '년 ' + Number(ms[ms.length - 1].slice(5)) + '월' : '') + ' (' + ms.length + '개월)' : '') + '</dd>' +
+      '<dt>받은 돈</dt><dd>' + won(R.paid) + '</dd>' +
+      '<dt>사업장</dt><dd>' + esc(f.company || p.company || '[사업장 이름]') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
       '<dt>일한 기간</dt><dd>' + esc(dotDate(f.start)) + ' ~ ' + esc(f.employed === 'yes' ? '재직 중' : dotDate(f.end) + ' (퇴직)') + '</dd>' +
-      '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ' · ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + '</dd>' +
+      '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ' · ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + (workDays().length ? ' · 달력 기록 ' + workDays().length + '일' : '') + '</dd>' +
       '<dt>약속한 급여</dt><dd>' + ({ hour: '시급 ', day: '일급 ', month: '월 ' }[f.wageType] || '') + (f.wage ? won(f.wage) : '') + (f.allowance ? ' + 수당 ' + won(f.allowance) : '') + '</dd>' +
-      '<dt>받은 돈</dt><dd>' + (f.paid !== '' ? won(f.paid) : '') + '</dd></dl>' +
-      '<table style="width:100%;border-collapse:collapse"><caption>항목별 금액</caption><tbody>' + rows + '</tbody></table>' +
+      (office ? '<dt>관할 노동청</dt><dd>' + esc(office.name) + '</dd>' : '') + '</dl>' +
+      (monthsRows ? '<section class="stack" style="gap:4px"><h2>달별 못 받은 돈</h2><ul class="counsel-months">' + monthsRows + '</ul></section>' : '') +
+      '<table><caption>항목별 금액</caption><tbody>' + rows + '<tr class="sum"><th scope="row">합계</th><td class="n">' + won(R.total) + '</td></tr></tbody></table>' +
+      (brought.length ? '<p><strong>가져온 증거</strong><br>' + esc(brought.join(', ')) + '</p>' : '') +
       '<p><strong>원하는 것</strong><br>밀린 임금' + (f.employed === 'yes' ? '을' : '과 퇴직금을') + ' 받고 싶습니다. 진정 절차를 안내해 주세요.</p>' +
-      '<p class="foot">근로자가 입력한 내용으로 계산한 참고 자료입니다. 법률 자문이 아닙니다.</p></article></div>' +
-      cta('<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>PDF 저장</span></button><button type="button" class="btn btn-primary" data-act="back">돌아가기</button></div>');
+      '<p class="foot">근로자가 입력한 내용으로 계산한 참고 자료입니다. 법률 자문이 아닙니다. 금액은 근로기준법 계산식(룰 엔진 ' + esc(S.calc.engineVersion || '') + ')으로만 계산했습니다.</p></article></div>' +
+      cta('<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('counsel.print') + '</span></button><button type="button" class="btn btn-primary" data-act="back">' + t('counsel.back') + '</button></div>');
   }
 
-  var VIEWS = { start: vStart, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor };
+  // ---------- 화면: 관할 노동청 · 도움받을 곳 ----------
+  // data/offices.json: moel.go.kr · 노동포털 관할관서 안내에서 확인한 것만 (출처 · 확인일은 파일 안). 없는 곳은 노동포털 찾기 링크
+  var OFF = null;
+  function loadOffices() {
+    if (loadOffices.on) return;
+    loadOffices.on = true;
+    fetch('data/offices.json').then(function (r) { return r.json(); }).then(function (d) { OFF = d; }, function () { OFF = { regions: [], offices: [], help: [], failed: true }; })
+      .then(function () { if (S.route === 'help' || S.route === 'counselor') rerender(); });
+  }
+  function officeOf() {
+    if (!OFF || !S.office.sido) return null;
+    var r = OFF.regions.filter(function (x) { return x.sido === S.office.sido; })[0];
+    if (!r) return null;
+    var id = r.office || ((r.sigungu.filter(function (g) { return g.name === S.office.sgg; })[0] || {}).office);
+    return OFF.offices.filter(function (o) { return o.id === id; })[0] || null;
+  }
+  function vHelp() {
+    if (!OFF) { loadOffices(); return '<div class="col stack-lg"><h1 tabindex="-1">' + t('title.help') + '</h1><p role="status">' + t('help.loading') + '</p></div>'; }
+    var o = S.office, r = OFF.regions.filter(function (x) { return x.sido === o.sido; })[0];
+    var sidos = '<option value="">' + t('q.pick') + '</option>' + OFF.regions.map(function (x) { return '<option' + (x.sido === o.sido ? ' selected' : '') + '>' + esc(x.sido) + '</option>'; }).join('');
+    var sgg = r && r.sigungu.length ? '<div class="field"><label for="sgg">' + t('help.sgg') + '</label><select id="sgg" class="input" data-act="sgg" lang="ko"><option value="">' + t('q.pick') + '</option>' +
+      r.sigungu.map(function (g) { return '<option' + (g.name === o.sgg ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select></div>' : '';
+    var off = officeOf();
+    var card = off ? '<section class="office stack" aria-live="polite"><span class="eyebrow">' + t('help.yours') + '</span><h2 lang="ko">' + esc(off.name) + '</h2>' +
+      '<p lang="ko">' + icon('pin') + ' ' + esc(off.address) + '</p>' +
+      (off.phone ? '<a class="phone" href="tel:' + off.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong>' + t('help.call') + '</strong>' + (off.phoneNote ? '<small lang="ko">' + esc(off.phoneNote) + '</small>' : '') + '</span><b>' + esc(off.phone) + '</b></a>' : '<p class="hint">' + t('help.noPhone') + '</p>') +
+      '<p class="hint">' + t('help.src', { d: esc(OFF.checkedAt || '') }) + ' <a href="' + esc(off.source) + '" target="_blank" rel="noopener">' + t('help.srcLink') + icon('out') + '</a></p></section>'
+      : (o.sido && (!r || r.sigungu.length) && o.sgg ? '<p class="warnbox">' + t('help.notFound') + '</p>' : '');
+    var helps = (OFF.help || []).map(function (h) {
+      var what = (L[S.lang] && L[S.lang]['helpw.' + h.id]) || h.what;
+      return '<li><a class="phone" href="tel:' + h.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong' + (S.lang === 'ko' || (L[S.lang] || {})['helpn.' + h.id] ? '' : ' lang="ko"') + '>' + esc((L[S.lang] && L[S.lang]['helpn.' + h.id]) || h.name) + '</strong><small>' + esc(what) + '</small></span><b>' + esc(h.phone) + '</b></a></li>';
+    }).join('');
+    return '<div class="split">' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><span class="eyebrow">' + term('laborOffice') + '</span><h1 tabindex="-1">' + t('help.title') + '</h1><p class="lead">' + t('help.lead') + '</p></div>' +
+      '<div class="stack"><div class="field"><label for="sido">' + t('help.sido') + '</label><select id="sido" class="input" data-act="sido" lang="ko">' + sidos + '</select></div>' + sgg +
+      '<p class="hint">' + t('help.oldName') + '</p></div>' + card +
+      '<div class="links"><a href="' + esc(OFF.complaintUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener">' + t('guide.link1') + icon('out') + '</a><a href="' + esc(OFF.findUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener">' + t('help.find') + icon('out') + '</a></div></div>' +
+      '<aside class="side"><section class="note stack"><h2>' + t('help.phones') + '</h2><ul class="plain phones">' + helps + '</ul><p class="hint">' + t('guide.phoneHint') + '</p></section>' +
+      cta(primary(t('guide.callout'), 'data-go="counselor"', !!S.calc) + (S.calc ? '' : '<p class="hint">' + t('help.needCalc') + '</p>'), ' ') + '</aside></div>';
+  }
+
+  // ---------- 화면: 준비물 체크리스트 ----------
+  var READY = ['contract', 'payslip', 'bank', 'time', 'msg', 'id'];
+  function vReady() {
+    var got = READY.filter(function (k) { return S.ready[k]; }).length;
+    var list = READY.map(function (k) {
+      return '<li><label class="check ready-item" for="rd-' + k + '"><input id="rd-' + k + '" type="checkbox" data-act="ready" data-v="' + k + '"' + (S.ready[k] ? ' checked' : '') + '><span><strong>' + t('ready.' + k) + '</strong><small>' + t('ready.' + k + '.h') + '</small></span></label></li>';
+    }).join('');
+    return '<div class="split">' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><h1 tabindex="-1">' + t('ready.title') + '</h1><p class="lead">' + t('ready.lead') + '</p></div>' +
+      '<div class="progress"><div class="bar" style="--n:' + READY.length + '" aria-hidden="true">' + READY.map(function (_, i) { return '<span' + (i < got ? ' class="on"' : '') + '></span>'; }).join('') + '</div><span class="hint" role="status">' + t('form.ready', { n: got, m: READY.length }) + '</span></div>' +
+      '<ul class="plain ready">' + list + '</ul></div>' +
+      '<aside class="side"><p class="note">' + t('ready.note') + '</p>' +
+      cta(primary(t(S.calc ? 'ready.toForm' : 'ready.toStart'), S.calc ? 'data-go="form"' : 'data-go="review"'), ' ') + '</aside></div>';
+  }
+
+  // ---------- 화면: 대지급금 알아보기 (금액 판정은 하지 않는다) ----------
+  // 출처 (2026-11-15 확인): 근로복지공단 간이대지급금 https://welfare.comwel.or.kr/default/page.do?mCode=H030010000 ,
+  // 도산대지급금 https://welfare.comwel.or.kr/default/page.do?mCode=H020010000 , 임금채권보장법 제7조 · 제7조의2 (law.go.kr). 자세한 정리: _도구/조사_3단계.md
+  var DJ = [['left', ['yes', 'no']], ['paper', ['yes', 'filing', 'no']], ['year', ['yes', 'no', 'unsure']], ['closed', ['yes', 'no', 'unsure']]];
+  function vDaeji() {
+    var a = S.dj;
+    var qs = DJ.map(function (q, i) {
+      return '<fieldset class="stack"><legend class="label">' + (i + 1) + '. ' + t('dj.' + q[0] + (q[0] === 'year' && a.left === 'no' ? 'Now' : '')) + '</legend><div class="choices">' + q[1].map(function (v) {
+        return '<label class="choice"><input type="radio" name="dj-' + q[0] + '" value="' + v + '" data-act="dj" data-k="' + q[0] + '"' + (a[q[0]] === v ? ' checked' : '') + '><span>' + t('dj.a.' + v) + '</span></label>';
+      }).join('') + '</div></fieldset>';
+    }).join('');
+    var done = DJ.every(function (q) { return a[q[0]]; });
+    var out = [];
+    if (done) {
+      if (a.paper === 'yes') out.push(['ok', t('dj.r.simple')]);
+      else out.push(['step', t(a.paper === 'filing' ? 'dj.r.filing' : 'dj.r.first')]);
+      if (a.left === 'no') out.push(['info', t('dj.r.employed')]);
+      if (a.year !== 'yes') out.push(['warn', t('dj.r.year')]);
+      if (a.closed === 'yes' && a.left === 'yes') out.push(['ok', t('dj.r.closed')]);
+      if (a.closed === 'yes' && a.left === 'no') out.push(['info', t('dj.r.closedEmployed')]);
+      out.push(['info', t('dj.r.company')]);
+    }
+    var res = done ? '<section class="dj-result stack" aria-live="polite"><h2>' + t('dj.result') + '</h2><ul class="plain stack">' + out.map(function (o) { return '<li class="dj-' + o[0] + '">' + o[1] + '</li>'; }).join('') + '</ul>' +
+      '<div class="links"><a href="https://welfare.comwel.or.kr/default/page.do?mCode=H030010000" target="_blank" rel="noopener">' + t('dj.link1') + icon('out') + '</a><a href="https://welfare.comwel.or.kr/default/page.do?mCode=H020010000" target="_blank" rel="noopener">' + t('dj.link2') + icon('out') + '</a></div>' +
+      '<a class="phone" href="tel:15880075">' + icon('phone') + '<span><strong>' + t('dj.call') + '</strong><small>' + t('dj.callSub') + '</small></span><b>1588-0075</b></a></section>' : '';
+    return '<div class="split">' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><span class="eyebrow">' + term('daeji') + '</span><h1 tabindex="-1">' + t('dj.title') + '</h1><p class="lead">' + t('dj.lead') + '</p></div>' + qs + res + '</div>' +
+      '<aside class="side"><p class="note">' + t('dj.note') + '</p>' +
+      cta(primary(t('guide.cta'), 'data-go="form"', !!S.calc) + '<button type="button" class="btn-text" data-go="guide">' + t('result.guide') + '</button>', ' ') + '</aside></div>';
+  }
+
+  // ---------- 화면: 쉬운 말 사전 ----------
+  function vWords() {
+    var list = WORDS.map(function (id) {
+      return '<li><details class="word"><summary>' + t('w.' + id) + (S.lang !== 'ko' ? ' <small lang="ko">' + esc(L.ko['w.' + id]) + '</small>' : '') + '</summary><p>' + t('w.' + id + '.d') + '</p>' +
+        (L.ko['w.' + id + '.law'] ? '<p class="hint" lang="ko">' + esc(L.ko['w.' + id + '.law']) + '</p>' : '') + '</details></li>';
+    }).join('');
+    return '<div class="col stack-lg">' + langBanner() + '<div class="stack"><span class="eyebrow">' + icon('book') + t('title.words') + '</span><h1 tabindex="-1">' + t('words.title') + '</h1><p class="lead">' + t('words.lead') + '</p></div>' +
+      '<ul class="plain words">' + list + '</ul><p class="hint">' + t('words.src') + '</p></div>' + cta(primary(t('counsel.back'), 'data-act="back"'));
+  }
+  // 말 하나 풀이 창 (화면 곳곳의 밑줄 단추)
+  function showWord(id) {
+    var d = document.getElementById('word-dlg');
+    if (!d) {
+      d = document.createElement('dialog');
+      d.id = 'word-dlg';
+      d.setAttribute('aria-labelledby', 'word-t');
+      document.body.appendChild(d);
+    }
+    d.innerHTML = '<div class="stack"><h2 id="word-t">' + t('w.' + id) + (S.lang !== 'ko' ? ' <small lang="ko">' + esc(L.ko['w.' + id]) + '</small>' : '') + '</h2><p>' + t('w.' + id + '.d') + '</p>' +
+      (L.ko['w.' + id + '.law'] ? '<p class="hint" lang="ko">' + esc(L.ko['w.' + id + '.law']) + '</p>' : '') +
+      '<button type="button" class="btn btn-primary" data-act="word-close">' + t('words.close') + '</button><button type="button" class="btn-text" data-act="word-all">' + t('words.all') + '</button></div>';
+    d.setAttribute('lang', S.lang);
+    d.showModal();
+  }
+
+  var VIEWS = { start: vStart, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords };
 
   function render(moveFocus) {
     document.documentElement.classList.toggle('big', !!S.big);
-    document.documentElement.lang = TRANSLATED.indexOf(S.route) >= 0 ? S.lang : 'ko';
-    app.innerHTML = topbar() + '<main id="main" class="wrap' + (S.route === 'start' ? ' start-bg' : '') + '"><div' + (moveFocus ? ' class="enter"' : '') + '>' + VIEWS[S.route]() + '</div></main>';
+    document.documentElement.lang = S.lang;
+    app.innerHTML = topbar() + '<main id="main" class="wrap' + (S.route === 'start' ? ' start-bg' : '') + '"><div' + (moveFocus ? ' class="enter"' : '') + '>' + VIEWS[S.route]() + '</div></main>' + footer();
     if (moveFocus) {
       window.scrollTo(0, 0);
       var h = app.querySelector('h1');
@@ -1002,7 +1406,7 @@
     (res.conflicts || []).forEach(function (c) {
       var row = ROW_OF[c.key];
       if (!row) return;
-      S.conf[row] = c.values.map(function (v) { return v.page + '번 사진 ' + shown(v.value); }).join(' · ');
+      S.conf[row] = c.values.map(function (v) { return t('up.page', { n: v.page }) + ' ' + shown(v.value); }).join(' · ');
       S.low[row] = true;
       S.ok[row] = false;
     });
@@ -1035,13 +1439,13 @@
   }
   function doPrint() {
     if (!inFrame && typeof window.print === 'function') { window.print(); return; }
-    toast('실제 서비스에서는 여기서 PDF 저장 창이 열려요. (프로토타입)');
+    toastT('print.proto');
   }
   function doCopy() {
     var text = plainText();
-    var fail = function () { S.copyFallback = true; render(); var b = document.getElementById('copybox'); if (b) { b.focus(); b.select(); } toast('복사가 막혀 있어요. 아래 글을 직접 복사해 주세요'); };
+    var fail = function () { S.copyFallback = true; render(); var b = document.getElementById('copybox'); if (b) { b.focus(); b.select(); } toastT('cp.copyFail'); };
     try {
-      navigator.clipboard.writeText(text).then(function () { toast('진정서 전체를 복사했어요'); }, fail);
+      navigator.clipboard.writeText(text).then(function () { toastT('cp.copied'); }, fail);
     } catch (e) { fail(); }
   }
   function make() {
@@ -1054,7 +1458,7 @@
       render();
       var first = app.querySelector('[aria-invalid="true"]');
       if (first) first.focus();
-      toast('빠진 칸 ' + missing.length + '개를 채워 주세요');
+      toast(t('form.missing', { n: missing.length }));
       return;
     }
     document.getElementById('confirm').showModal();
@@ -1068,6 +1472,32 @@
     });
   }
   function toastT(k) { toast(t(k)); }
+  // 달력: 고른 날 기록 저장 (일한 시간이 0 이하면 저장하지 않음)
+  function calSave() {
+    var w = { s: document.getElementById('ce-s').value, e: document.getElementById('ce-e').value, b: Number(document.getElementById('ce-b').value), h: document.getElementById('ce-h').checked };
+    if (!w.s || !w.e || workedMin(w) <= 0) { var er = document.getElementById('ce-err'); er.hidden = false; return; }
+    var d = S.calSel;
+    S.f.work[d] = w;
+    S.src.work = 'self'; S.fieldErr.work = '';
+    S.calSel = '';
+    render();
+    focusId('cd' + d);
+  }
+  // 평소 요일 · 시간(질문 4)으로 이 달의 빈 날을 채운다
+  function calFill() {
+    var f = S.f, ym = S.calM, n = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5), 0)).getUTCDate(), added = 0;
+    for (var d = 1; d <= n; d++) {
+      var date = ym + '-' + pad(d), wd = (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7;
+      if (f.days[wd] && !f.work[date] && inPeriod(date)) {
+        f.work[date] = { s: hh(f.tStart), e: hh(f.tEnd).replace('24:00', '00:00'), b: Number(f.brk || 0) * 60, h: false };
+        added++;
+      }
+    }
+    S.src.work = 'self';
+    render();
+    toast(t('cal.filled', { n: added }));
+  }
+  function focusId(id) { var el = document.getElementById(id); if (el) el.focus(); }
 
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-go],[data-act]');
@@ -1082,9 +1512,25 @@
       // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
       if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
       if (S.path === 'doc') { S.up = { status: 'idle' }; PAGES.forEach(function (p) { setUrl(p, null); }); PAGES = []; }
+      resumeTo = '';
       go(S.path === 'manual' ? 'q1' : 'upload');
     }
+    else if (a === 'resume') { var to = resumeTo; resumeTo = ''; go(to); }
+    else if (a === 'restart') { var keep = { lang: S.lang, big: S.big }; S = Object.assign(fresh(), keep); resumeTo = ''; render(); toastT('resume.cleared'); }
+    else if (a === 'wipe') wipe();
+    else if (a === 'term') showWord(t.dataset.v);
+    else if (a === 'word-close') document.getElementById('word-dlg').close();
+    else if (a === 'word-all') { document.getElementById('word-dlg').close(); go('words'); }
+    else if (a === 'speak') speak(t.dataset.v);
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
+    else if (a === 'month-add') { S.f.more.push({ month: '', paid: '' }); render(); focusId('mm' + (S.f.more.length - 1)); }
+    else if (a === 'month-del') { S.f.more.splice(Number(t.dataset.i), 1); render(); }
+    else if (a === 'cal-day') { S.calSel = t.dataset.d; render(); focusId('ce-title'); }
+    else if (a === 'cal-save') calSave();
+    else if (a === 'cal-del') { var dd = S.calSel; delete S.f.work[dd]; S.calSel = ''; render(); focusId('cd' + dd); }
+    else if (a === 'cal-close') { var dc = S.calSel; S.calSel = ''; render(); focusId('cd' + dc); }
+    else if (a === 'cal-fill') calFill();
+    else if (a === 'cal-clear') { Object.keys(S.f.work).forEach(function (d) { if (d.slice(0, 7) === S.calM) delete S.f.work[d]; }); S.calSel = ''; render(); }
     else if (a === 'ok') { S.ok[t.dataset.k] = true; render(); }
     else if (a === 'disclaim') toastT('result.disclaimToast');
     else if (a === 'calculate') calculate(t);
@@ -1100,7 +1546,7 @@
     else if (a === 'tr') { S.tr = t.dataset.v === '1'; render(); }
     else if (a === 'facts-edit') { S.editing = true; render(); var ta = document.getElementById('facts-edit'); if (ta) ta.focus(); }
     else if (a === 'facts-cancel') { S.editing = false; render(); }
-    else if (a === 'facts-save') { S.factsText = document.getElementById('facts-edit').value; S.editing = false; render(); toast('진정 내용을 고쳤어요'); }
+    else if (a === 'facts-save') { S.factsText = document.getElementById('facts-edit').value; S.editing = false; render(); toastT('cp.saved'); }
   });
   document.addEventListener('change', function (e) {
     var t = e.target;
@@ -1110,6 +1556,12 @@
     else if (a === 'files') { addFiles(t.files); t.value = ''; }
     else if (a === 'retake-file') { var rp = pageOf(retakeId); if (rp && t.files[0]) { setFile(rp, t.files[0]); rerender(); } t.value = ''; }
     else if (a === 'pg-type') { var tp = pageOf(t.dataset.id); tp.type = t.value; if (tp.state === 'ok' || tp.state === 'fail') tp.state = 'ready'; rerender(); }
+    else if (a === 'cal-month') { S.calM = t.value; S.calSel = ''; render(); focusId('cal-month'); }
+    else if (a === 'sido') { S.office = { sido: t.value, sgg: '' }; render(); focusId('sido'); }
+    else if (a === 'sgg') { S.office.sgg = t.value; render(); focusId('sgg'); }
+    else if (a === 'ready') { S.ready[t.dataset.v] = t.checked; render(); focusId(t.id); }
+    else if (a === 'dj') { S.dj[t.dataset.k] = t.value; render(); var r = app.querySelector('[name="dj-' + t.dataset.k + '"][value="' + t.value + '"]'); if (r) r.focus(); }
+    else if (t.dataset.m !== undefined && t.dataset.k === 'month') { S.f.more[Number(t.dataset.m)].month = t.value; S.src.more = 'self'; render(); focusId(t.id); }
     else if (t.dataset.f !== undefined && !t.hasAttribute('data-live')) {
       setField(t);
       var id = t.id, val = t.value;
@@ -1121,6 +1573,16 @@
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.hasAttribute('data-live')) { setField(t); refreshNext(); }
+    else if (t.dataset.m !== undefined && t.dataset.k === 'paid') {
+      var v = t.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+      if (t.value !== v) t.value = v;
+      S.f.more[Number(t.dataset.m)].paid = v;
+      S.src.more = 'self';
+      var r = app.querySelector('[data-readable-m="' + t.dataset.m + '"]');
+      if (r) r.textContent = readable(v);
+      save();
+      refreshNext();
+    }
     else if (t.dataset.p !== undefined) { S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; save(); }
   });
 
@@ -1141,11 +1603,22 @@
   });
 
   var start = (location.hash || '').slice(1);
-  if (ALL.indexOf(start) >= 0 && (start === 'start' || S.agreed)) S.route = start;
+  // 주소에 화면 표시 없이 새로 열면 시작 화면에서 '이어서 하기 · 처음부터'를 고른다
+  if (!start && S.saved && S.agreed && S.route !== 'start') resumeTo = S.route;
+  if (!start || ALL.indexOf(start) < 0 || !S.agreed) S.route = 'start';
+  else S.route = start;
   if (NEED_CALC.indexOf(S.route) >= 0 && !S.calc) S.route = 'review';
   if (S.route === 'complaint' && !S.draft) S.route = 'form';
   // 사진은 메모리에만 있어 새로고침하면 사라진다 → 읽는 중 표시도 지운다
   if (S.up.status === 'reading') S.up = { status: 'idle' };
-  // 한국어(기본 문구)와 고른 언어 문구를 받은 뒤 그린다
-  Promise.all([loadLang('ko'), loadLang(S.lang)]).then(function () { render(false); });
+  // 언어 목록 → 한국어(기본 문구)와 고른 언어 문구를 받은 뒤 그린다
+  fetch('i18n/languages.json').then(function (r) { return r.json(); }).then(function (l) { LANGS = l; }, function () {}).then(function () {
+    if (!S.saved) S.lang = detectLang();
+    if (!LANGS.some(function (x) { return x.code === S.lang; })) S.lang = 'ko';
+    return Promise.all([loadLang('ko'), loadLang(S.lang)]);
+  }).then(function () { render(false); });
+  // 설치형 웹앱: 화면 파일만 오프라인 캐시 (sw.js). API 응답 · 입력값은 캐시하지 않는다
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
 })();

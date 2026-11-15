@@ -1,0 +1,5 @@
+[
+  { "code": "ko", "name": "한국어", "koName": "한국어", "source": "원문" },
+  { "code": "en", "name": "English", "koName": "영어", "source": "직접 번역 · 원어민 검수 필요" },
+  { "code": "vi", "name": "Tiếng Việt", "koName": "베트남어", "source": "직접 번역 · 원어민 검수 필요" }
+]

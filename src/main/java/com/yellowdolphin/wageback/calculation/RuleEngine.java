@@ -302,7 +302,8 @@ final class RuleEngine {
     }
 
     // 주(월요일 시작)마다: 평일 연장 = max(하루 8시간 넘은 합, 주 40시간 넘은 시간).
-    // 휴일에 일한 시간은 주 40시간에 넣지 않고 휴일근로(8시간까지 · 넘은 시간)로 따로 센다
+    // 휴일에 일한 시간은 연장 가산과 겹쳐 세지 않고 휴일근로(8시간까지 · 넘은 시간)로만 센다
+    // (근로기준법 제56조 제2항, 대법원 2018. 6. 21. 선고 2011다112391 전원합의체 판결 — 가산 중복 없음)
     private Month fromDays(Month m, List<WorkDay> days) {
         Map<LocalDate, List<WorkDay>> weeks = new TreeMap<>();
         for (WorkDay d : days) {
