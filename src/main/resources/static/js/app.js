@@ -14,7 +14,7 @@
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
   var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide' };
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
-  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'stop'], ['over14', 'cal']];
+  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'pause'], ['over14', 'cal']];
   var mobile = window.matchMedia('(max-width: 959px)');
   // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
   var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
@@ -216,6 +216,7 @@
     out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
     sound: '<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+    pause: '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7M14 8.5v7"/>',
     cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>',
     book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 7.5h8M8 11h5"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
