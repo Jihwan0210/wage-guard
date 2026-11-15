@@ -119,6 +119,104 @@
       "sources": [
         { "name": "고용노동부 서울서부지청 공지 (2026.4, '1577-0071, 17개국 언어로 상담 및 신고 연계')", "url": "https://moel.go.kr/local/seoulseobu/news/notice/noticeView.do?bbs_seq=20260401163" }
       ]
+    },
+    {
+      "id": "jobless",
+      "group": "after",
+      "title": {
+        "ko": "스스로 그만둬도 실업급여를 받을 수 있는 경우",
+        "en": "Unemployment benefit even if you quit",
+        "vi": "Trợ cấp thất nghiệp dù bạn tự nghỉ việc"
+      },
+      "lines": {
+        "ko": [
+          "스스로 그만두면 보통 실업급여를 못 받아요. 하지만 아래 일이 그만두기 전 1년 안에 2개월 넘게 있었다면 받을 수 있어요.",
+          "월급이 밀렸을 때(임금체불)",
+          "받은 돈이 최저임금보다 적었을 때",
+          "일주일 연장 근로가 12시간을 넘었을 때(법 위반)",
+          "실제 근로조건이 처음 약속보다 낮아졌을 때",
+          "받을 수 있는지와 금액은 고용센터가 정해요. 이 서비스는 판단하지 않아요.",
+          "신청: 고용24에서 구직 등록 → 온라인 교육 → 신분증을 들고 사는 곳 고용센터에 가서 신청해요."
+        ],
+        "en": [
+          "If you quit on your own, you usually cannot get unemployment benefit. But you may get it if, within 1 year before leaving, any of these happened for 2 months or more:",
+          "Your wages were not paid (wage arrears)",
+          "Your pay was below the minimum wage",
+          "Overtime was more than 12 hours a week (against the law)",
+          "Your real working conditions became worse than what was promised",
+          "The job center decides if you can get it and how much. This service does not decide.",
+          "How to apply: register as a job seeker on Work24 → online training → visit the job center near your home with your ID."
+        ],
+        "vi": [
+          "Nếu tự nghỉ việc, thường bạn không nhận được trợ cấp thất nghiệp. Nhưng bạn có thể nhận nếu trong 1 năm trước khi nghỉ, có một trong các việc sau kéo dài từ 2 tháng trở lên:",
+          "Bị nợ lương",
+          "Tiền lương thấp hơn lương tối thiểu",
+          "Làm thêm giờ quá 12 tiếng một tuần (trái luật)",
+          "Điều kiện làm việc thực tế thấp hơn lúc đã hứa",
+          "Trung tâm việc làm quyết định bạn có được nhận và nhận bao nhiêu. Dịch vụ này không quyết định.",
+          "Cách nộp: đăng ký tìm việc trên Work24 → học trực tuyến → mang giấy tờ tùy thân đến trung tâm việc làm gần nhà."
+        ]
+      },
+      "sources": [
+        {
+          "name": "고용24 실업급여 안내",
+          "url": "https://www.work24.go.kr/cm/c/f/1100/selecSystInfo.do?systId=SI00000411&systCnntId=&systClId=SC00000254"
+        },
+        {
+          "name": "고용보험법 시행규칙 별표2 (국가법령정보센터)",
+          "url": "https://www.law.go.kr/LSW/flDownload.do?gubun=&flSeq=169481947&bylClsCd=110201"
+        },
+        {
+          "name": "고용노동부 고객상담센터 1350",
+          "url": "https://1350.moel.go.kr/home/hp/ch/callchat.do"
+        }
+      ]
+    },
+    {
+      "id": "unfair",
+      "group": "after",
+      "title": {
+        "ko": "부당해고 구제신청 (해고되고 3개월 안)",
+        "en": "Unfair dismissal remedy (within 3 months)",
+        "vi": "Đơn về sa thải trái luật (trong 3 tháng)"
+      },
+      "lines": {
+        "ko": [
+          "정당한 이유 없이 해고됐다면 지방노동위원회에 '구제신청'을 할 수 있어요. 일터로 돌아가거나 그동안 못 받은 임금을 받는 길이에요.",
+          "해고된 날부터 3개월 안에 해야 해요. 지나면 신청할 수 없어요.",
+          "회사가 있는 곳의 지방노동위원회에 내요. 노동위원회 누리집에서 온라인으로도 낼 수 있어요.",
+          "5명 미만 회사에는 이 제도가 적용되지 않아요.",
+          "해고가 부당한지는 노동위원회가 판단해요. 이 서비스는 판단하지 않아요."
+        ],
+        "en": [
+          "If you were dismissed without a fair reason, you can apply for a remedy to the Regional Labor Relations Commission. It can get you back to work or get the pay you missed.",
+          "You must apply within 3 months of the dismissal. After that you cannot apply.",
+          "Apply to the commission for the area where the company is. You can also apply online on the commission website.",
+          "This does not apply to workplaces with fewer than 5 workers.",
+          "The commission decides if the dismissal was unfair. This service does not decide."
+        ],
+        "vi": [
+          "Nếu bị sa thải không có lý do chính đáng, bạn có thể nộp đơn lên Ủy ban Quan hệ Lao động khu vực. Bạn có thể được quay lại làm hoặc nhận tiền lương bị mất.",
+          "Phải nộp trong 3 tháng kể từ ngày bị sa thải. Quá hạn sẽ không nộp được.",
+          "Nộp cho ủy ban nơi công ty đặt trụ sở. Cũng có thể nộp trực tuyến trên trang web của ủy ban.",
+          "Không áp dụng cho nơi làm việc dưới 5 người.",
+          "Ủy ban quyết định việc sa thải có trái luật hay không. Dịch vụ này không quyết định."
+        ]
+      },
+      "sources": [
+        {
+          "name": "노동위원회 부당해고 구제신청 안내",
+          "url": "https://nlrc.go.kr/nlrc/commIntro/workGuide03.do"
+        },
+        {
+          "name": "노동위원회 온라인 사건 신청",
+          "url": "https://nlrc.go.kr/nlrc/minwon/main.do"
+        },
+        {
+          "name": "근로기준법 제28조 (국가법령정보센터)",
+          "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=285279&efYd=20261008"
+        }
+      ]
     }
   ]
 }

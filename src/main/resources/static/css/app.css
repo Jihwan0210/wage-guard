@@ -576,6 +576,12 @@ dialog small, .words small { font-weight: 500; color: var(--muted); font-size: v
 .dj-result li.dj-ok { box-shadow: inset 4px 0 0 var(--ok); }
 .dj-result li.dj-step { box-shadow: inset 4px 0 0 var(--accent); }
 .dj-result li.dj-warn { background: var(--warn-bg); color: var(--warn-fg); box-shadow: inset 4px 0 0 var(--warn-line); }
+/* 8단계: 계약서 점검 · 기한 목록 (빠짐 = 노랑, 문제 · 지난 기한 = 빨강, 아이콘 + 글자) */
+.dj-result li.dj-bad { box-shadow: inset 4px 0 0 var(--err); }
+.dj-bad > .ico, .dj-bad strong { color: var(--err); }
+.ct-list li { display: flex; gap: var(--s2); align-items: flex-start; overflow-wrap: anywhere; }
+.ct-list li > .ico { flex-shrink: 0; margin-top: 2px; }
+.ct-list small a { color: inherit; }
 /* 사전 */
 .words li { border-bottom: 1px solid var(--line); }
 .word summary { font-size: var(--fs-lg); gap: var(--s2); flex-wrap: wrap; }
