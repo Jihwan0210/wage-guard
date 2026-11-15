@@ -16,14 +16,18 @@ public final class Words {
 
     private static final Pattern NUMBER = Pattern.compile("\\d+");
 
-    private static final Map<String, String[]> LABELS = Map.of( // ko, en, vi
-            "BASE_WAGE", new String[] { "미지급 임금", "Unpaid wages", "Tiền lương chưa trả" },
-            "OVERTIME", new String[] { "연장근로수당", "Overtime pay", "Tiền làm thêm giờ" },
-            "NIGHT", new String[] { "야간근로수당", "Night work pay", "Tiền làm ca đêm" },
-            "HOLIDAY", new String[] { "휴일근로수당", "Holiday work pay", "Tiền làm ngày nghỉ" },
-            "WEEKLY_HOLIDAY", new String[] { "주휴수당", "Weekly holiday pay", "Tiền nghỉ hằng tuần" },
-            "SEVERANCE", new String[] { "퇴직금", "Severance pay", "Trợ cấp thôi việc" },
-            "MIN_WAGE_SHORTFALL", new String[] { "최저임금 차액", "Minimum wage shortfall", "Tiền chênh lệch lương tối thiểu" });
+    private static final Map<String, String[]> LABELS = Map.ofEntries( // ko, en, vi
+            Map.entry("BASE_WAGE", new String[] { "미지급 임금", "Unpaid wages", "Tiền lương chưa trả" }),
+            Map.entry("OVERTIME", new String[] { "연장근로수당", "Overtime pay", "Tiền làm thêm giờ" }),
+            Map.entry("NIGHT", new String[] { "야간근로수당", "Night work pay", "Tiền làm ca đêm" }),
+            Map.entry("HOLIDAY", new String[] { "휴일근로수당", "Holiday work pay", "Tiền làm ngày nghỉ" }),
+            Map.entry("WEEKLY_HOLIDAY", new String[] { "주휴수당", "Weekly holiday pay", "Tiền nghỉ hằng tuần" }),
+            Map.entry("SEVERANCE", new String[] { "퇴직금", "Severance pay", "Trợ cấp thôi việc" }),
+            Map.entry("MIN_WAGE_SHORTFALL", new String[] { "최저임금 차액", "Minimum wage shortfall", "Tiền chênh lệch lương tối thiểu" }),
+            Map.entry("DISMISSAL_NOTICE", new String[] { "해고예고수당", "Dismissal notice pay", "Tiền báo trước khi sa thải" }),
+            Map.entry("ANNUAL_LEAVE", new String[] { "못 쓴 연차수당", "Unused paid leave pay", "Tiền phép năm chưa dùng" }),
+            Map.entry("SHUTDOWN_ALLOWANCE", new String[] { "휴업수당", "Pay for days the company stopped work", "Tiền ngừng việc (công ty cho nghỉ)" }),
+            Map.entry("DELAY_INTEREST", new String[] { "지연이자(연 20%)", "Interest for late payment (20% a year)", "Tiền lãi trả chậm (20% mỗi năm)" }));
 
     private Words() {
     }

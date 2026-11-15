@@ -144,3 +144,57 @@
 시험: `RuleEngineTest` 의 해고예고수당 2개 · 연차수당 2개 · 수습 1개 (손계산 값).
 
 - `GET /data/guides.json` (화면 정적 파일): 안내 4개(임금명세서 · 함부로 떼기 · 외국인 보험 · 외국인 상담), `sources[]` 와 `checkedAt`.
+
+## 7단계: 지연이자 · 휴업수당 (`POST /api/v1/calculations`)
+
+요청에 아래 두 필드를 **더할 수 있다**. 모두 선택이고, 없으면 예전과 똑같이 계산한다(이때는 `notApplied` 에도 넣지 않는다).
+```json
+"delayInterest": { "baseDate": "2026-11-15" },
+"shutdown":      { "days": 10, "paidAmount": 0 }
+```
+- `delayInterest.baseDate`: 이자를 어느 날까지 셀까. `null` 이면 서버의 오늘 날짜.
+- `shutdown.days`: 회사 사정으로 쉰 날 수(0 이하면 계산 안 함). `shutdown.paidAmount`: 쉬는 동안 받은 돈(없으면 0, 음수면 400).
+
+| code | 계산 | estimated | 근거 |
+|---|---|---|---|
+| `DELAY_INTEREST` | (다른 항목의 못 받은 돈 합 − 해고예고수당 · 휴업수당) × 20% × 늦은 날 ÷ 365. 늦은 날 = 그만둔 날(마지막 근무일 다음 날) 다음 날부터 14일이 지난 날 ~ `baseDate` (양 끝 포함). 아직 안 지났으면 0원. 재직 중이면 notApplied | 항상 true (14일 세는 법 · 해고예고수당이 임금인지 확인 필요) | 근로기준법 제37조 제1항, 시행령 제17조(연 100분의 20). 휴업수당은 고용노동부 회신(2020.4.28 근로기준정책과-1748, 2차 자료로만 확인)에 따라 뺌 |
+| `SHUTDOWN_ALLOWANCE` | (1일 평균임금 × 쉰 날 − 받은 돈) × 70%. 1일 평균임금 = 약속한 월급(시급 · 일급은 시간급 × 월 기준시간) × 12 ÷ 365 로 추정. 평균임금 70%가 1일 통상임금보다 많으면 (통상임금 × 쉰 날 − 받은 돈). 5인 미만이면 notApplied | 항상 true (평균임금 추정, 노동위원회 승인 휴업 예외) | 근로기준법 제46조 제1항, 시행령 제26조. 5인 미만 제외는 시행령 별표1(제46조 없음) |
+
+새 warnings 코드: `DELAY_INTEREST_CHECK`, `SHUTDOWN_CHECK`. `DELAY_INTEREST` 는 항상 `items[]` 맨 끝에 온다(다른 항목 합으로 계산하므로).
+
+확인한 출처(2026-11-15): korea.legal 근로기준법 제37조 · 시행령 제17조 · 시행령 제26조 · 휴업수당 해설, 시행령 별표1 해설(2차 자료). law.go.kr 본문은 자바스크립트 화면이라 직접 못 읽음 — 노무사 확인 필요.
+시험: `RuleEngineTest` 의 지연이자 1개 · 휴업수당 1개 (손계산 값).
+화면: 상황 고르기에 `shut`(회사가 쉬게 했는데 돈을 안 줘요) · `over14`(그만둔 지 14일이 지났는데 못 받았어요). `shut` 은 7번 질문에서 쉰 날 · 받은 돈을 묻고, `over14` 는 퇴사했으면 `delayInterest: {baseDate: null}` 을 보낸다.
+
+## 8단계: 근로계약서 점검 (`POST /api/v1/contract-checks`, 새 경로)
+
+저장하지 않고 바로 답한다. 금액은 만들지 않고 시급 · 시간 비교만 한다 (`calculation/ContractCheck.java`).
+
+요청 (모든 칸 생략 가능):
+
+| 필드 | 형식 | 뜻 |
+|---|---|---|
+| `year` | 정수 | 비교할 최저임금 연도. 없으면 올해 (`minimum-wage.properties`) |
+| `wageType` | `MONTHLY` / `HOURLY` / `DAILY` | 임금 종류 |
+| `wage` | 정수(원) | 계약서 임금 |
+| `weeklyHours` | 숫자 | 일주일 약속한 시간 (연장 포함) |
+| `dailyHours` | 숫자 | 하루 시간 (`DAILY` 면 필수) |
+| `size` | `FIVE_OR_MORE` / `UNDER_FIVE` | 5인 미만이면 주 52시간 · 연차 빠짐은 보지 않음 |
+| `written` | 문자열 배열 | 계약서에 적힌 것: `WAGE` `HOURS` `HOLIDAY` `ANNUAL_LEAVE` `PLACE` `JOB` |
+
+응답: `minimumWageYear`, `minimumWage`, `hourlyWage`(문자열, 소수 2자리 버림), `hourlyFormula`, `ok`(적힌 것), `findings[]` = `{code, level, message, basis{law, article, summary, url}}`, `notChecked[]`(비교 못 한 이유), `disclaimer`.
+- `level`: `MISSING`(빠짐, 화면 노랑) / `PROBLEM`(문제, 화면 빨강)
+- `code`: 위 `written` 코드 6개(빠짐), `MIN_WAGE`(시급 < 최저임금), `OVER_52`(주 52시간 초과)
+- 월급 → 시급: 월급 ÷ 월 기준시간(룰 엔진과 같은 식, 주 시간은 40까지만 넣음 — 연장이 섞인 약정은 시급이 높게 나와 미달을 놓칠 수는 있어도 잘못 '미달'로 보지 않음)
+- 오류: 400 `INVALID_FIELD` (field: `wageType` · `wage` · `weeklyHours` · `dailyHours` · `written`)
+
+근거(2026-11-15 law.go.kr 확인): 근로기준법 제17조 ① · 시행령 제8조(취업 장소 · 종사 업무), 제53조 ①(주 12시간 연장 한도), 시행령 별표1(5인 미만은 제53조 · 제60조 적용 안 함, 제17조는 적용), 최저임금법 제6조, 2026년 최저임금 10,320원(고용노동부 보도자료 2025-08-05).
+화면: 시작 화면 '더 확인할 수 있는 것' · 결과 '더 할 수 있는 일' → `#contract`. 계약서 사진은 기존 `POST /api/v1/documents/extract` (`docType=CONTRACT`)로 읽어 임금 · 시간만 채운다.
+시험: `ContractCheckTest` 7개 (2,156,880 ÷ 209 = 10,320 미달 아님 / 2,000,000 ÷ 209 = 9,569.37 미달 / 일급 80,000 ÷ 8 = 10,000 미달 / 53시간 문제 · 52시간 괜찮음 · 5인 미만 제외 / 빠진 항목).
+
+## 8단계: 놓치면 안 되는 기한 · 그만둔 뒤 (정적 파일, API 아님)
+
+- `static/data/deadlines.json`: `{id, from, plus, title, what, sources}`. `from` = `end`(마지막으로 일한 날) · `fired`(해고된 날) · `unpaid`(처음 못 받은 월급날). 화면 `#deadline` 이 날짜만 더해 남은 날을 센다(금액 없음, 하루 오차 가능 고지).
+  - 14일 지급 · 지연이자 연 20% (근로기준법 제36조 · 제37조, 시행령 제17조), 간이대지급금 진정 1년 (임금채권보장법 시행령 제7조 · 제9조), 부당해고 구제신청 3개월 (제28조 ②), 임금 3년 (제49조), 퇴직금 3년 (퇴직급여법 제10조)
+- `static/data/guides.json` 에 `jobless`(자발적 이직이라도 실업급여 — 고용보험법 시행규칙 별표2 · 고용24), `unfair`(부당해고 구제신청 — 노동위원회) 추가. `group: "after"` 인 것만 `#after` 화면에 나온다.
+- `#contract` · `#deadline` · `#after` 는 동의 전에도 열린다 (안내만, 각 화면에 '법률 자문 아님' 고지).

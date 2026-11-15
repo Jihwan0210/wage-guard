@@ -6,15 +6,17 @@
   var DAYS = ['월', '화', '수', '목', '금', '토', '일'];
   var MIN_WAGE = 10320;
   var MAX_SIZE = 10 * 1024 * 1024;
-  var ALL = ['start', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'qx', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words', 'info'];
+  var ALL = ['start', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'qx', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words', 'info', 'contract', 'deadline', 'after'];
+  // 동의 없이 바로 볼 수 있는 안내 화면 (시작 화면의 '더 확인할 수 있는 것')
+  var FREE = ['contract', 'deadline', 'after'];
   var STEP = { upload: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, qx: 1, cal: 1, review: 2, result: 3, form: 4, complaint: 4 };
-  var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', qx: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words', info: 'title.info' };
+  var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', qx: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words', info: 'title.info', contract: 'title.contract', deadline: 'title.deadline', after: 'title.after' };
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor'];
   // 결과 뒤 둘러보는 화면: 휴대폰은 아래 탭 막대, 넓은 화면은 위 탭으로 오간다 (입력 흐름 중에는 숨김)
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
-  var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide' };
+  var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide', contract: 'guide', deadline: 'guide', after: 'guide' };
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
-  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip']];
+  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'pause'], ['over14', 'cal']];
   var mobile = window.matchMedia('(max-width: 959px)');
   // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
   var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
@@ -27,7 +29,7 @@
   var L = {};
 
   function blankFields() {
-    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '', more: [], work: {}, notice: '', noticeDays: '', used: '', prob: '', year1: '', simple: '' };
+    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '', more: [], work: {}, notice: '', noticeDays: '', used: '', prob: '', year1: '', simple: '', shutDays: '', shutPaid: '' };
   }
   // 언어 목록은 i18n/languages.json (언어 파일을 더하고 여기에 한 줄 넣으면 늘어난다)
   var LANGS = [{ code: 'ko', name: '한국어' }];
@@ -43,7 +45,8 @@
       p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' }, pErr: {},
       formTried: false, factsText: null, editing: false, tr: true,
       calc: null, explain: null, explainState: '', draft: null,
-      calM: '', calSel: '', ready: {}, office: { sido: '', sgg: '' }, dj: {}
+      calM: '', calSel: '', ready: {}, office: { sido: '', sgg: '' }, dj: {},
+      ct: { type: '', wage: '', daily: '', weekly: '', size: '', written: {}, res: null, read: false, busy: false }, dl: { end: '', fired: '', unpaid: '' }
     };
   }
   var PRIVATE = ['p', 'draft', 'factsText', 'pErr'];
@@ -202,6 +205,7 @@
     payslip: '<path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
     contract: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17c1-1.6 2-1.6 2.6-.4.5 1 1.2 1 2-.2.6-.8 1.2-.6 1.9.6"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    dot: '<circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
     lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
     phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
@@ -215,6 +219,7 @@
     out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
     sound: '<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+    pause: '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7M14 8.5v7"/>',
     cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>',
     book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 7.5h8M8 11h5"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
@@ -336,12 +341,15 @@
       // v2 6단계: 고른 상황에서 물은 것만 보낸다 (API_v2_추가.md)
       dismissal: has('fired') && f.notice ? { dismissed: true, noticeDaysBefore: f.notice === 'none' ? 0 : f.notice === 'full' ? 30 : Number(f.noticeDays) } : undefined,
       annualLeave: has('leave') && f.used !== '' ? { usedDays: Number(f.used) } : undefined,
-      probation: has('minw') && f.prob === 'yes' ? { onProbation: true, contractOneYearOrMore: f.year1 === 'yes', simpleLabor: f.simple ? f.simple === 'yes' : null } : undefined
+      probation: has('minw') && f.prob === 'yes' ? { onProbation: true, contractOneYearOrMore: f.year1 === 'yes', simpleLabor: f.simple ? f.simple === 'yes' : null } : undefined,
+      // 7단계: 지연이자는 오늘까지 센다(baseDate null), 휴업수당은 쉰 날 · 그동안 받은 돈
+      delayInterest: has('over14') && f.employed === 'no' ? { baseDate: null } : undefined,
+      shutdown: has('shut') && Number(f.shutDays) > 0 ? { days: Number(f.shutDays), paidAmount: Number(f.shutPaid) || 0 } : undefined
     };
   }
   function has(code) { return S.sit.indexOf(code) >= 0; }
   // 고른 상황 중 따로 물어볼 것이 있으면 7번째 질문(qx)을 넣는다
-  function needX() { return has('fired') || has('leave') || has('minw'); }
+  function needX() { return has('fired') || has('leave') || has('minw') || has('shut'); }
   function qList() { return ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'].concat(needX() ? ['qx'] : []); }
   // POST /calculations 응답 → 화면에서 쓰는 값
   function viewResult() {
@@ -455,7 +463,7 @@
       case 'q5': return !!f.wageType && Number(f.wage) > 0;
       case 'q6': return f.paid !== '' && f.more.every(function (m) { return m.month && m.paid !== ''; }) && monthList().length === f.more.length + 1;
       case 'qx': return (!has('fired') || (!!f.notice && (f.notice !== 'some' || Number(f.noticeDays) > 0))) && (!has('leave') || f.used !== '') &&
-        (!has('minw') || f.prob === 'no' || (f.prob === 'yes' && !!f.year1 && !!f.simple));
+        (!has('minw') || f.prob === 'no' || (f.prob === 'yes' && !!f.year1 && !!f.simple)) && (!has('shut') || Number(f.shutDays) > 0);
       case 'review':
         return qList().every(valid) && Object.keys(S.low).every(function (k) { return !S.low[k] || S.ok[k]; });
       default: return true;
@@ -468,7 +476,7 @@
   // ---------- 이동 ----------
   function go(r, opts) {
     if (ALL.indexOf(r) < 0) r = 'start';
-    if (r !== 'start' && !S.agreed) r = 'start';
+    if (r !== 'start' && !S.agreed && FREE.indexOf(r) < 0) r = 'start';
     if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
     if (r === 'complaint' && !S.draft) r = 'form';
     if (!opts || !opts.back) stack.push(S.route);
@@ -580,6 +588,7 @@
       SITS.map(function (x) {
         return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span>' + t('sit.' + x[0]) + '</span></label>';
       }).join('') + '</div>' + (S.sit.length ? '<p class="note" role="status">' + t('sit.chosen', { n: S.sit.length }) + '</p>' : '') + '</fieldset>' +
+      '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
       '<section class="agree-box stack" aria-labelledby="agree-t"><h2 id="agree-t">' + t('start.noteTitle') + '</h2>' +
       '<p>' + t('start.noteBody') + '</p>' +
       '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
@@ -795,7 +804,7 @@
       '<button type="button" class="btn btn-line" data-act="month-add">' + icon('plus') + '<span>' + t('q6.addMonth') + '</span></button></div></details>');
   }
 
-  // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금)에 맞춰 필요한 것만
+  // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금 · 휴업)에 맞춰 필요한 것만
   function vQx() {
     var f = S.f, body = '';
     function num(id, key, label) {
@@ -814,19 +823,22 @@
           '<p class="label">' + t('qx.simple') + '</p>' + radios('simple', 'simple', [['no', t('qx.no')], ['yes', t('qx.yes')]]) : '') +
         '<p class="hint">' + t('qx.probHint') + '</p></section>';
     }
+    if (has('shut')) {
+      body += '<section class="stack"><h2>' + t('qx.shut') + '</h2>' + num('sd', 'shutDays', t('qx.shutDays')) + num('sp', 'shutPaid', t('qx.shutPaid')) + '<p class="hint">' + t('qx.shutHint') + '</p></section>';
+    }
     return qShell(7, t('qx.title'), t('qx.help'), body);
   }
 
   // ---------- 화면: 알아 두면 좋은 것 (data/guides.json, 공식 출처만. 금액 판정 없음) ----------
   var GUIDES = null, GUIDE_DAY = '';
-  var GUIDE_SIT = { payslip: 'payslip', deduction: 'deduct' }; // 안내 id → 시작 화면 상황
+  var GUIDE_SIT = { payslip: 'payslip', deduction: 'deduct', unfair: 'fired', jobless: 'over14' }; // 안내 id → 시작 화면 상황
   function loadGuides() {
     if (GUIDES) return;
     GUIDES = [];
     fetch('data/guides.json').then(function (r) { return r.ok ? r.json() : []; }).then(function (d) {
       GUIDES = (d.guides || []).filter(function (g) { return g && g.id; });
       GUIDE_DAY = d.checkedAt || '';
-      if (GUIDES.length && (S.route === 'info' || TAB_OF[S.route])) render();
+      if (GUIDES.length && (S.route === 'info' || S.route === 'after' || TAB_OF[S.route])) render();
     }, function () {});
   }
   // 글은 문자열 또는 { ko, en, vi }. 그 언어가 없으면 한국어
@@ -835,20 +847,21 @@
     loadGuides();
     return GUIDES.length ? navRow('data-go="info"', 'info', t('title.info'), t('info.sub')) : '';
   }
-  function vInfo() {
+  // after: '그만둔 뒤 받을 수 있는 것'(group after)만
+  function vInfo(after) {
     loadGuides();
     function mine(g) { return has(GUIDE_SIT[g.id]) ? 1 : 0; }
-    var list = GUIDES.slice().sort(function (a, b) { return mine(b) - mine(a); }).map(function (g) {
+    var list = GUIDES.filter(function (g) { return !after || g.group === 'after'; }).sort(function (a, b) { return mine(b) - mine(a); }).map(function (g) {
       var src = (g.sources || []).map(function (x) {
         return navRow('href="' + esc(x.url) + '" target="_blank" rel="noopener" lang="ko"', 'out', esc(x.name), esc(t('info.checked', { d: GUIDE_DAY })));
       }).join('');
       var body = pick(g.lines) || [];
       return '<li class="info-card stack"><h2>' + esc(pick(g.title)) + (mine(g) ? ' <span class="tag">' + t('info.mine') + '</span>' : '') + '</h2>' +
-        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('check') + esc(b) + '</li>'; }).join('') + '</ul>' +
+        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('dot') + esc(b) + '</li>'; }).join('') + '</ul>' +
         (src ? '<div class="nav-list">' + src + '</div>' : '') + '</li>';
     }).join('');
     return '<div class="wide col stack-lg">' + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('title.info') + '</h1><p class="lead">' + t('info.lead') + '</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t(after ? 'title.after' : 'title.info') + '</h1><p class="lead">' + t(after ? 'after.lead' : 'info.lead') + '</p></div>' +
       (list ? '<ol class="plain info-list">' + list + '</ol>' : '<p class="hint">' + t('info.none') + '</p>') +
       '<p class="hint">' + t('info.note') + '</p>' + (hasTabs() ? '' : cta(primary(t('counsel.back'), 'data-act="back"'))) + '</div>';
   }
@@ -1026,7 +1039,7 @@
     var more = '<section class="stack" aria-labelledby="more-t"><h2 id="more-t">' + t('result.next') + '</h2><div class="nav-list">' +
       navRow('data-act="print"', 'print', t('result.pdf'), t('result.expire')) +
       navRow('data-go="counselor"', 'chat', t('result.counselor')) +
-      navRow('data-go="daeji"', 'coin', t('title.daeji')) + infoRow() +
+      navRow('data-go="daeji"', 'coin', t('title.daeji')) + infoRow() + extraRows() +
       navRow('data-go="review"', 'pen', t('result.review')) +
       navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div></section>';
     return '<div class="wide col">' + langBanner() +
@@ -1203,7 +1216,7 @@
     function phone(name, sub, num, tel) {
       return '<a class="phone" href="tel:' + tel + '">' + icon('phone') + '<span><strong>' + name + '</strong><small>' + sub + '</small></span><b>' + num + '</b></a>';
     }
-    var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('check') + t('guide.bring' + n) + '</li>'; }).join('');
+    var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('dot') + t('guide.bring' + n) + '</li>'; }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('guide.title') + '</h1><p class="lead">' + t('guide.lead') + '</p>' + speakBtn('guide') + '</div>' +
@@ -1348,6 +1361,121 @@
       cta(primary(t('guide.cta'), 'data-go="form"', !!S.calc), ' ') + '</aside></div>';
   }
 
+  // ---------- 화면: 근로계약서 확인하기 (판단은 서버 POST /api/v1/contract-checks, 사진은 서류 인식 CONTRACT 재사용) ----------
+  var CT_ITEMS = ['WAGE', 'HOURS', 'HOLIDAY', 'ANNUAL_LEAVE', 'PLACE', 'JOB'];
+  function vContract() {
+    var c = S.ct;
+    var items = CT_ITEMS.map(function (k) {
+      return '<label class="check" for="ct-' + k + '"><input id="ct-' + k + '" type="checkbox" data-act="ct-w" value="' + k + '"' + (c.written[k] ? ' checked' : '') + '><span>' + t('ct.w.' + k) + '</span></label>';
+    }).join('');
+    function radio(name, list) {
+      return '<div class="choices">' + list.map(function (v) {
+        return '<label class="choice"><input type="radio" name="ct-' + name + '" value="' + v + '" data-act="ct" data-k="' + name + '"' + (c[name] === v ? ' checked' : '') + '><span>' + t('ct.' + name + '.' + v) + '</span></label>';
+      }).join('') + '</div>';
+    }
+    function num(id, label, unit) {
+      return '<div class="field"><label for="ct-' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="ct-' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-act="ct-num" data-k="' + id + '" value="' + esc(c[id]) + '"></div>';
+    }
+    var r = c.res, res = '';
+    if (r) {
+      var rows = r.findings.map(function (f) {
+        var bad = f.level === 'PROBLEM';
+        return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span><strong>' + t(bad ? 'ct.bad' : 'ct.miss') + '</strong> ' +
+          (f.code === 'MIN_WAGE' ? t('ct.r.MIN_WAGE', { h: Number(r.hourlyWage).toLocaleString('ko-KR'), y: r.minimumWageYear, m: Number(r.minimumWage).toLocaleString('ko-KR') }) : f.code === 'OVER_52' ? t('ct.r.OVER_52') : t('ct.r.miss', { w: t('ct.w.' + f.code) })) +
+          ' <small lang="ko">' + esc(f.basis.law + ' ' + f.basis.article) + '</small></span></li>';
+      }).concat(r.ok.map(function (k) { return '<li class="dj-ok">' + icon('check') + '<span>' + t('ct.r.ok', { w: t('ct.w.' + k) }) + '</span></li>'; })).join('');
+      var skip = r.notChecked.length ? '<p class="hint" lang="ko">' + r.notChecked.map(esc).join('<br>') + '</p>' : '';
+      res = '<section class="dj-result stack" aria-live="polite" id="ct-res"><h2 tabindex="-1">' + t(r.findings.some(function (f) { return f.level === 'PROBLEM'; }) ? 'ct.resBad' : r.findings.length ? 'ct.resMiss' : 'ct.resOk') + '</h2>' +
+        '<ul class="plain stack ct-list">' + rows + '</ul>' + (r.hourlyWage ? '<p class="hint">' + t('ct.hourly', { f: esc(r.hourlyFormula), h: Number(r.hourlyWage).toLocaleString('ko-KR') }) + '</p>' : '') + skip +
+        '<p class="hint">' + t('ct.next') + '</p><div class="nav-list">' + navRow('href="https://www.law.go.kr/법령/근로기준법/제17조" target="_blank" rel="noopener"', 'book', t('ct.law')) + '</div>' +
+        '<a class="phone" href="tel:1350">' + icon('phone') + '<span><strong>' + t('ct.call') + '</strong><small>' + t('ct.callSub') + '</small></span><b>1350</b></a></section>';
+    }
+    return '<div class="split">' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><h1 tabindex="-1">' + t('ct.title') + '</h1><p class="lead">' + t('ct.lead') + '</p></div>' +
+      '<section class="stack"><label class="btn btn-line" for="ct-cam">' + icon('camera') + '<span>' + t(c.busy ? 'ct.reading' : 'ct.photo') + '</span></label>' +
+      '<input id="ct-cam" class="sr" type="file" accept="image/*,application/pdf" data-act="ct-file"' + (c.busy ? ' disabled' : '') + '>' +
+      '<p class="hint" role="status">' + (c.read ? t('ct.readDone') : t('ct.photoHint')) + '</p></section>' +
+      '<fieldset class="stack"><legend class="label">1. ' + t('ct.q1') + '</legend><p class="hint">' + t('ct.q1h') + '</p>' + items + '</fieldset>' +
+      '<fieldset class="stack"><legend class="label">2. ' + t('ct.q2') + '</legend>' + radio('type', ['MONTHLY', 'HOURLY', 'DAILY']) +
+      (c.type ? num('wage', t('ct.wage.' + c.type), t('unit')) : '') + (c.type === 'DAILY' ? num('daily', t('ct.daily'), t('ct.hourUnit')) : '') + '</fieldset>' +
+      '<fieldset class="stack"><legend class="label">3. ' + t('ct.q3') + '</legend>' + num('weekly', t('ct.weekly'), t('ct.hourUnit')) + '</fieldset>' +
+      '<fieldset class="stack"><legend class="label">4. ' + t('ct.q4') + '</legend>' + radio('size', ['FIVE_OR_MORE', 'UNDER_FIVE']) + '</fieldset>' +
+      res + '</div>' +
+      '<aside class="side"><p class="note">' + t('ct.note') + '</p>' + cta(primary(t('ct.btn'), 'data-act="ct-check"', !c.busy), ' ') + '</aside></div>';
+  }
+  function ctCheck() {
+    var c = S.ct, w = CT_ITEMS.filter(function (k) { return c.written[k]; });
+    var n = function (v) { return v === '' ? null : Number(v); };
+    c.busy = true; render();
+    api('/api/v1/contract-checks', { wageType: c.type || null, wage: c.type ? n(c.wage) : null, weeklyHours: n(c.weekly), dailyHours: n(c.daily), size: c.size || null, written: w }).then(function (res) {
+      c.res = res; c.busy = false; render(); focusId('ct-res');
+    }, function (e) { c.busy = false; render(); toast(e.message); });
+  }
+  // 계약서 사진 → 서류 인식(CONTRACT)에서 임금 · 시간만 채운다. 읽은 칸은 '적혀 있음'으로 표시
+  function ctPhoto(file) {
+    var c = S.ct, form = new FormData();
+    if (file.size > MAX_SIZE) { toast(t('err.413')); return; }
+    form.append('file', file, /pdf$/i.test(file.type) ? 'contract.pdf' : /png$/i.test(file.type) ? 'contract.png' : 'contract.jpg');
+    form.append('docType', 'CONTRACT');
+    c.busy = true; render();
+    api('/api/v1/documents/extract', form).then(function (res) {
+      var v = {};
+      res.fields.forEach(function (f) { v[f.key] = f.value; });
+      if (v.wageType) c.type = v.wageType;
+      if (v.baseWage) c.wage = String(v.baseWage);
+      if (v.weeklyContractHours) c.weekly = String(v.weeklyContractHours);
+      if (v.dailyContractHours) c.daily = String(v.dailyContractHours);
+      if (v.employeeCount) c.size = Number(v.employeeCount) < 5 ? 'UNDER_FIVE' : 'FIVE_OR_MORE';
+      if (v.baseWage) c.written.WAGE = true;
+      if (v.weeklyContractHours || v.dailyContractHours) c.written.HOURS = true;
+      c.read = true; c.busy = false; c.res = null; render();
+    }, function (e) { c.busy = false; render(); toast(e.message); });
+  }
+
+  // ---------- 화면: 놓치면 안 되는 기한 (data/deadlines.json, 날짜 계산만. 금액 없음) ----------
+  var DEADLINES = null, DL_DAY = '';
+  function loadDeadlines() {
+    if (DEADLINES) return;
+    DEADLINES = [];
+    fetch('data/deadlines.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) {
+      DEADLINES = d.deadlines || [];
+      DL_DAY = d.checkedAt || '';
+      if (S.route === 'deadline') render();
+    }, function () {});
+  }
+  function addTo(ymd, p) {
+    var d = new Date(ymd + 'T00:00:00');
+    d.setFullYear(d.getFullYear() + (p.years || 0), d.getMonth() + (p.months || 0), d.getDate() + (p.days || 0));
+    return d;
+  }
+  function ymdOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function vDeadline() {
+    loadDeadlines();
+    var dl = S.dl, today = new Date(ymdOf(new Date()) + 'T00:00:00');
+    var inputs = ['end', 'fired', 'unpaid'].map(function (k) {
+      return '<div class="field"><label for="dl-' + k + '">' + t('dl.in.' + k) + '</label><p class="hint">' + t('dl.in.' + k + '.h') + '</p><input id="dl-' + k + '" class="input" type="date" data-act="dl" data-k="' + k + '" value="' + esc(dl[k]) + '"></div>';
+    }).join('');
+    var rows = DEADLINES.filter(function (x) { return dl[x.from]; }).map(function (x) {
+      var due = addTo(dl[x.from], x.plus), left = Math.round((due - today) / 864e5);
+      var cls = left < 0 ? 'dj-bad' : left <= 30 ? 'dj-warn' : 'dj-step';
+      var src = (x.sources || []).map(function (s) { return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" lang="ko">' + esc(s.name) + '</a>'; }).join(' · ');
+      return '<li class="' + cls + '">' + icon(left < 0 ? 'x' : 'clock') + '<span><strong>' + esc(pick(x.title)) + '</strong><br>' +
+        t('dl.due', { d: krOrLocal(ymdOf(due)) }) + ' · <b>' + (left < 0 ? t('dl.past', { n: -left }) : left === 0 ? t('dl.today') : t('dl.left', { n: left })) + '</b>' +
+        '<br>' + esc(pick(x.what)) + '<br><small>' + src + '</small></span></li>';
+    }).join('');
+    return '<div class="split">' +
+      '<div class="stack-lg">' + langBanner() +
+      '<div class="stack"><h1 tabindex="-1">' + t('dl.title') + '</h1><p class="lead">' + t('dl.lead') + '</p></div>' + inputs +
+      (rows ? '<section class="dj-result stack" aria-live="polite"><h2>' + t('dl.result') + '</h2><ul class="plain stack ct-list">' + rows + '</ul><p class="hint">' + t('dl.count', { d: DL_DAY }) + '</p></section>' : '<p class="hint">' + t('dl.empty') + '</p>') + '</div>' +
+      '<aside class="side"><p class="note">' + t('dl.note') + '</p><a class="phone" href="tel:1350">' + icon('phone') + '<span><strong>' + t('ct.call') + '</strong><small>' + t('dl.callSub') + '</small></span><b>1350</b></a>' +
+      '<div class="nav-list">' + navRow('data-go="after"', 'door', t('title.after')) + '</div></aside></div>';
+  }
+  // 시작 · 결과 화면의 '더 확인할 수 있는 것' 세 줄
+  function extraRows() {
+    return navRow('data-go="contract"', 'contract', t('title.contract'), t('ct.sub')) + navRow('data-go="deadline"', 'clock', t('title.deadline'), t('dl.sub')) + navRow('data-go="after"', 'door', t('title.after'), t('after.sub'));
+  }
+
   // ---------- 화면: 쉬운 말 사전 ----------
   function vWords() {
     var list = WORDS.map(function (id) {
@@ -1364,7 +1492,7 @@
       navRow('data-go="words"', 'book', t('words.all')), true);
   }
 
-  var VIEWS = { start: vStart, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, qx: vQx, info: vInfo, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords };
+  var VIEWS = { start: vStart, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, qx: vQx, info: vInfo, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords, contract: vContract, deadline: vDeadline, after: function () { return vInfo(true); } };
 
   // transition: 화면을 옮길 때 전환 방향('from-r' · 'from-l' · 'fade'). 있으면 맨 위로 올리고 h1 에 포커스. 휴대폰은 주 버튼 · 탭 막대를 아래 고정 영역(dock)으로 옮겨
   // 본문만 스크롤되게 한다. 넓은 화면은 버튼이 옆 칸에 그대로 있다
@@ -1722,6 +1850,7 @@
     else if (a === 'tr') { S.tr = t.dataset.v === '1'; render(); }
     else if (a === 'facts-edit') { S.editing = true; render(); var ta = document.getElementById('facts-edit'); if (ta) ta.focus(); }
     else if (a === 'facts-cancel') { S.editing = false; render(); }
+    else if (a === 'ct-check') ctCheck();
     else if (a === 'facts-save') { S.factsText = document.getElementById('facts-edit').value; S.editing = false; render(); toastT('cp.saved'); }
   });
   document.addEventListener('change', function (e) {
@@ -1737,6 +1866,10 @@
     else if (a === 'sido') { S.office = { sido: t.value, sgg: '' }; render(); focusId('sido'); }
     else if (a === 'sgg') { S.office.sgg = t.value; render(); focusId('sgg'); }
     else if (a === 'ready') { S.ready[t.dataset.v] = t.checked; render(); focusId(t.id); }
+    else if (a === 'ct-w') { S.ct.written[t.value] = t.checked; S.ct.res = null; save(); }
+    else if (a === 'ct') { S.ct[t.dataset.k] = t.value; S.ct.res = null; render(); var cr = app.querySelector('[name="ct-' + t.dataset.k + '"][value="' + t.value + '"]'); if (cr) cr.focus(); }
+    else if (a === 'ct-file') { if (t.files[0]) ctPhoto(t.files[0]); t.value = ''; }
+    else if (a === 'dl') { S.dl[t.dataset.k] = t.value; render(); focusId(t.id); }
     else if (a === 'dj') { S.dj[t.dataset.k] = t.value; render(); var r = app.querySelector('[name="dj-' + t.dataset.k + '"][value="' + t.value + '"]'); if (r) r.focus(); }
     else if (t.dataset.m !== undefined && t.dataset.k === 'month') { S.f.more[Number(t.dataset.m)].month = t.value; S.src.more = 'self'; render(); focusId(t.id); }
     else if (t.dataset.f !== undefined && !t.hasAttribute('data-live')) {
@@ -1760,6 +1893,7 @@
       save();
       refreshNext();
     }
+    else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
     else if (t.dataset.p !== undefined) { S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; save(); }
   });
 
@@ -1807,12 +1941,13 @@
   var start = (location.hash || '').slice(1);
   // 주소에 화면 표시 없이 새로 열면 시작 화면에서 '이어서 하기 · 처음부터'를 고른다
   if (!start && S.saved && S.agreed && S.route !== 'start') resumeTo = S.route;
-  if (!start || ALL.indexOf(start) < 0 || !S.agreed) S.route = 'start';
+  if (!start || ALL.indexOf(start) < 0 || (!S.agreed && FREE.indexOf(start) < 0)) S.route = 'start';
   else S.route = start;
   if (NEED_CALC.indexOf(S.route) >= 0 && !S.calc) S.route = 'review';
   if (S.route === 'complaint' && !S.draft) S.route = 'form';
   // 사진은 메모리에만 있어 새로고침하면 사라진다 → 읽는 중 표시도 지운다
   if (S.up.status === 'reading') S.up = { status: 'idle' };
+  S.ct.busy = false;
   // 언어 목록 → 한국어(기본 문구)와 고른 언어 문구를 받은 뒤 그린다
   fetch('i18n/languages.json').then(function (r) { return r.json(); }).then(function (l) { LANGS = l; }, function () {}).then(function () {
     if (!S.saved) S.lang = detectLang();

@@ -312,6 +312,44 @@ class RuleEngineTest {
         assertThat(simple.warnings()).extracting("code").contains("PROBATION_FULL_MIN_WAGE");
     }
 
+    static CalculationRequest more(CalculationRequest r, CalculationRequest.Dismissal d, CalculationRequest.DelayInterest i, CalculationRequest.Shutdown s) {
+        return new CalculationRequest(r.workplace(), r.employment(), r.schedule(), r.wage(), r.months(), r.lastThreeMonthsWages(), null, d, null, null, i, s);
+    }
+
+    @Test
+    void 지연이자는_그만두고_14일_지난_다음_날부터_연_20퍼센트() {
+        // 2026-01-01 ~ 09-30 (1년 미만이라 퇴직금 0), 9월 월급 2,299,000원 못 받음
+        CalculationRequest r = monthly("FIVE_OR_MORE", "2026-01-01", "2026-09-30", MONTHLY_11000, 0, null, month("2026-09", 0, 0, 0, 0, 0));
+        // 그만둔 날 10/1, 14일 안 = 10/15 까지 → 10/16 ~ 11/14 = 30일. 2,299,000 × 20% × 30 ÷ 365 = 37,791.78 → 37,791
+        CalculationResult res = calc(more(r, null, new CalculationRequest.DelayInterest(LocalDate.parse("2026-11-14")), null));
+        assertThat(item(res, "DELAY_INTEREST", null).amount()).isEqualTo(37_791L);
+        assertThat(item(res, "DELAY_INTEREST", null).estimated()).isTrue();
+        assertThat(res.warnings()).extracting("code").contains("DELAY_INTEREST_CHECK");
+        // 해고예고수당(2,640,000)은 원금에서 빼므로 이자는 같다
+        assertThat(item(calc(more(r, new CalculationRequest.Dismissal(true, 0), new CalculationRequest.DelayInterest(LocalDate.parse("2026-11-14")), null)),
+                "DELAY_INTEREST", null).amount()).isEqualTo(37_791L);
+        // 14일이 안 지났으면 0원
+        assertThat(item(calc(more(r, null, new CalculationRequest.DelayInterest(LocalDate.parse("2026-10-15")), null)), "DELAY_INTEREST", null).amount()).isZero();
+        // 재직 중이면 계산 안 함
+        CalculationRequest stay = monthly("FIVE_OR_MORE", "2026-01-01", null, MONTHLY_11000, 0, null, month("2026-09", 0, 0, 0, 0, 0));
+        assertThat(calc(more(stay, null, new CalculationRequest.DelayInterest(null), null)).notApplied()).extracting("code").contains("DELAY_INTEREST");
+    }
+
+    @Test
+    void 휴업수당은_평균임금_70퍼센트_5인_미만은_적용_안_함() {
+        CalculationRequest r = monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
+        // 1일 평균임금 2,299,000 × 12 ÷ 365 = 75,583.56 → 75,583. 75,583 × 10일 × 70% = 529,081
+        Item it = item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 0L))), "SHUTDOWN_ALLOWANCE", null);
+        assertThat(it.amount()).isEqualTo(529_081L);
+        assertThat(it.estimated()).isTrue();
+        // 쉬는 동안 100,000원 받음: (755,830 − 100,000) × 70% = 459,081
+        assertThat(item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 100_000L))), "SHUTDOWN_ALLOWANCE", null).amount()).isEqualTo(459_081L);
+        CalculationRequest small = monthly("UNDER_FIVE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
+        CalculationResult under = calc(more(small, null, null, new CalculationRequest.Shutdown(10, 0L)));
+        assertThat(under.items()).noneMatch(i -> i.code().equals("SHUTDOWN_ALLOWANCE"));
+        assertThat(under.notApplied()).extracting("code").contains("SHUTDOWN_ALLOWANCE");
+    }
+
     static CalculationResult calc(CalculationRequest req) {
         return RuleEngine.calculate(req, "calc_test");
     }

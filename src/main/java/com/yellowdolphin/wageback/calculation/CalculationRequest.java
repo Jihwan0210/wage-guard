@@ -15,12 +15,28 @@ public record CalculationRequest(
         List<WorkDay> workDays,
         Dismissal dismissal,
         AnnualLeave annualLeave,
-        Probation probation) {
+        Probation probation,
+        DelayInterest delayInterest,
+        Shutdown shutdown) {
 
     // v2 이전 필드만 쓰는 호출용
     public CalculationRequest(Workplace workplace, Employment employment, Schedule schedule, Wage wage, List<Month> months,
             Long lastThreeMonthsWages, List<WorkDay> workDays) {
-        this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, null, null, null);
+        this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, null, null, null, null, null);
+    }
+
+    // 6단계 필드까지 쓰는 호출용
+    public CalculationRequest(Workplace workplace, Employment employment, Schedule schedule, Wage wage, List<Month> months,
+            Long lastThreeMonthsWages, List<WorkDay> workDays, Dismissal dismissal, AnnualLeave annualLeave, Probation probation) {
+        this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, dismissal, annualLeave, probation, null, null);
+    }
+
+    // v2: 퇴직 후 14일이 지나도 못 받은 돈의 지연이자를 어느 날까지 셀까 (null 이면 오늘)
+    public record DelayInterest(LocalDate baseDate) {
+    }
+
+    // v2: 회사 사정으로 쉰 날 수 + 그동안 받은 돈
+    public record Shutdown(Integer days, Long paidAmount) {
     }
 
     // v2: 해고됨 + 해고를 며칠 전에 알렸나 (안 알렸으면 0)
