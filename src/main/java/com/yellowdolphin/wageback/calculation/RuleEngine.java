@@ -105,10 +105,8 @@ final class RuleEngine {
         base = req.wage().baseAmount();
         allowances = sum(req.wage().ordinaryAllowances());
         weekly = req.schedule().weeklyContractHours();
-        // 주휴시간: 주 15시간 미만 0, 그 외 주 40시간 기준 8시간 비례
-        weeklyHolidayHours = weekly.compareTo(FIFTEEN) < 0 ? BigDecimal.ZERO : div(weekly.multiply(EIGHT), FORTY).min(EIGHT);
-        // 월 소정근로시간 = (주 소정 + 주휴) × 365 ÷ 7 ÷ 12, 주 40시간이면 209시간
-        monthlyHours = div(weekly.add(weeklyHolidayHours).multiply(dec(365)), dec(84)).setScale(0, RoundingMode.HALF_UP);
+        weeklyHolidayHours = weeklyHolidayHours(weekly);
+        monthlyHours = monthlyHours(weekly);
 
         String allowanceText = allowanceText(req.wage().ordinaryAllowances());
         BigDecimal perHour;
@@ -694,7 +692,17 @@ final class RuleEngine {
         return BASIS.containsKey(code) ? BASIS.get(code) : BASIS_V2.get(code);
     }
 
-    private static Basis basis(String law, String article, String summary) {
+    // 주휴시간: 주 15시간 미만 0, 그 외 주 40시간 기준 8시간 비례
+    static BigDecimal weeklyHolidayHours(BigDecimal weekly) {
+        return weekly.compareTo(FIFTEEN) < 0 ? BigDecimal.ZERO : div(weekly.multiply(EIGHT), FORTY).min(EIGHT);
+    }
+
+    // 월 소정근로시간 = (주 소정 + 주휴) × 365 ÷ 7 ÷ 12, 주 40시간이면 209시간
+    static BigDecimal monthlyHours(BigDecimal weekly) {
+        return div(weekly.add(weeklyHolidayHours(weekly)).multiply(dec(365)), dec(84)).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    static Basis basis(String law, String article, String summary) {
         String no = article.split(" ")[0];
         return new Basis(law, article, summary, "https://www.law.go.kr/법령/" + law.replace(" ", "") + "/" + no);
     }
