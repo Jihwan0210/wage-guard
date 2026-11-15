@@ -12,7 +12,7 @@
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor'];
   // 결과 뒤 둘러보는 화면: 휴대폰은 아래 탭 막대, 넓은 화면은 위 탭으로 오간다 (입력 흐름 중에는 숨김)
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
-  var TAB_ROUTES = ['result', 'guide', 'help', 'ready', 'daeji', 'words'];
+  var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide' };
   var mobile = window.matchMedia('(max-width: 959px)');
   // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
   var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
@@ -66,9 +66,9 @@
   }
   // 내 정보 지우기: 이 휴대폰에 남긴 입력값 · 결과를 모두 지운다 (언어 · 큰 글씨만 남김). 묻는 창은 아래 시트
   function wipeAsk() {
-    openSheet('<div class="stack"><h2 id="sheet-t">' + t('wipe.btn') + '</h2><p>' + t('wipe.confirm') + '</p>' +
+    openSheet(t('wipe.btn'), '<p>' + t('wipe.confirm') + '</p>' +
       '<button type="button" class="btn btn-danger" data-act="wipe-yes">' + icon('trash') + '<span>' + t('wipe.yes') + '</span></button>' +
-      '<button type="button" class="btn btn-line" data-act="sheet-close">' + t('confirm.back') + '</button></div>');
+      '<button type="button" class="btn btn-line" data-act="sheet-close">' + t('confirm.back') + '</button>');
   }
   function wipe() {
     closeSheet();
@@ -86,22 +86,36 @@
 
   // ---------- 아래 시트 (확인 · 풀이 · 언어 · 항목 상세). 휴대폰은 아래에서 올라오고, 넓은 화면은 가운데 창 ----------
   // 닫기: 바깥(어두운 곳) 누르기 · 손잡이 끌어 내리기 · Esc · 닫기 단추
-  function openSheet(html) {
+  function openSheet(title, body, withClose) {
+    sheetItem = -1;
     var d = document.getElementById('sheet');
     if (!d) {
       d = document.createElement('dialog');
       d.id = 'sheet';
       d.setAttribute('aria-labelledby', 'sheet-t');
+      // 어떻게 닫히든(바깥 · 끌기 · Esc · 단추) 열려 있던 항목을 잊는다
+      d.addEventListener('close', function () { sheetItem = -1; });
       document.body.appendChild(d);
     }
-    d.innerHTML = '<div class="grab" aria-hidden="true"></div><div class="sheet-in">' + html + '</div>';
+    // 열린 시트를 새로 그릴 때(쉬운 설명 도착)는 스크롤을 두고, 안에 있던 포커스는 제목으로
+    var was = d.open, inside = was && d.contains(document.activeElement), top = d.scrollTop;
+    d.innerHTML = '<div class="grab" aria-hidden="true"></div><div class="sheet-in stack"><h2 id="sheet-t" tabindex="-1">' + title + '</h2>' + body +
+      (withClose ? '<button type="button" class="btn btn-primary" data-act="sheet-close"><span>' + t('words.close') + '</span></button>' : '') + '</div>';
     d.setAttribute('lang', S.lang);
-    if (!d.open) d.showModal();
-    d.scrollTop = 0;
+    if (!was) d.showModal();
+    d.scrollTop = was ? top : 0;
+    if (inside) focusId('sheet-t');
   }
   function closeSheet() { var d = document.getElementById('sheet'); if (d && d.open) d.close(); }
+  // 읽는 중 뼈대: 화면 읽기 프로그램에는 label 을 읽어 준다
+  function skel(label, kinds) {
+    return '<div class="skel-lines" role="status"><span class="sr">' + label + '</span>' + kinds.map(function (k) { return '<i class="skel' + (k ? ' ' + k : '') + '"></i>'; }).join('') + '</div>';
+  }
+  function langOf(code) { return LANGS.filter(function (l) { return l.code === code; })[0] || { code: code, name: code }; }
+  var LANG_TITLE = '언어 · Language · Ngôn ngữ';
 
   var S = load();
+  var sheetItem = -1;
   var resumeTo = '';
   var stack = [];
   var app = document.getElementById('app');
@@ -206,8 +220,6 @@
     trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     chev: '<path d="M9.5 6l6 6-6 6"/>',
-    won: '<path d="M4 4h16v16H4z"/><path d="M7.5 9l1.5 6 2-4.5 2 4.5 1.5-6M7 12h10"/>',
-    dots: '<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/>'
   };
   function icon(name, cls) {
@@ -321,11 +333,10 @@
     var names = S.lang === 'ko' ? {} : L[S.lang] || {};
     return {
       total: c.summary.totalUnpaid,
-      due: c.summary.totalDue,
       paid: c.summary.totalPaid,
       hourly: c.hourlyOrdinaryWage ? Number(c.hourlyOrdinaryWage.value).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '원' : t('result.none'),
       hourlyFormula: c.hourlyOrdinaryWage ? c.hourlyOrdinaryWage.formula : '',
-      daily: c.dailyAverageWage ? Number(c.dailyAverageWage.value).toLocaleString('ko-KR') + '원' : t('result.none'),
+      daily: c.dailyAverageWage ? won(c.dailyAverageWage.value) : t('result.none'),
       dailyFormula: c.dailyAverageWage ? c.dailyAverageWage.formula : '',
       notApplied: (c.notApplied || []).map(function (n) { return n.reason; }),
       warnings: (c.warnings || []).map(function (n) { return n.message; }),
@@ -383,6 +394,7 @@
       S.explainState = e.status === 503 ? '503' : 'fail';
     }).then(function () {
       if (S.route === 'result') rerender(); else save();
+      if (sheetItem >= 0) itemSheet(sheetItem);
     });
   }
   // 진정서 초안: 인적사항은 서버가 넣고, 금액은 계산 id 로만 정해진다
@@ -399,13 +411,13 @@
       extraFacts: p.facts,
       lang: S.lang
     }).then(function (res) {
-      document.getElementById('confirm').close();
+      closeSheet();
       S.draft = res;
       S.factsText = null;
       S.editing = false;
       go('complaint');
     }, function (e) {
-      document.getElementById('confirm').close();
+      closeSheet();
       if (expired(e)) return;
       var key = e.status === 400 && FIELD_P[e.field];
       if (key) S.pErr[key] = e.message;
@@ -443,7 +455,7 @@
     if (canSpeak) { window.speechSynthesis.cancel(); speaking = ''; }
     closeSheet();
     // 앱처럼 옆으로 밀기: 앞으로는 오른쪽에서, 뒤로는 왼쪽에서, 탭끼리는 살짝 나타나기
-    var tabs = TAB_ROUTES.indexOf(S.route) >= 0 && TAB_ROUTES.indexOf(r) >= 0;
+    var tabs = !!S.calc && !!TAB_OF[S.route] && !!TAB_OF[r];
     var dir = tabs ? 'fade' : opts && opts.back ? 'from-l' : 'from-r';
     S.route = r;
     save();
@@ -478,7 +490,7 @@
       : '<button type="button" class="icon-btn" data-act="back" aria-label="' + t('top.back') + '">' + icon('arrow-l') + '</button>' +
         '<span class="top-title">' + esc(TITLE[r] ? t(TITLE[r]) : '') + '</span>' +
         '<span class="brand-desk">' + brand + '</span>';
-    var me = LANGS.filter(function (l) { return l.code === S.lang; })[0] || { name: S.lang };
+    var me = langOf(S.lang);
     return '<header class="top"><div class="top-in">' + left +
       (hasTabs() ? tabs('tabs-top') : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
       '<div class="top-tools">' +
@@ -486,18 +498,18 @@
       '<button type="button" id="lang-top" class="lang-btn" data-act="lang-sheet" aria-haspopup="dialog" aria-label="' + esc(t('top.lang') + ': ' + me.name) + '">' + icon('globe') + '<span lang="' + me.code + '">' + esc(me.name) + '</span></button>' +
       '</div></div></header>';
   }
-  function hasTabs() { return !!S.calc && TAB_ROUTES.indexOf(S.route) >= 0; }
+  function hasTabs() { return !!S.calc && !!TAB_OF[S.route]; }
   // 탭 막대: 아이콘 + 짧은 글. 사전 · 대지급금은 '절차' 탭 아래 화면으로 친다
   function tabs(cls) {
-    var cur = { daeji: 'guide', words: 'guide' }[S.route] || S.route;
+    var cur = TAB_OF[S.route];
     return '<nav class="' + cls + '" aria-label="' + t('tab.nav') + '">' + TABS.map(function (x) {
       return '<button type="button" class="tab" data-go="' + x[0] + '"' + (cur === x[0] ? ' aria-current="page"' : '') + '>' + icon(x[1]) + '<span>' + t('tab.' + x[0]) + '</span></button>';
     }).join('') + '</nav>';
   }
   function langSheet() {
-    openSheet('<div class="stack"><h2 id="sheet-t">언어 · Language · Ngôn ngữ</h2><div class="nav-list">' + LANGS.map(function (l) {
+    openSheet(LANG_TITLE, '<div class="nav-list">' + LANGS.map(function (l) {
       return '<button type="button" class="nav-row" data-act="lang" data-v="' + l.code + '" lang="' + l.code + '" aria-pressed="' + (S.lang === l.code) + '">' + icon('globe') + '<span>' + esc(l.name) + '</span>' + (S.lang === l.code ? icon('check', 'chev') : '') + '</button>';
-    }).join('') + '</div><p class="hint">' + t('lang.note') + '</p></div>');
+    }).join('') + '</div><p class="hint">' + t('lang.note') + '</p>');
   }
   // 목록 줄: 왼쪽 아이콘 · 글 · 오른쪽 꺾쇠 (바깥 링크는 화살표). 밑줄 친 웹 링크 대신 쓴다
   function navRow(attrs, ico, label, sub) {
@@ -542,7 +554,7 @@
       '<p class="lead">' + t('start.lead') + '</p>' +
       '<p class="trust">' + icon('lock') + t('start.trust') + '</p></section>' +
       '<div class="side start-side">' + resume +
-      '<fieldset class="stack"><legend class="label">언어 · Language · Ngôn ngữ</legend><div class="lang-btns" style="--n:' + LANGS.length + '">' + langs + '</div></fieldset>' +
+      '<fieldset class="stack"><legend class="label">' + LANG_TITLE + '</legend><div class="lang-btns" style="--n:' + LANGS.length + '">' + langs + '</div></fieldset>' +
       '<section class="agree-box stack" aria-labelledby="agree-t"><h2 id="agree-t">' + t('start.noteTitle') + '</h2>' +
       '<p>' + t('start.noteBody') + '</p>' +
       '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
@@ -629,7 +641,7 @@
   // 데스크톱: 휴대폰으로 이 주소 열기 QR (주소만 담는다. 사진은 주고받지 않음)
   var qrSvg = '';
   function qrBox() {
-    if (!window.matchMedia('(min-width: 960px)').matches) return '';
+    if (mobile.matches) return '';
     if (!qrSvg) {
       if (!window.qrcode) { loadQr(); return ''; }
       var q = window.qrcode(0, 'M');
@@ -900,7 +912,11 @@
     }
     out.push([t('why.calc'), (paidAt > 0 ? f.slice(0, paidAt) : f)]);
     if (paidAt > 0) out.push([t('why.paid'), f.slice(paidAt + 3)]);
-    var law = it.basis.map(function (b) { return '<a href="' + esc(b.url) + '" target="_blank" rel="noopener">' + esc(b.law + ' ' + b.article) + icon('out') + '</a> ' + esc(b.summary); }).join('<br>');
+    // 근거 링크는 서버 응답이라 https 주소일 때만 링크로 (javascript: 같은 주소는 글자로만)
+    var law = it.basis.map(function (b) {
+      var name = esc(b.law + ' ' + b.article);
+      return (/^https:\/\//.test(b.url || '') ? '<a href="' + esc(b.url) + '" target="_blank" rel="noopener">' + name + icon('out') + '</a>' : name) + ' ' + esc(b.summary);
+    }).join('<br>');
     return '<ol class="why">' + out.map(function (s) { return '<li><b>' + s[0] + '</b><span lang="ko">' + esc(s[1]) + '</span></li>'; }).join('') +
       (law ? '<li><b>' + t('why.law') + '</b><span lang="ko">' + law + '</span></li>' : '') + '</ol>';
   }
@@ -941,14 +957,14 @@
     var R = viewResult(), it = R.items[i];
     if (!it) return;
     var word = ITEM_WORD[it.code];
-    var exp = S.explainState === 'loading' ? '<div class="skel-lines" role="status"><span class="sr">' + t('explain.loading') + '</span><i class="skel"></i><i class="skel"></i><i class="skel short"></i></div>'
+    var exp = S.explainState === 'loading' ? skel(t('explain.loading'), ['', '', 'short'])
       : '<p>' + esc(it.explain) + '</p>' + (S.explainState === 'done' ? '<p class="hint">' + icon('info') + ' ' + t('explain.note') + '</p>' : '');
-    openSheet('<div class="stack"><h2 id="sheet-t">' + esc(it.label) + '</h2>' +
+    openSheet(esc(it.label),
       (it.amount != null ? '<p class="sheet-amt">' + money(it.amount) + '<small>' + esc(readable(it.amount)) + '</small></p>' : '<p class="item-status">' + esc(it.status) + '</p>') +
       exp + '<h3 class="label">' + t('result.why') + '</h3>' + steps(it, R) +
       (word ? '<p>' + term(word, t('result.wordOf', { w: t('w.' + word) })) + '</p>' : '') +
-      (it.missing ? '<button type="button" class="btn btn-line" data-go="' + (/OVERTIME|NIGHT|HOLIDAY/.test(it.code) ? 'cal' : 'q6') + '">' + icon('pen') + '<span>' + t('result.input') + '</span></button>' : '') +
-      '<button type="button" class="btn btn-primary" data-act="sheet-close"><span>' + t('words.close') + '</span></button></div>');
+      (it.missing ? '<button type="button" class="btn btn-line" data-go="' + (/OVERTIME|NIGHT|HOLIDAY/.test(it.code) ? 'cal' : 'q6') + '">' + icon('pen') + '<span>' + t('result.input') + '</span></button>' : ''), true);
+    sheetItem = i;
   }
 
   // ---------- 읽어 주기 (Web Speech API) ----------
@@ -1029,12 +1045,7 @@
       '<aside class="side"><section class="note stack only-d"><h2>' + t('form.auto') + '</h2>' + auto + '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
       '<div class="only-d">' + readyBox + '</div>' +
       '<p class="hint">' + icon('lock') + ' ' + t('form.privacy') + '</p>' +
-      cta(primary(t('form.make'), 'data-act="make"'), ' ') + '</aside></div>' +
-      '<dialog id="confirm" aria-labelledby="confirm-title"><div class="grab" aria-hidden="true"></div><div class="sheet-in stack"><h2 id="confirm-title">' + t('confirm.title') + '</h2>' +
-      '<p>' + t('confirm.body') + '</p>' +
-      '<ul class="hint" style="margin:0;padding-left:18px"><li>' + t('confirm.l1') + '</li><li>' + t('confirm.l2') + '</li></ul>' +
-      primary(t('make.btn'), 'data-act="confirm-make"') +
-      '<button type="button" class="btn-text" data-act="close-dialog">' + t('confirm.back') + '</button></div></dialog>';
+      cta(primary(t('form.make'), 'data-act="make"'), ' ') + '</aside></div>';
   }
 
   // ---------- 진정서 내용 (complaint-draft 응답) ----------
@@ -1076,7 +1087,7 @@
     var tr = trs.map(function (s) {
       return '<section><h3>' + esc(s.heading) + '</h3><p>' + esc(s.body) + '</p></section>';
     }).join('');
-    var trName = (LANGS.filter(function (l) { return l.code === trLang; })[0] || { name: trLang }).name;
+    var trName = langOf(trLang).name;
     var seg = trs.length ?
       '<div class="seg no-print" role="group" aria-label="' + t('cp.view') + '"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">' + t('cp.ko') + '</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">' + t('cp.both') + '</button></div>' : '';
     return '<div class="wide col stack-lg">' + progress(4) + langBanner() +
@@ -1128,7 +1139,7 @@
   function vCounselor() {
     var R = viewResult();
     var f = S.f, p = S.p;
-    var me = LANGS.filter(function (l) { return l.code === S.lang; })[0] || {};
+    var me = langOf(S.lang);
     var by = {};
     R.items.forEach(function (it) { if (it.month && it.amount) by[it.month] = (by[it.month] || 0) + it.amount; });
     var ms = monthList().slice().sort();
@@ -1179,7 +1190,7 @@
   function vHelp() {
     if (!OFF) {
       loadOffices();
-      return '<div class="col stack-lg"><h1 tabindex="-1">' + t('help.title') + '</h1><div class="skel-lines" role="status"><span class="sr">' + t('help.loading') + '</span><i class="skel tall"></i><i class="skel tall"></i><i class="skel"></i><i class="skel short"></i></div></div>';
+      return '<div class="col stack-lg"><h1 tabindex="-1">' + t('help.title') + '</h1>' + skel(t('help.loading'), ['tall', 'tall', '', 'short']) + '</div>';
     }
     var o = S.office, r = OFF.regions.filter(function (x) { return x.sido === o.sido; })[0];
     var sidos = '<option value="">' + t('q.pick') + '</option>' + OFF.regions.map(function (x) { return '<option' + (x.sido === o.sido ? ' selected' : '') + '>' + esc(x.sido) + '</option>'; }).join('');
@@ -1264,24 +1275,26 @@
   }
   // 말 하나 풀이 시트 (화면 곳곳의 밑줄 단추)
   function showWord(id) {
-    openSheet('<div class="stack"><h2 id="sheet-t">' + t('w.' + id) + (S.lang !== 'ko' ? ' <small lang="ko">' + esc(L.ko['w.' + id]) + '</small>' : '') + '</h2><p>' + t('w.' + id + '.d') + '</p>' +
+    openSheet(t('w.' + id) + (S.lang !== 'ko' ? ' <small lang="ko">' + esc(L.ko['w.' + id]) + '</small>' : ''), '<p>' + t('w.' + id + '.d') + '</p>' +
       (L.ko['w.' + id + '.law'] ? '<p class="hint" lang="ko">' + esc(L.ko['w.' + id + '.law']) + '</p>' : '') +
-      '<button type="button" class="btn btn-primary" data-act="sheet-close"><span>' + t('words.close') + '</span></button>' + navRow('data-go="words"', 'book', t('words.all')) + '</div>');
+      navRow('data-go="words"', 'book', t('words.all')), true);
   }
 
   var VIEWS = { start: vStart, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords };
 
-  // moveFocus: 화면을 옮길 때 전환 방향('from-r' · 'from-l' · 'fade'). 휴대폰은 주 버튼 · 탭 막대를 아래 고정 영역(dock)으로 옮겨
+  // transition: 화면을 옮길 때 전환 방향('from-r' · 'from-l' · 'fade'). 있으면 맨 위로 올리고 h1 에 포커스. 휴대폰은 주 버튼 · 탭 막대를 아래 고정 영역(dock)으로 옮겨
   // 본문만 스크롤되게 한다. 넓은 화면은 버튼이 옆 칸에 그대로 있다
-  function render(moveFocus) {
+  var dockH = -1;
+  function render(transition) {
     document.documentElement.classList.toggle('big', !!S.big);
     document.documentElement.lang = S.lang;
-    app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (moveFocus ? ' class="enter ' + moveFocus + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
+    app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (transition ? ' class="enter ' + transition + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
       '<div class="dock no-print">' + (hasTabs() ? tabs('tabbar') : '') + '</div>';
     var dock = app.querySelector('.dock'), c = app.querySelector('main .cta');
     if (mobile.matches && c) dock.insertBefore(c, dock.firstChild);
-    document.documentElement.style.setProperty('--dock-h', dock.offsetHeight + 'px');
-    if (moveFocus) {
+    var h0 = mobile.matches ? dock.offsetHeight : 0;
+    if (h0 !== dockH) { dockH = h0; document.documentElement.style.setProperty('--dock-h', h0 + 'px'); }
+    if (transition) {
       window.scrollTo(0, 0);
       var h = app.querySelector('h1');
       if (h) h.focus({ preventScroll: true });
@@ -1533,7 +1546,10 @@
       toast(t('form.missing', { n: missing.length }));
       return;
     }
-    document.getElementById('confirm').showModal();
+    openSheet(t('confirm.title'), '<p>' + t('confirm.body') + '</p>' +
+      '<ul class="hint confirm-list"><li>' + t('confirm.l1') + '</li><li>' + t('confirm.l2') + '</li></ul>' +
+      primary(t('make.btn'), 'data-act="confirm-make"') +
+      '<button type="button" class="btn btn-line" data-act="sheet-close">' + t('confirm.back') + '</button>');
   }
   // 언어를 바꾸면 문구 파일을 받고, 해설도 그 언어로 다시 받는다
   function setLang(v) {
@@ -1545,7 +1561,7 @@
   }
   function toastT(k) { toast(t(k)); }
   function disclaimSheet() {
-    openSheet('<div class="stack"><h2 id="sheet-t">' + t('start.noteTitle') + '</h2><p>' + t('result.disclaimToast') + '</p><button type="button" class="btn btn-primary" data-act="sheet-close"><span>' + t('words.close') + '</span></button></div>');
+    openSheet(t('start.noteTitle'), '<p>' + t('result.disclaimToast') + '</p>', true);
   }
   // 달력: 고른 날 기록 저장 (일한 시간이 0 이하면 저장하지 않음)
   function calSave() {
@@ -1619,7 +1635,6 @@
     else if (a === 'copy') doCopy();
     else if (a === 'make') make();
     else if (a === 'confirm-make') makeDraft(t);
-    else if (a === 'close-dialog') { var d2 = document.getElementById('confirm'); if (d2) d2.close(); }
     else if (a === 'tr') { S.tr = t.dataset.v === '1'; render(); }
     else if (a === 'facts-edit') { S.editing = true; render(); var ta = document.getElementById('facts-edit'); if (ta) ta.focus(); }
     else if (a === 'facts-cancel') { S.editing = false; render(); }
@@ -1670,6 +1685,7 @@
     var g = e.target.closest && e.target.closest('dialog .grab');
     if (!g) return;
     drag = { d: g.parentNode, y: e.clientY, dy: 0 };
+    drag.d.style.transition = 'none';
     g.setPointerCapture(e.pointerId);
   });
   document.addEventListener('pointermove', function (e) {
@@ -1679,7 +1695,7 @@
   });
   function dragEnd() {
     if (!drag) return;
-    drag.d.style.transform = '';
+    drag.d.style.transform = drag.d.style.transition = '';
     if (drag.dy > 80) drag.d.close();
     drag = null;
   }
