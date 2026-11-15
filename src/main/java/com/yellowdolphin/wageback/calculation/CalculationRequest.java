@@ -12,7 +12,28 @@ public record CalculationRequest(
         Wage wage,
         List<Month> months,
         Long lastThreeMonthsWages,
-        List<WorkDay> workDays) {
+        List<WorkDay> workDays,
+        Dismissal dismissal,
+        AnnualLeave annualLeave,
+        Probation probation) {
+
+    // v2 이전 필드만 쓰는 호출용
+    public CalculationRequest(Workplace workplace, Employment employment, Schedule schedule, Wage wage, List<Month> months,
+            Long lastThreeMonthsWages, List<WorkDay> workDays) {
+        this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, null, null, null);
+    }
+
+    // v2: 해고됨 + 해고를 며칠 전에 알렸나 (안 알렸으면 0)
+    public record Dismissal(Boolean dismissed, Integer noticeDaysBefore) {
+    }
+
+    // v2: 그만두기 전 마지막 1년(1년 미만이면 전체) 동안 쓴 연차 일수
+    public record AnnualLeave(Integer usedDays) {
+    }
+
+    // v2: 수습 중인지 + 1년 이상 계약인지 + 단순노무 일인지
+    public record Probation(Boolean onProbation, Boolean contractOneYearOrMore, Boolean simpleLabor) {
+    }
 
     public record Workplace(String size) {
     }

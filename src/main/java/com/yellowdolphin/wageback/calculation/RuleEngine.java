@@ -51,7 +51,9 @@ final class RuleEngine {
             "HOLIDAY", "휴일근로수당",
             "WEEKLY_HOLIDAY", "주휴수당",
             "SEVERANCE", "퇴직금",
-            "MIN_WAGE_SHORTFALL", "최저임금 차액");
+            "MIN_WAGE_SHORTFALL", "최저임금 차액",
+            "DISMISSAL_NOTICE", "해고예고수당",
+            "ANNUAL_LEAVE", "못 쓴 연차수당");
 
     private static final Map<String, List<Basis>> BASIS = Map.of(
             "BASE_WAGE", List.of(basis("근로기준법", "제43조", "임금은 매달 정해진 날에 전부 직접 줘야 해요.")),
@@ -65,14 +67,20 @@ final class RuleEngine {
                     basis("근로자퇴직급여 보장법", "제8조 제1항", "1년 일할 때마다 30일분 이상의 평균임금을 줘야 해요."),
                     basis("근로자퇴직급여 보장법", "제4조 제1항", "1년 미만이거나 한 주 15시간 미만이면 퇴직금이 없어요."),
                     basis("근로기준법", "제2조 제2항", "평균임금이 통상임금보다 적으면 통상임금으로 계산해요.")),
-            "MIN_WAGE_SHORTFALL", List.of(basis("최저임금법", "제6조", "최저임금보다 적게 정한 임금은 최저임금으로 정한 것으로 봐요.")));
+            "MIN_WAGE_SHORTFALL", List.of(basis("최저임금법", "제6조", "최저임금보다 적게 정한 임금은 최저임금으로 정한 것으로 봐요.")),
+            "DISMISSAL_NOTICE", List.of(basis("근로기준법", "제26조", "해고하려면 30일 전에 알려야 하고, 안 그러면 30일분 이상의 통상임금을 줘야 해요. 3개월 미만 일한 사람은 빼요.")),
+            "ANNUAL_LEAVE", List.of(
+                    basis("근로기준법", "제60조 제1항", "1년 동안 80% 이상 출근하면 연차 15일이 생겨요."),
+                    basis("근로기준법", "제60조 제2항", "1년 미만이면 한 달 개근할 때마다 1일이 생겨요(최대 11일)."),
+                    basis("근로기준법", "제60조 제4항", "3년 이상 일하면 2년마다 1일씩 늘어요(최대 25일).")));
 
     private final CalculationRequest req;
     private final LocalDate start, end;
     private final String type;
     private final boolean underFive;
     private final long base, allowances;
-    private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly;
+    private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly, dailyHours;
+    private final long ordinaryDaily; // 1일 통상임금 = 시간급 × 하루 소정시간
     private final String hourlyFormula;
     private final Map<String, Notice> warnings = new LinkedHashMap<>();
     private final List<WorkWeek> workWeeks = new ArrayList<>();
@@ -108,6 +116,9 @@ final class RuleEngine {
             hourlyFormula = f;
         }
         hourly = perHour.setScale(2, RoundingMode.DOWN);
+        dailyHours = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours()
+                : div(weekly, dec(req.schedule().workDaysPerWeek() == null ? 5 : req.schedule().workDaysPerWeek())).min(EIGHT);
+        ordinaryDaily = trunc(hourly.multiply(dailyHours));
         months = withWorkDays();
     }
 
@@ -142,8 +153,12 @@ final class RuleEngine {
             due += s.item().amount();
             items.add(s.item());
         }
-        notApplied.add(new NotApplied("ANNUAL_LEAVE", "연차수당은 이번 버전에서 계산하지 않아요."));
-        notApplied.add(new NotApplied("DISMISSAL_NOTICE", "해고예고수당은 이번 버전에서 계산하지 않아요."));
+        for (Item extra : new Item[] {annualLeave(notApplied), dismissal(notApplied)}) {
+            if (extra != null) {
+                due += extra.amount();
+                items.add(extra);
+            }
+        }
 
         long unpaid = total(items);
         return new CalculationResult(id, VERSION, minimumWageYear(),
@@ -215,10 +230,18 @@ final class RuleEngine {
         }
 
         BigDecimal min = MIN_WAGES.get(ym.getYear());
+        int probation = probationDays(ym);
+        String minText = min == null ? "" : won(min.longValue());
+        if (min != null && probation > 0) {
+            // 수습 날은 90%: 최저임금 × (1 − 0.1 × 수습 날 ÷ 그 달 일한 날)
+            min = min.multiply(dec(days * 10L - probation)).divide(dec(days * 10L), 2, RoundingMode.DOWN);
+            minText = won2(min) + "(수습 " + probation + "일은 90%)";
+            warn("PROBATION_MIN_WAGE", "수습 3개월 동안은 최저임금의 90%까지만 줘도 돼서, 그 날들은 90%로 비교했어요. (최저임금법 제5조 제2항)");
+        }
         if (min == null) {
             warn("MIN_WAGE_UNKNOWN_" + ym.getYear(), ym.getYear() + "년 최저임금 기준이 없어 그 해는 최저임금 비교를 하지 않았어요.");
         } else if (hourly.compareTo(min) < 0) {
-            String f = "(" + won(min.longValue()) + " − " + won2(hourly) + ") × " + hours(paidHours.setScale(2, RoundingMode.DOWN)) + "시간";
+            String f = "(" + minText + " − " + won2(hourly) + ") × " + hours(paidHours.setScale(2, RoundingMode.DOWN)) + "시간";
             items.add(item("MIN_WAGE_SHORTFALL", mo, false, trunc(min.subtract(hourly).multiply(paidHours)), f));
             warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(min.longValue()) + ")보다 적게 받은 달이 있어요.");
         }
@@ -263,9 +286,6 @@ final class RuleEngine {
         String averageFormula = "3개월 임금 총액 " + won(trunc(wages)) + (bonus > 0 ? " + 연간 상여금 " + won(bonus) + " × 3 ÷ 12" : "")
                 + " ÷ " + windowDays + "일";
 
-        BigDecimal dailyHours = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours()
-                : div(weekly, dec(req.schedule().workDaysPerWeek() == null ? 5 : req.schedule().workDaysPerWeek())).min(EIGHT);
-        long ordinaryDaily = trunc(hourly.multiply(dailyHours));
         long daily = average;
         String note = "";
         if (average < ordinaryDaily) {
@@ -280,6 +300,70 @@ final class RuleEngine {
         long amount = trunc(div(dec(daily).multiply(dec(30)).multiply(dec(serviceDays)), dec(365)));
         Item item = item("SEVERANCE", null, !assumed.isEmpty(), amount, won(daily) + " × 30일 × " + serviceDays + "일 ÷ 365" + note);
         return new Severance(item, new Value(Long.toString(average), averageFormula));
+    }
+
+    // ---- 해고예고수당 · 연차수당 · 수습 (v2) ----
+
+    // 해고예고수당: 30일 전에 알리지 않고 해고하면 1일 통상임금 × 30일 (근로기준법 제26조)
+    private Item dismissal(List<NotApplied> notApplied) {
+        if (req.dismissal() == null || !Boolean.TRUE.equals(req.dismissal().dismissed())) {
+            notApplied.add(new NotApplied("DISMISSAL_NOTICE", "해고되었다고 입력하지 않아 해고예고수당은 계산하지 않았어요."));
+            return null;
+        }
+        if (end == null) {
+            notApplied.add(new NotApplied("DISMISSAL_NOTICE", "해고된 날(마지막으로 일한 날)을 넣어야 해고예고수당을 계산할 수 있어요."));
+            return null;
+        }
+        int notice = req.dismissal().noticeDaysBefore() == null ? 0 : req.dismissal().noticeDaysBefore();
+        if (end.isBefore(start.plusMonths(3).minusDays(1))) {
+            return item("DISMISSAL_NOTICE", null, false, 0L, "3개월 미만 일해서 해고예고수당이 없어요");
+        }
+        if (notice >= 30) {
+            return item("DISMISSAL_NOTICE", null, false, 0L, notice + "일 전에 알려서 해고예고수당이 없어요");
+        }
+        warn("DISMISSAL_CHECK", "천재지변 같은 일이나, 일하는 사람이 일부러 회사에 큰 손해를 끼쳐 해고된 경우에는 해고예고수당을 못 받을 수 있어요. 확인이 필요해요.");
+        String f = won(ordinaryDaily) + " × 30일 (1일 통상임금 " + won2(hourly) + " × " + hours(dailyHours) + "시간)"
+                + (notice > 0 ? " (" + notice + "일 전에 알림 — 30일보다 짧아 30일분 전부로 계산, 확인 필요)" : " (미리 알리지 않음)");
+        return item("DISMISSAL_NOTICE", null, notice > 0, ordinaryDaily * 30, f);
+    }
+
+    // 못 쓴 연차수당: 마지막 1년(1년 미만이면 전체)에 생긴 연차 − 쓴 날 × 1일 통상임금 (근로기준법 제60조)
+    private Item annualLeave(List<NotApplied> notApplied) {
+        String reason = end == null ? "재직 중이라 연차수당은 계산하지 않아요."
+                : underFive ? "5인 미만 사업장은 연차휴가 규정이 적용되지 않아요. (근로기준법 제11조)"
+                : req.annualLeave() == null ? "쓴 연차 일수를 넣지 않아 연차수당은 계산하지 않았어요." : null;
+        if (reason != null) {
+            notApplied.add(new NotApplied("ANNUAL_LEAVE", reason));
+            return null;
+        }
+        if (weekly.compareTo(FIFTEEN) < 0) {
+            return item("ANNUAL_LEAVE", null, false, 0L, "주 15시간 미만이라 연차가 없어요");
+        }
+        // 기간을 다 채우고 다음 날에도 일해야 연차가 생긴다고 보고 마지막 근무일까지로 센다
+        long years = ChronoUnit.YEARS.between(start, end);
+        long earned = years == 0 ? Math.min(11, ChronoUnit.MONTHS.between(start, end)) : Math.min(25, 15 + (years - 1) / 2);
+        int used = req.annualLeave().usedDays() == null ? 0 : req.annualLeave().usedDays();
+        long unused = Math.max(0, earned - used);
+        warn("ANNUAL_LEAVE_CHECK", "연차수당은 출근율 80% 이상(1년 미만은 매달 빠짐없이 출근)이라고 보고, 마지막 1년에 생긴 연차만 계산했어요. "
+                + "그 전 해에 남은 연차나 회사의 연차 사용 권유(사용 촉진)는 반영하지 않았어요. 확인이 필요해요.");
+        String f = won(ordinaryDaily) + " × 못 쓴 " + unused + "일 (" + (years == 0 ? "1년 미만, 개근한 달 수" : years + "년 일함")
+                + " → 생긴 연차 " + earned + "일 − 쓴 " + used + "일)";
+        return item("ANNUAL_LEAVE", null, true, ordinaryDaily * unused, f);
+    }
+
+    // 그 달에서 수습 90%를 적용할 날 수. 1년 이상 계약 + 단순노무 아님 + 입사 후 3개월 이내만 (최저임금법 제5조 제2항, 시행령 제3조)
+    private int probationDays(YearMonth ym) {
+        CalculationRequest.Probation p = req.probation();
+        if (p == null || !Boolean.TRUE.equals(p.onProbation())) {
+            return 0;
+        }
+        if (!Boolean.TRUE.equals(p.contractOneYearOrMore()) || !Boolean.FALSE.equals(p.simpleLabor())) {
+            warn("PROBATION_FULL_MIN_WAGE", "1년 미만 계약이거나 단순노무 일이면(또는 모르면) 수습이어도 최저임금을 다 줘야 한다고 보고 계산했어요.");
+            return 0;
+        }
+        LocalDate last = min(start.plusMonths(3).minusDays(1), end == null ? ym.atEndOfMonth() : min(end, ym.atEndOfMonth()));
+        LocalDate first = max(start, ym.atDay(1));
+        return first.isAfter(last) ? 0 : (int) ChronoUnit.DAYS.between(first, last) + 1;
     }
 
     // ---- 하루 기록 (v2) ----
