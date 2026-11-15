@@ -52,6 +52,24 @@ class ComplaintServiceTest {
     }
 
     @Test
+    void 새_항목도_체불_내역_표에_빠짐없이_나온다() {
+        String result = """
+                {"period":{"start":"2025-01-02","end":"2026-10-31"},"summary":{"totalUnpaid":3929081},
+                 "items":[{"code":"DISMISSAL_NOTICE","label":"해고예고수당","month":null,"amount":2640000},
+                  {"code":"ANNUAL_LEAVE","label":"못 쓴 연차수당","month":null,"amount":704000},
+                  {"code":"SHUTDOWN_ALLOWANCE","label":"휴업수당","month":null,"amount":529081},
+                  {"code":"DELAY_INTEREST","label":"늦게 준 돈의 이자(지연이자)","month":null,"amount":56000},
+                  {"code":"MIN_WAGE_SHORTFALL","label":"최저임금 차액","month":"2026-10","amount":0}]}
+                """;
+        var service = new ComplaintService((s, p, f) -> "다듬은 문단입니다.", new JsonMapper());
+        assertEquals("해고예고수당 2,640,000원\n못 쓴 연차수당 704,000원\n휴업수당 529,081원\n지연이자(연 20%) 56,000원\n2026년 10월분 최저임금 차액 0원\n합계 3,929,081원",
+                service.draft(result, request("ko")).draftKo().sections().get(3).body());
+        String en = service.draft(result, request("en")).translation().sections().get(3).body();
+        assertTrue(en.contains("Dismissal notice pay 2,640,000 KRW") && en.contains("Unused paid leave pay") && en.contains("Pay for days the company stopped work")
+                && en.contains("Interest for late payment (20% a year) 56,000 KRW"), en);
+    }
+
+    @Test
     void LLM_실패면_원문_그대로() {
         var service = new ComplaintService((s, p, f) -> {
             throw new LlmException("키 없음");

@@ -44,16 +44,25 @@ final class RuleEngine {
 
     private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40), SIXTY = dec(60);
 
-    private static final Map<String, String> LABELS = Map.of(
-            "BASE_WAGE", "못 받은 월급",
-            "OVERTIME", "연장근로수당",
-            "NIGHT", "야간근로수당",
-            "HOLIDAY", "휴일근로수당",
-            "WEEKLY_HOLIDAY", "주휴수당",
-            "SEVERANCE", "퇴직금",
-            "MIN_WAGE_SHORTFALL", "최저임금 차액",
-            "DISMISSAL_NOTICE", "해고예고수당",
-            "ANNUAL_LEAVE", "못 쓴 연차수당");
+    private static final Map<String, String> LABELS = Map.ofEntries(
+            Map.entry("BASE_WAGE", "못 받은 월급"),
+            Map.entry("OVERTIME", "연장근로수당"),
+            Map.entry("NIGHT", "야간근로수당"),
+            Map.entry("HOLIDAY", "휴일근로수당"),
+            Map.entry("WEEKLY_HOLIDAY", "주휴수당"),
+            Map.entry("SEVERANCE", "퇴직금"),
+            Map.entry("MIN_WAGE_SHORTFALL", "최저임금 차액"),
+            Map.entry("DISMISSAL_NOTICE", "해고예고수당"),
+            Map.entry("ANNUAL_LEAVE", "못 쓴 연차수당"),
+            Map.entry("SHUTDOWN_ALLOWANCE", "휴업수당"),
+            Map.entry("DELAY_INTEREST", "늦게 준 돈의 이자(지연이자)"));
+
+    private static final Map<String, List<Basis>> BASIS_V2 = Map.of("SHUTDOWN_ALLOWANCE", List.of(
+                    basis("근로기준법", "제46조 제1항", "회사 사정으로 쉬게 하면 평균임금의 70% 이상을 줘야 해요. 70%가 통상임금보다 많으면 통상임금을 줘도 돼요."),
+                    basis("근로기준법 시행령", "제26조", "쉬는 동안 일부를 받았으면, 그만큼 빼고 계산해요.")),
+            "DELAY_INTEREST", List.of(
+                    basis("근로기준법", "제37조 제1항", "그만둔 뒤 14일 안에 주지 않은 임금·퇴직금에는 그다음 날부터 이자가 붙어요."),
+                    basis("근로기준법 시행령", "제17조", "그 이자는 1년에 20%예요.")));
 
     private static final Map<String, List<Basis>> BASIS = Map.of(
             "BASE_WAGE", List.of(basis("근로기준법", "제43조", "임금은 매달 정해진 날에 전부 직접 줘야 해요.")),
@@ -153,7 +162,7 @@ final class RuleEngine {
             due += s.item().amount();
             items.add(s.item());
         }
-        for (Item extra : new Item[] {annualLeave(notApplied), dismissal(notApplied)}) {
+        for (Item extra : new Item[] {annualLeave(notApplied), dismissal(notApplied), shutdown(notApplied), delayInterest(items, notApplied)}) {
             if (extra != null) {
                 due += extra.amount();
                 items.add(extra);
@@ -351,6 +360,51 @@ final class RuleEngine {
         return item("ANNUAL_LEAVE", null, true, ordinaryDaily * unused, f);
     }
 
+    // 휴업수당: (평균임금 × 쉰 날 − 받은 돈) × 70%. 70%가 통상임금보다 많으면 (통상임금 × 쉰 날 − 받은 돈)
+    // (근로기준법 제46조 제1항, 시행령 제26조. 5인 미만은 시행령 별표1에 제46조가 없어 적용 안 함)
+    // 평균임금은 약속한 월급 × 12 ÷ 365 로 추정한다
+    private Item shutdown(List<NotApplied> notApplied) {
+        CalculationRequest.Shutdown s = req.shutdown();
+        if (s == null || s.days() == null || s.days() <= 0) {
+            return null;
+        }
+        if (underFive) {
+            notApplied.add(new NotApplied("SHUTDOWN_ALLOWANCE", "5인 미만 사업장은 휴업수당 규정이 적용되지 않아요. 계약서나 회사 규칙에 따로 정한 것이 있는지 확인해 보세요. (근로기준법 시행령 별표1)"));
+            return null;
+        }
+        long monthlyWage = type.equals("MONTHLY") ? base + allowances : trunc(hourly.multiply(monthlyHours));
+        long average = trunc(div(dec(monthlyWage * 12), dec(365)));
+        long days = s.days(), got = nz(s.paidAmount());
+        long amount = trunc(div(dec(Math.max(0, average * days - got) * 7), dec(10)));
+        String f = "(1일 평균임금 " + won(average) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + ") × 70% (평균임금은 월 " + won(monthlyWage) + " × 12 ÷ 365로 추정)";
+        if (average * 7 > ordinaryDaily * 10) {
+            amount = Math.max(0, ordinaryDaily * days - got);
+            f = "1일 통상임금 " + won(ordinaryDaily) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + " (평균임금 70%가 통상임금보다 많아 통상임금으로)";
+        }
+        warn("SHUTDOWN_CHECK", "휴업수당은 회사 사정으로 쉰 경우에만 받아요. 평균임금은 약속한 월급으로 추정했어요. 노동위원회 승인을 받은 휴업이면 더 적을 수 있어요. 확인이 필요해요.");
+        return item("SHUTDOWN_ALLOWANCE", null, true, amount, f);
+    }
+
+    // 지연이자: 그만둔 날(마지막 근무일 다음 날)부터 14일이 지나도 못 받은 임금 · 퇴직금 × 20% × 늦은 날 ÷ 365
+    // (근로기준법 제37조 제1항, 시행령 제17조). 해고예고수당 · 휴업수당은 임금인지 확실하지 않아 빼고 센다
+    private Item delayInterest(List<Item> items, List<NotApplied> notApplied) {
+        if (req.delayInterest() == null) {
+            return null;
+        }
+        if (end == null) {
+            notApplied.add(new NotApplied("DELAY_INTEREST", "재직 중이라 지연이자(연 20%)는 계산하지 않아요. 그만둔 뒤 14일이 지나야 붙어요."));
+            return null;
+        }
+        LocalDate baseDate = req.delayInterest().baseDate() == null ? LocalDate.now() : req.delayInterest().baseDate();
+        LocalDate from = end.plusDays(1).plusDays(15); // 그만둔 날 다음 날부터 14일 안 → 15일째부터 이자
+        long late = Math.max(0, ChronoUnit.DAYS.between(from, baseDate) + 1);
+        long principal = items.stream().filter(i -> !Set.of("DISMISSAL_NOTICE", "SHUTDOWN_ALLOWANCE").contains(i.code()))
+                .mapToLong(i -> i.amount() == null ? 0 : i.amount()).sum();
+        warn("DELAY_INTEREST_CHECK", "지연이자는 그만둔 날 다음 날부터 14일이 지난 날부터 " + baseDate + "까지 센 추정이에요. 해고예고수당 · 휴업수당은 빼고 셌어요. 확인이 필요해요.");
+        String f = won(principal) + " × 20% × " + late + "일 ÷ 365 (" + from + "부터 " + baseDate + "까지)";
+        return item("DELAY_INTEREST", null, true, trunc(div(dec(principal).multiply(dec(late)).multiply(dec(20)), dec(36500))), f);
+    }
+
     // 그 달에서 수습 90%를 적용할 날 수. 1년 이상 계약 + 단순노무 아님 + 입사 후 3개월 이내만 (최저임금법 제5조 제2항, 시행령 제3조)
     private int probationDays(YearMonth ym) {
         CalculationRequest.Probation p = req.probation();
@@ -531,6 +585,12 @@ final class RuleEngine {
         amount(r.wage().baseAmount(), "wage.baseAmount");
         amount(r.wage().annualBonus(), "wage.annualBonus");
         amount(r.lastThreeMonthsWages(), "lastThreeMonthsWages");
+        if (r.shutdown() != null) {
+            amount(r.shutdown().paidAmount(), "shutdown.paidAmount");
+            if (r.shutdown().days() != null && r.shutdown().days() < 0) {
+                throw new InvalidCalculationException("INVALID_VALUE", "shutdown.days", "쉰 날 수는 0 이상이어야 해요.");
+            }
+        }
         allowances(r.wage().ordinaryAllowances(), "wage.ordinaryAllowances");
         allowances(r.wage().otherAllowances(), "wage.otherAllowances");
         List<Month> months = r.months() == null ? List.of() : r.months();
@@ -623,11 +683,15 @@ final class RuleEngine {
     // ---- 도우미 ----
 
     private static Item item(String code, String month, boolean estimated, Long amount, String formula) {
-        return new Item(code, LABELS.get(code), month, "CALCULATED", estimated, amount, formula, BASIS.get(code));
+        return new Item(code, LABELS.get(code), month, "CALCULATED", estimated, amount, formula, basisOf(code));
     }
 
     private static Item noData(String code, String month, String formula) {
-        return new Item(code, LABELS.get(code), month, "NO_DATA", false, null, formula, BASIS.get(code));
+        return new Item(code, LABELS.get(code), month, "NO_DATA", false, null, formula, basisOf(code));
+    }
+
+    private static List<Basis> basisOf(String code) {
+        return BASIS.containsKey(code) ? BASIS.get(code) : BASIS_V2.get(code);
     }
 
     private static Basis basis(String law, String article, String summary) {

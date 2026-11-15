@@ -535,5 +535,13 @@
   "info.none": "No guides to show right now.",
   "info.note": "This is not legal advice. For details, call the Ministry of Employment and Labor center (1350).",
   "item.DISMISSAL_NOTICE": "Dismissal notice pay",
-  "item.ANNUAL_LEAVE": "Unused paid leave pay"
+  "item.ANNUAL_LEAVE": "Unused paid leave pay",
+  "sit.shut": "The company made me stop work, but did not pay",
+  "sit.over14": "I quit over 14 days ago and still was not paid",
+  "qx.shut": "How many days did the company make you stop work?",
+  "qx.shutDays": "Days you could not work (days)",
+  "qx.shutPaid": "Money you got in that time (won, 0 if none)",
+  "qx.shutHint": "If the company stops work for its own reasons (no work, machine repair, etc.), you can get 70% of your average daily pay. Workplaces with fewer than 5 workers are not covered.",
+  "item.SHUTDOWN_ALLOWANCE": "Pay for days the company stopped work",
+  "item.DELAY_INTEREST": "Interest for late payment (20% a year)"
 }

@@ -91,6 +91,24 @@ class ExplanationServiceTest {
     }
 
     @Test
+    void 새_항목도_고정문구에_나온다() {
+        String result = """
+                {"id":"calc_2","summary":{"totalUnpaid":3929081},
+                 "items":[{"code":"DISMISSAL_NOTICE","label":"해고예고수당","month":null,"status":"CALCULATED","estimated":false,"amount":2640000},
+                  {"code":"ANNUAL_LEAVE","label":"못 쓴 연차수당","month":null,"status":"CALCULATED","estimated":true,"amount":704000},
+                  {"code":"SHUTDOWN_ALLOWANCE","label":"휴업수당","month":null,"status":"CALCULATED","estimated":true,"amount":529081},
+                  {"code":"DELAY_INTEREST","label":"늦게 준 돈의 이자(지연이자)","month":null,"status":"CALCULATED","estimated":true,"amount":56000}]}
+                """;
+        var e = service("JSON 아님").explain(result, "vi");
+        assertTrue(e.fallback());
+        assertEquals(4, e.items().size());
+        assertTrue(e.items().get(0).text().contains("Tiền báo trước khi sa thải"), e.items().get(0).text());
+        assertTrue(e.items().get(1).text().contains("Tiền phép năm chưa dùng"));
+        assertTrue(e.items().get(2).text().contains("Tiền ngừng việc"));
+        assertTrue(e.items().get(3).text().contains("Tiền lãi trả chậm") && e.items().get(3).text().contains("56,000"), e.items().get(3).text());
+    }
+
+    @Test
     void LLM_장애면_503() {
         LlmClient down = (s, p, f) -> {
             throw new LlmException("키 없음");

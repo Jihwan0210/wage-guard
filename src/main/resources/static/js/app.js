@@ -14,7 +14,7 @@
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
   var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide' };
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
-  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip']];
+  var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'stop'], ['over14', 'cal']];
   var mobile = window.matchMedia('(max-width: 959px)');
   // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
   var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
@@ -27,7 +27,7 @@
   var L = {};
 
   function blankFields() {
-    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '', more: [], work: {}, notice: '', noticeDays: '', used: '', prob: '', year1: '', simple: '' };
+    return { company: '', size: '', start: '', employed: '', end: '', days: [false, false, false, false, false, false, false], tStart: '', tEnd: '', brk: '', dayHours: '', wageType: '', wage: '', allowance: '', month: '', paid: '', ot: '', night: '', holiday: '', more: [], work: {}, notice: '', noticeDays: '', used: '', prob: '', year1: '', simple: '', shutDays: '', shutPaid: '' };
   }
   // 언어 목록은 i18n/languages.json (언어 파일을 더하고 여기에 한 줄 넣으면 늘어난다)
   var LANGS = [{ code: 'ko', name: '한국어' }];
@@ -337,12 +337,15 @@
       // v2 6단계: 고른 상황에서 물은 것만 보낸다 (API_v2_추가.md)
       dismissal: has('fired') && f.notice ? { dismissed: true, noticeDaysBefore: f.notice === 'none' ? 0 : f.notice === 'full' ? 30 : Number(f.noticeDays) } : undefined,
       annualLeave: has('leave') && f.used !== '' ? { usedDays: Number(f.used) } : undefined,
-      probation: has('minw') && f.prob === 'yes' ? { onProbation: true, contractOneYearOrMore: f.year1 === 'yes', simpleLabor: f.simple ? f.simple === 'yes' : null } : undefined
+      probation: has('minw') && f.prob === 'yes' ? { onProbation: true, contractOneYearOrMore: f.year1 === 'yes', simpleLabor: f.simple ? f.simple === 'yes' : null } : undefined,
+      // 7단계: 지연이자는 오늘까지 센다(baseDate null), 휴업수당은 쉰 날 · 그동안 받은 돈
+      delayInterest: has('over14') && f.employed === 'no' ? { baseDate: null } : undefined,
+      shutdown: has('shut') && Number(f.shutDays) > 0 ? { days: Number(f.shutDays), paidAmount: Number(f.shutPaid) || 0 } : undefined
     };
   }
   function has(code) { return S.sit.indexOf(code) >= 0; }
   // 고른 상황 중 따로 물어볼 것이 있으면 7번째 질문(qx)을 넣는다
-  function needX() { return has('fired') || has('leave') || has('minw'); }
+  function needX() { return has('fired') || has('leave') || has('minw') || has('shut'); }
   function qList() { return ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'].concat(needX() ? ['qx'] : []); }
   // POST /calculations 응답 → 화면에서 쓰는 값
   function viewResult() {
@@ -456,7 +459,7 @@
       case 'q5': return !!f.wageType && Number(f.wage) > 0;
       case 'q6': return f.paid !== '' && f.more.every(function (m) { return m.month && m.paid !== ''; }) && monthList().length === f.more.length + 1;
       case 'qx': return (!has('fired') || (!!f.notice && (f.notice !== 'some' || Number(f.noticeDays) > 0))) && (!has('leave') || f.used !== '') &&
-        (!has('minw') || f.prob === 'no' || (f.prob === 'yes' && !!f.year1 && !!f.simple));
+        (!has('minw') || f.prob === 'no' || (f.prob === 'yes' && !!f.year1 && !!f.simple)) && (!has('shut') || Number(f.shutDays) > 0);
       case 'review':
         return qList().every(valid) && Object.keys(S.low).every(function (k) { return !S.low[k] || S.ok[k]; });
       default: return true;
@@ -796,7 +799,7 @@
       '<button type="button" class="btn btn-line" data-act="month-add">' + icon('plus') + '<span>' + t('q6.addMonth') + '</span></button></div></details>');
   }
 
-  // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금)에 맞춰 필요한 것만
+  // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금 · 휴업)에 맞춰 필요한 것만
   function vQx() {
     var f = S.f, body = '';
     function num(id, key, label) {
@@ -814,6 +817,9 @@
         (f.prob === 'yes' ? '<p class="label">' + t('qx.year1') + '</p>' + radios('year1', 'year1', [['yes', t('qx.yes')], ['no', t('qx.no')]]) +
           '<p class="label">' + t('qx.simple') + '</p>' + radios('simple', 'simple', [['no', t('qx.no')], ['yes', t('qx.yes')]]) : '') +
         '<p class="hint">' + t('qx.probHint') + '</p></section>';
+    }
+    if (has('shut')) {
+      body += '<section class="stack"><h2>' + t('qx.shut') + '</h2>' + num('sd', 'shutDays', t('qx.shutDays')) + num('sp', 'shutPaid', t('qx.shutPaid')) + '<p class="hint">' + t('qx.shutHint') + '</p></section>';
     }
     return qShell(7, t('qx.title'), t('qx.help'), body);
   }

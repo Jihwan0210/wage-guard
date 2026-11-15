@@ -535,5 +535,13 @@
   "info.none": "Hiện chưa có hướng dẫn.",
   "info.note": "Đây không phải tư vấn pháp lý. Để biết chi tiết, gọi trung tâm Bộ Lao động (1350).",
   "item.DISMISSAL_NOTICE": "Tiền báo trước khi sa thải",
-  "item.ANNUAL_LEAVE": "Tiền phép năm chưa dùng"
+  "item.ANNUAL_LEAVE": "Tiền phép năm chưa dùng",
+  "sit.shut": "Công ty cho nghỉ nhưng không trả lương",
+  "sit.over14": "Đã nghỉ việc hơn 14 ngày mà vẫn chưa được trả",
+  "qx.shut": "Công ty bắt bạn nghỉ bao nhiêu ngày?",
+  "qx.shutDays": "Số ngày phải nghỉ (ngày)",
+  "qx.shutPaid": "Tiền nhận được trong thời gian đó (won, không có thì ghi 0)",
+  "qx.shutHint": "Nếu công ty cho nghỉ vì lý do của công ty (không có việc, sửa máy...), bạn có thể nhận 70% lương trung bình một ngày. Nơi làm việc dưới 5 người không áp dụng.",
+  "item.SHUTDOWN_ALLOWANCE": "Tiền ngừng việc (công ty cho nghỉ)",
+  "item.DELAY_INTEREST": "Tiền lãi trả chậm (20% mỗi năm)"
 }
