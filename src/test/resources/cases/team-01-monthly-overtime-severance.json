@@ -1,0 +1,42 @@
+{
+  "name": "월급제 9월 일부 체불 + 연장·야간 + 퇴직금 (API.md 예시 입력)",
+  "source": "팀 손계산",
+  "request": {
+    "workplace": { "size": "FIVE_OR_MORE" },
+    "employment": { "startDate": "2025-03-03", "endDate": "2026-10-31" },
+    "schedule": { "weeklyContractHours": 40, "dailyContractHours": 8, "workDaysPerWeek": 5 },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2156880,
+      "ordinaryAllowances": [ { "name": "직책수당", "amount": 100000 } ],
+      "otherAllowances": [ { "name": "출장비(실비)", "amount": 50000 } ],
+      "annualBonus": 0
+    },
+    "months": [
+      { "month": "2026-09", "paidAmount": 1800000, "overtimeHours": 10, "nightHours": 4,
+        "holidayHoursWithin8": 0, "holidayHoursOver8": 0, "absentWeeks": 0 }
+    ],
+    "lastThreeMonthsWages": null
+  },
+  "expected": {
+    "totalUnpaid": 4957435,
+    "items": [
+      { "code": "BASE_WAGE", "month": "2026-09", "amount": 456880 },
+      { "code": "OVERTIME", "month": "2026-09", "amount": 161976 },
+      { "code": "NIGHT", "month": "2026-09", "amount": 21596 },
+      { "code": "HOLIDAY", "month": "2026-09", "amount": null },
+      { "code": "WEEKLY_HOLIDAY", "month": "2026-09", "amount": null },
+      { "code": "SEVERANCE", "month": null, "amount": 4316983 }
+    ]
+  },
+  "handCalculation": [
+    "시간급 통상임금 = (2,156,880 + 100,000) ÷ 209 = 10,798.4689 → 10,798.46",
+    "BASE_WAGE = 2,256,880 − 받은 1,800,000 = 456,880",
+    "OVERTIME = 10,798.46 × 10 × 1.5 = 161,976.9 → 161,976",
+    "NIGHT = 10,798.46 × 4 × 0.5 = 21,596.92 → 21,596",
+    "평균임금 = (8월 2,256,880 + 9월 2,256,880+161,976+21,596 + 10월 2,256,880) ÷ 92일 = 6,954,212 ÷ 92 = 75,589.26 → 75,589",
+    "1일 통상임금 = 10,798.46 × 8 = 86,387.68 → 86,387 (평균임금보다 크므로 이것을 씀, 멘토 확인 필요)",
+    "SEVERANCE = 86,387 × 30 × 608일 ÷ 365 = 4,316,983.2 → 4,316,983",
+    "totalUnpaid = 456,880 + 161,976 + 21,596 + 4,316,983 = 4,957,435"
+  ]
+}
