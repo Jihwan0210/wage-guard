@@ -16,6 +16,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.yellowdolphin.wageback.calculation.InvalidCalculationException;
+
 // 모든 오류를 ProblemDetail + code · field 로 돌려준다 (API.md 오류 형식). 요청 본문은 로그에 남기지 않는다
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
@@ -25,6 +27,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ProblemDetail handleApi(ApiException e) {
         return problem(e.getStatus(), e.getMessage(), e.getCode(), e.getField());
+    }
+
+    @ExceptionHandler(InvalidCalculationException.class)
+    public ProblemDetail handleCalculation(InvalidCalculationException e) {
+        return problem(HttpStatus.BAD_REQUEST, e.getMessage(), e.getCode(), e.getField());
     }
 
     @ExceptionHandler(Exception.class)
