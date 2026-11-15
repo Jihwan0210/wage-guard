@@ -130,7 +130,7 @@ textarea.input { padding: 12px 14px; line-height: 1.6; resize: vertical; }
 .err { color: var(--err); font-size: 0.875rem; font-weight: 500; }
 .readable { font-size: 0.875rem; color: var(--muted); min-height: 1.4em; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; }
 .day { min-height: 48px; border: 1px solid var(--input-line); border-radius: var(--r-sm); background: var(--bg); font-size: 1rem; cursor: pointer; }
 .day[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 700; }
 .lang-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -198,7 +198,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .item-links { display: flex; align-items: center; gap: 14px; }
 .basis summary { font-size: 0.8125rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; }
 .basis summary::after { display: none; }
-.basis dl { margin: 0 0 10px; padding: 12px; border-radius: var(--r-sm); background: var(--surface); display: grid; grid-template-columns: 3em minmax(0, 1fr); gap: 6px 8px; font-size: 0.8125rem; }
+.basis dl { margin: 0 0 10px; padding: 12px; border-radius: var(--r-sm); background: var(--surface); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 8px; font-size: 0.8125rem; }
 .basis dt { color: var(--muted); }
 .basis dd { margin: 0; }
 .kv { margin: 0; display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 6px 8px; font-size: 0.875rem; }
@@ -686,7 +686,7 @@ dialog .stack { gap: 14px; }
       status +
       '<details class="no-print"><summary>잘 읽히는 사진 찍는 법</summary><ul class="hint" style="font-size:0.9375rem;margin:0;padding-left:18px"><li>평평한 곳에 놓고 위에서 찍기</li><li>네 모서리가 다 보이게</li><li>그림자와 빛 반사 없이</li></ul></details>' +
       '</div>' +
-      cta(primary('읽은 내용 확인하기', 'data-go="review"', u.status === 'done') +
+      cta(primary('읽은 내용 확인하기', 'data-go="review"', u.status === 'done' || Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; })) +
         '<button type="button" class="btn-text" data-act="path" data-v="manual">서류 없이 직접 입력하기</button>');
   }
 
@@ -1002,10 +1002,10 @@ dialog .stack { gap: 14px; }
 
   // ---------- 동작 ----------
   // POST /documents/extract 응답 → 확인 화면 값. 0.8 미만은 노란 줄, unreadable 은 빈칸
+  // 서류를 하나씩 올리면 앞 서류에서 읽은 값에 덧붙인다
   function applyExtract(res) {
-    var f = blankFields();
+    var f = S.f;
     var weekly = 0;
-    S.src = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {};
     res.fields.forEach(function (x) {
       var v = x.value, row = ROW_OF[x.key];
       if (!row || v == null) return;
@@ -1024,12 +1024,12 @@ dialog .stack { gap: 14px; }
       else if (x.key === 'paidAmount') f.paid = String(v);
       else f[row] = String(v);
       S.src[row] = 'doc';
-      if (x.confidence < 0.8) S.low[row] = true;
+      S.low[row] = x.confidence < 0.8;
+      S.ok[row] = false;
     });
     var cnt = f.days.filter(Boolean).length;
     if (!f.dayHours && weekly && cnt) f.dayHours = String(weekly / cnt);
     (res.unreadable || []).forEach(function (k) { if (ROW_OF[k]) S.unread[ROW_OF[k]] = true; });
-    S.f = f;
     S.up.n = res.fields.length;
     S.up.unread = (res.unreadable || []).length;
     S.up.masked = res.maskedCount || 0;
@@ -1129,10 +1129,10 @@ dialog .stack { gap: 14px; }
     else if (a === 'lang') setLang(t.dataset.v);
     else if (a === 'path') {
       S.path = t.dataset.v;
-      if (S.path === 'manual') {
-        if (S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
-        go('q1');
-      } else go('upload');
+      // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
+      if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
+      if (S.path === 'doc') S.up = { status: 'idle', name: '', msg: '' };
+      go(S.path === 'manual' ? 'q1' : 'upload');
     }
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
     else if (a === 'ok') { S.ok[t.dataset.k] = true; render(); }
