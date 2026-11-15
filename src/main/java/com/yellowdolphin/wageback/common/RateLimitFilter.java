@@ -14,7 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// IP당 분당 요청 제한: 업로드 5 · 해설/진정서 10 · 그 외 API 60 (API.md 요청 제한)
+// IP당 분당 요청 제한: 업로드 5(한 장 · 여러 장 요청 합쳐서) · 해설/진정서 10 · 그 외 API 60 (API.md 요청 제한)
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
@@ -41,7 +41,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        String bucket = path.endsWith("/documents/extract") ? "upload"
+        String bucket = path.endsWith("/documents/extract") || path.endsWith("/documents/extract-batch") ? "upload"
                 : path.endsWith("/explanation") || path.endsWith("/complaint-draft") ? "ai" : "api";
         int limit = switch (bucket) {
             case "upload" -> 5;
