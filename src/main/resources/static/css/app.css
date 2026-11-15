@@ -160,6 +160,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 959px) { .only-d { display: none !important; } }
 .note .ico, .hint .ico { vertical-align: -4px; }
 .brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 400px) { .brand > span { white-space: normal; line-height: 1.15; font-size: var(--fs-sm); } }
 @media (max-width: 400px) {
   .brand small { display: none; }
   .paper { padding: var(--s5) var(--s4); }

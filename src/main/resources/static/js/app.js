@@ -202,6 +202,7 @@
     payslip: '<path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
     contract: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17c1-1.6 2-1.6 2.6-.4.5 1 1.2 1 2-.2.6-.8 1.2-.6 1.9.6"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    dot: '<circle cx="12" cy="12" r="2.5" fill="currentColor"/>',
     lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
     phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
@@ -844,7 +845,7 @@
       }).join('');
       var body = pick(g.lines) || [];
       return '<li class="info-card stack"><h2>' + esc(pick(g.title)) + (mine(g) ? ' <span class="tag">' + t('info.mine') + '</span>' : '') + '</h2>' +
-        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('check') + esc(b) + '</li>'; }).join('') + '</ul>' +
+        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('dot') + esc(b) + '</li>'; }).join('') + '</ul>' +
         (src ? '<div class="nav-list">' + src + '</div>' : '') + '</li>';
     }).join('');
     return '<div class="wide col stack-lg">' + langBanner() +
@@ -1203,7 +1204,7 @@
     function phone(name, sub, num, tel) {
       return '<a class="phone" href="tel:' + tel + '">' + icon('phone') + '<span><strong>' + name + '</strong><small>' + sub + '</small></span><b>' + num + '</b></a>';
     }
-    var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('check') + t('guide.bring' + n) + '</li>'; }).join('');
+    var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('dot') + t('guide.bring' + n) + '</li>'; }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('guide.title') + '</h1><p class="lead">' + t('guide.lead') + '</p>' + speakBtn('guide') + '</div>' +
