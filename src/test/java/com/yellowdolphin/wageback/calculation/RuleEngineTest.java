@@ -13,6 +13,7 @@ import com.yellowdolphin.wageback.calculation.CalculationRequest.Employment;
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Month;
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Schedule;
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Wage;
+import com.yellowdolphin.wageback.calculation.CalculationRequest.WorkDay;
 import com.yellowdolphin.wageback.calculation.CalculationRequest.Workplace;
 import com.yellowdolphin.wageback.calculation.CalculationResult.Item;
 
@@ -157,6 +158,85 @@ class RuleEngineTest {
                 });
     }
 
+    // ---- v2 하루 기록 ----
+
+    @Test
+    void 하루기록_10시간_4일은_연장8시간() {
+        // 2026-09-07(월) ~ 10(목) 09:00~20:00, 쉬는 시간 1시간 → 하루 10시간, 주 40시간
+        CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
+                month("2026-09", MONTHLY_11000, 0, 0, 0, 0)),
+                day("2026-09-07", "09:00", "20:00", 60, false), day("2026-09-08", "09:00", "20:00", 60, false),
+                day("2026-09-09", "09:00", "20:00", 60, false), day("2026-09-10", "09:00", "20:00", 60, false)));
+        Item ot = item(r, "OVERTIME", "2026-09");
+        assertThat(ot.amount()).isEqualTo(132_000L); // 11,000 × 8 × 1.5
+        assertThat(ot.formula()).contains("하루 기록 4일");
+        assertThat(item(r, "NIGHT", "2026-09").status()).isEqualTo("NO_DATA");
+        assertThat(r.workWeeks()).hasSize(1);
+        assertThat(r.workWeeks().get(0).weekStart()).isEqualTo("2026-09-07");
+        assertThat(r.workWeeks().get(0).workedHours()).isEqualTo("40");
+        assertThat(r.workWeeks().get(0).overtimeHours()).isEqualTo("8");
+        assertThat(r.warnings()).extracting("code").contains("DAILY_RECORDS");
+    }
+
+    @Test
+    void 하루기록_8시간_6일은_주40시간_넘은_8시간이_연장() {
+        CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
+                month("2026-09", MONTHLY_11000, 0, 0, 0, 0)),
+                day("2026-09-07", "09:00", "18:00", 60, false), day("2026-09-08", "09:00", "18:00", 60, false),
+                day("2026-09-09", "09:00", "18:00", 60, false), day("2026-09-10", "09:00", "18:00", 60, false),
+                day("2026-09-11", "09:00", "18:00", 60, false), day("2026-09-12", "09:00", "18:00", 60, false)));
+        assertThat(item(r, "OVERTIME", "2026-09").amount()).isEqualTo(132_000L);
+    }
+
+    @Test
+    void 하루기록_밤샘은_다음날_퇴근과_야간시간() {
+        // 18:00 ~ 다음 날 03:00, 쉬는 1시간 → 8시간 근무, 그중 22:00~03:00 = 5시간 야간
+        int[] m = RuleEngine.minutes(day("2026-09-07", "18:00", "03:00", 60, false));
+        assertThat(m).containsExactly(480, 300);
+        // 04:00 ~ 07:00 → 3시간 중 04:00~06:00 = 2시간 야간
+        assertThat(RuleEngine.minutes(day("2026-09-07", "04:00", "07:00", 0, false))).containsExactly(180, 120);
+        CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
+                month("2026-09", MONTHLY_11000, 0, 0, 0, 0)), day("2026-09-07", "18:00", "03:00", 60, false)));
+        assertThat(item(r, "NIGHT", "2026-09").amount()).isEqualTo(27_500L); // 11,000 × 5 × 0.5
+        assertThat(item(r, "OVERTIME", "2026-09").status()).isEqualTo("NO_DATA");
+    }
+
+    @Test
+    void 하루기록_휴일10시간은_주40시간에_넣지_않고_휴일근로() {
+        // 월~금 8시간 + 일요일(휴일) 10시간 → 연장 0, 휴일 8시간 × 1.5 + 2시간 × 2.0
+        CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
+                month("2026-09", MONTHLY_11000, 0, 0, 0, 0)),
+                day("2026-09-07", "09:00", "18:00", 60, false), day("2026-09-08", "09:00", "18:00", 60, false),
+                day("2026-09-09", "09:00", "18:00", 60, false), day("2026-09-10", "09:00", "18:00", 60, false),
+                day("2026-09-11", "09:00", "18:00", 60, false), day("2026-09-13", "09:00", "20:00", 60, true)));
+        assertThat(item(r, "OVERTIME", "2026-09").status()).isEqualTo("NO_DATA");
+        assertThat(item(r, "HOLIDAY", "2026-09").amount()).isEqualTo(176_000L);
+        assertThat(r.workWeeks().get(0).holidayHoursOver8()).isEqualTo("2");
+    }
+
+    @Test
+    void 하루기록이_있으면_그_달의_월합계_시간_대신_쓴다() {
+        CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
+                month("2026-09", MONTHLY_11000, 30, 0, 0, 0)), day("2026-09-07", "09:00", "20:30", 60, false)));
+        assertThat(item(r, "OVERTIME", "2026-09").amount()).isEqualTo(41_250L); // 2.5시간 × 11,000 × 1.5
+    }
+
+    @Test
+    void 하루기록_잘못된_입력은_400_예외() {
+        CalculationRequest base = monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", 0, 0, 0, 0, 0));
+        assertThatThrownBy(() -> calc(withDays(base, day("2026-08-03", "09:00", "18:00", 60, false))))
+                .isInstanceOfSatisfying(InvalidCalculationException.class, e -> {
+                    assertThat(e.getCode()).isEqualTo("INVALID_MONTH");
+                    assertThat(e.getField()).isEqualTo("workDays[0].date");
+                });
+        assertThatThrownBy(() -> calc(withDays(base, day("2026-09-07", "9시", "18:00", 60, false))))
+                .isInstanceOfSatisfying(InvalidCalculationException.class, e -> assertThat(e.getField()).isEqualTo("workDays[0].start"));
+        assertThatThrownBy(() -> calc(withDays(base, day("2026-09-07", "09:00", "10:00", 60, false))))
+                .isInstanceOfSatisfying(InvalidCalculationException.class, e -> assertThat(e.getCode()).isEqualTo("INVALID_HOURS"));
+        assertThatThrownBy(() -> calc(withDays(base, day("2026-09-07", "09:00", "18:00", 0, false), day("2026-09-07", "09:00", "18:00", 0, false))))
+                .isInstanceOfSatisfying(InvalidCalculationException.class, e -> assertThat(e.getField()).isEqualTo("workDays[1].date"));
+    }
+
     @Test
     void 최저임금표는_설정_파일에서_읽는다() {
         assertThat(RuleEngine.MIN_WAGES).containsEntry(2024, new BigDecimal("9860"))
@@ -164,6 +244,73 @@ class RuleEngineTest {
     }
 
     // ---- 도우미 ----
+
+    // ---- v2 6단계: 해고예고수당 · 연차수당 · 수습 ----
+
+    static CalculationRequest extra(CalculationRequest r, CalculationRequest.Dismissal d, CalculationRequest.AnnualLeave a, CalculationRequest.Probation p) {
+        return new CalculationRequest(r.workplace(), r.employment(), r.schedule(), r.wage(), r.months(), r.lastThreeMonthsWages(), null, d, a, p);
+    }
+
+    @Test
+    void 해고예고수당은_1일_통상임금_30일분() {
+        CalculationRequest base = monthly("FIVE_OR_MORE", "2025-01-01", "2026-09-30", MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
+        // 11,000 × 8시간 = 88,000 × 30 = 2,640,000
+        Item none = item(calc(extra(base, new CalculationRequest.Dismissal(true, 0), null, null)), "DISMISSAL_NOTICE", null);
+        assertThat(none.amount()).isEqualTo(2_640_000L);
+        assertThat(none.estimated()).isFalse();
+        Item short10 = item(calc(extra(base, new CalculationRequest.Dismissal(true, 10), null, null)), "DISMISSAL_NOTICE", null);
+        assertThat(short10.amount()).isEqualTo(2_640_000L);
+        assertThat(short10.estimated()).isTrue();
+        assertThat(item(calc(extra(base, new CalculationRequest.Dismissal(true, 30), null, null)), "DISMISSAL_NOTICE", null).amount()).isZero();
+        assertThat(calc(base).notApplied()).extracting("code").contains("DISMISSAL_NOTICE");
+    }
+
+    @Test
+    void 해고예고수당_3개월_미만은_0원() {
+        CalculationRequest r = monthly("FIVE_OR_MORE", "2026-08-01", "2026-10-15", MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
+        assertThat(item(calc(extra(r, new CalculationRequest.Dismissal(true, 0), null, null)), "DISMISSAL_NOTICE", null).amount()).isZero();
+    }
+
+    @Test
+    void 연차수당_1년_이상은_15일_3년부터_2년마다_1일() {
+        Month m = month("2026-09", MONTHLY_11000, 0, 0, 0, 0);
+        // 1년 일함: 15일 − 쓴 3일 = 12일 × 88,000 = 1,056,000
+        CalculationResult r = calc(extra(monthly("FIVE_OR_MORE", "2025-01-01", "2026-09-30", MONTHLY_11000, 0, null, m), null, new CalculationRequest.AnnualLeave(3), null));
+        assertThat(item(r, "ANNUAL_LEAVE", null).amount()).isEqualTo(1_056_000L);
+        assertThat(item(r, "ANNUAL_LEAVE", null).estimated()).isTrue();
+        assertThat(r.warnings()).extracting("code").contains("ANNUAL_LEAVE_CHECK");
+        // 4년 일함: 15 + (4 − 1) ÷ 2 = 16일 × 88,000 = 1,408,000
+        assertThat(item(calc(extra(monthly("FIVE_OR_MORE", "2022-01-01", "2026-09-30", MONTHLY_11000, 0, null, m), null, new CalculationRequest.AnnualLeave(0), null)),
+                "ANNUAL_LEAVE", null).amount()).isEqualTo(1_408_000L);
+    }
+
+    @Test
+    void 연차수당_1년_미만은_개근한_달마다_1일_딱_1년은_11일() {
+        Month m = month("2026-09", MONTHLY_11000, 0, 0, 0, 0);
+        // 2026-01-01 ~ 2026-09-30: 다음 날 근무가 없어 9월분은 안 생김 → 8일 × 88,000 = 704,000
+        assertThat(item(calc(extra(monthly("FIVE_OR_MORE", "2026-01-01", "2026-09-30", MONTHLY_11000, 0, null, m), null, new CalculationRequest.AnnualLeave(0), null)),
+                "ANNUAL_LEAVE", null).amount()).isEqualTo(704_000L);
+        // 2025-10-01 ~ 2026-09-30 (딱 1년): 15일은 안 생기고 11일 × 88,000 = 968,000
+        assertThat(item(calc(extra(monthly("FIVE_OR_MORE", "2025-10-01", "2026-09-30", MONTHLY_11000, 0, null, m), null, new CalculationRequest.AnnualLeave(0), null)),
+                "ANNUAL_LEAVE", null).amount()).isEqualTo(968_000L);
+        // 5인 미만은 계산 안 함
+        assertThat(calc(extra(monthly("UNDER_FIVE", "2025-01-01", "2026-09-30", MONTHLY_11000, 0, null, m), null, new CalculationRequest.AnnualLeave(0), null))
+                .notApplied()).extracting("code").contains("ANNUAL_LEAVE");
+    }
+
+    @Test
+    void 수습_3개월은_최저임금_90퍼센트_단순노무는_100퍼센트() {
+        // 2026년 최저임금 10,320 × 0.9 = 9,288원. 7/1 입사라 수습은 9/30 까지
+        CalculationRequest r = request("FIVE_OR_MORE", "2026-07-01", "2026-10-31", schedule(40, 8, 5), new Wage("HOURLY", 9_288L, null, null, 0L), null,
+                month("2026-09", 0, 0, 0, 0, 0), month("2026-10", 0, 0, 0, 0, 0));
+        CalculationResult ok = calc(extra(r, null, null, new CalculationRequest.Probation(true, true, false)));
+        assertThat(ok.items()).noneMatch(i -> i.code().equals("MIN_WAGE_SHORTFALL") && "2026-09".equals(i.month()));
+        assertThat(item(ok, "MIN_WAGE_SHORTFALL", "2026-10").formula()).startsWith("(10,320원 − 9,288.00원)");
+        assertThat(ok.warnings()).extracting("code").contains("PROBATION_MIN_WAGE");
+        CalculationResult simple = calc(extra(r, null, null, new CalculationRequest.Probation(true, true, true)));
+        assertThat(item(simple, "MIN_WAGE_SHORTFALL", "2026-09").amount()).isPositive();
+        assertThat(simple.warnings()).extracting("code").contains("PROBATION_FULL_MIN_WAGE");
+    }
 
     static CalculationResult calc(CalculationRequest req) {
         return RuleEngine.calculate(req, "calc_test");
@@ -186,7 +333,15 @@ class RuleEngineTest {
     static CalculationRequest request(String size, String start, String end, Schedule schedule, Wage wage, Long lastThree, Month... months) {
         return new CalculationRequest(new Workplace(size),
                 new Employment(LocalDate.parse(start), end == null ? null : LocalDate.parse(end)),
-                schedule, wage, List.of(months), lastThree);
+                schedule, wage, List.of(months), lastThree, null);
+    }
+
+    static CalculationRequest withDays(CalculationRequest r, WorkDay... days) {
+        return new CalculationRequest(r.workplace(), r.employment(), r.schedule(), r.wage(), r.months(), r.lastThreeMonthsWages(), List.of(days));
+    }
+
+    static WorkDay day(String date, String start, String end, int breakMinutes, boolean holiday) {
+        return new WorkDay(LocalDate.parse(date), start, end, breakMinutes, holiday);
     }
 
     static Month month(String month, long paid, double overtime, double night, double holiday8, double holidayOver8) {

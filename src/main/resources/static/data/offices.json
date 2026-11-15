@@ -1,0 +1,1419 @@
+{
+  "checkedAt": "2026-11-15",
+  "sources": [
+    "https://labor.moel.go.kr/portalGuide/competence_find.do",
+    "https://www.moel.go.kr/minwon/rigion/rigion_C4.do",
+    "https://labor.moel.go.kr/minwonApply/minwonApply.do?searchGubun=2",
+    "https://1350.moel.go.kr/home/hp/ch/callchat.do",
+    "https://www.moel.go.kr/local/daegu/news/notice/noticeView.do?bbs_seq=20260401120",
+    "https://welfare.comwel.or.kr/default/page.do?mCode=H030010000",
+    "https://welfare.comwel.or.kr/default/page.do?mCode=H020010000",
+    "https://www.moel.go.kr/seoul/",
+    "https://www.moel.go.kr/seoulgangnam/",
+    "https://www.moel.go.kr/seouldongbu/",
+    "https://www.moel.go.kr/seoulseobu/",
+    "https://www.moel.go.kr/seoulnambu/",
+    "https://www.moel.go.kr/seoulbukbu/",
+    "https://www.moel.go.kr/seoulgwanak/",
+    "https://www.moel.go.kr/gyeonggi/",
+    "https://www.moel.go.kr/uijeongbu/",
+    "https://www.moel.go.kr/goyang/",
+    "https://www.moel.go.kr/seongnam/",
+    "https://www.moel.go.kr/anyang/",
+    "https://www.moel.go.kr/ansan/",
+    "https://www.moel.go.kr/pyeongtaek/",
+    "https://www.moel.go.kr/jungbu/",
+    "https://www.moel.go.kr/incheonbukbu/",
+    "https://www.moel.go.kr/bucheon/",
+    "https://www.moel.go.kr/gangwon/",
+    "https://www.moel.go.kr/gangneung/",
+    "https://www.moel.go.kr/wonju/",
+    "https://www.moel.go.kr/taebaek/",
+    "https://www.moel.go.kr/yeongwol/",
+    "https://www.moel.go.kr/busan/",
+    "https://www.moel.go.kr/busandongbu/",
+    "https://www.moel.go.kr/busanbukbu/",
+    "https://www.moel.go.kr/changwon/",
+    "https://www.moel.go.kr/ulsan/",
+    "https://www.moel.go.kr/ulsandongbu/",
+    "https://www.moel.go.kr/yangsan/",
+    "https://www.moel.go.kr/jinju/",
+    "https://www.moel.go.kr/tongyeong/",
+    "https://www.moel.go.kr/daegu/",
+    "https://www.moel.go.kr/daeguseobu/",
+    "https://www.moel.go.kr/pohang/",
+    "https://www.moel.go.kr/gumi/",
+    "https://www.moel.go.kr/yeongju/",
+    "https://www.moel.go.kr/andong/",
+    "https://www.moel.go.kr/gwangju/",
+    "https://www.moel.go.kr/jeonju/",
+    "https://www.moel.go.kr/iksan/",
+    "https://www.moel.go.kr/gunsan/",
+    "https://www.moel.go.kr/mokpo/",
+    "https://www.moel.go.kr/yeosu/",
+    "https://www.moel.go.kr/daejeon/",
+    "https://www.moel.go.kr/cheongju/",
+    "https://www.moel.go.kr/cheonan/",
+    "https://www.moel.go.kr/chungju/",
+    "https://www.moel.go.kr/boryeong/",
+    "https://www.moel.go.kr/seosan/"
+  ],
+  "note": "출처에서 확인한 것만. 관할구역은 노동포털 '관할관서 안내' 표 기준(대구 서구만 고용노동부 '관할관서찾기' 대구/경북 표의 대구서부지청 묶음 기준). 주소·전화는 각 기관 누리집 하단 표기(phone은 기관 대표 또는 노동 문의 번호이고, 모든 기관은 1350으로도 연결됨). 시·도 전체가 한 기관 관할이면 sido에 office를 두고 sigungu는 비움. 확인 못 한 시군구는 노동포털 찾기 링크로 안내",
+  "findUrl": "https://labor.moel.go.kr/portalGuide/competence_find.do",
+  "complaintUrl": "https://labor.moel.go.kr/minwonApply/minwonApply.do?searchGubun=2",
+  "offices": [
+    {
+      "id": "seoul",
+      "name": "서울지방고용노동청",
+      "address": "서울특별시 중구 삼일대로 363 (장교동) 장교빌딩 1~6층",
+      "phone": "02-2231-0009",
+      "source": "https://www.moel.go.kr/seoul/"
+    },
+    {
+      "id": "seoulgangnam",
+      "name": "서울강남지청",
+      "address": "서울 강남구 도곡로 408(대치동 1024) 디마크빌딩 7~9층",
+      "phone": "02-584-0009",
+      "source": "https://www.moel.go.kr/seoulgangnam/"
+    },
+    {
+      "id": "seouldongbu",
+      "name": "서울동부지청",
+      "address": "서울특별시 송파구 중대로 135(가락동), IT벤처타워 동관 10~11층",
+      "phone": "02-403-0009",
+      "source": "https://www.moel.go.kr/seouldongbu/"
+    },
+    {
+      "id": "seoulseobu",
+      "name": "서울서부지청",
+      "address": "서울 마포구 독막로 320(도화동 560) 태영데시앙빌딩 3층, 5층, 6층",
+      "phone": "02-713-0009",
+      "source": "https://www.moel.go.kr/seoulseobu/"
+    },
+    {
+      "id": "seoulnambu",
+      "name": "서울남부지청",
+      "address": "서울시 영등포구 선유로 120",
+      "phone": "02-2639-2100",
+      "source": "https://www.moel.go.kr/seoulnambu/"
+    },
+    {
+      "id": "seoulbukbu",
+      "name": "서울북부지청",
+      "address": "서울시 강북구 한천로 949 (번동 432-5)",
+      "phone": "02-950-9880",
+      "source": "https://www.moel.go.kr/seoulbukbu/"
+    },
+    {
+      "id": "seoulgwanak",
+      "name": "서울관악지청",
+      "address": "서울시 구로구 디지털로32길 42",
+      "phone": "02-3281-0009",
+      "source": "https://www.moel.go.kr/seoulgwanak/"
+    },
+    {
+      "id": "gyeonggi",
+      "name": "경기지방고용노동청",
+      "address": "경기도 수원시 장안구 서부로 2166",
+      "phone": "031-259-0204",
+      "source": "https://www.moel.go.kr/gyeonggi/",
+      "phoneNote": "누리집 하단에 '031-259-0204 (임금체불)'로 표기"
+    },
+    {
+      "id": "uijeongbu",
+      "name": "의정부지청",
+      "address": "경기도 의정부시 충의로 143",
+      "phone": "031-877-0009",
+      "source": "https://www.moel.go.kr/uijeongbu/"
+    },
+    {
+      "id": "goyang",
+      "name": "고양지청",
+      "address": "경기도 고양시 덕양구 화중로 104번길 50(화정동 964) 정부고양지방합동청사 6층",
+      "phone": "031-931-2800",
+      "source": "https://www.moel.go.kr/goyang/"
+    },
+    {
+      "id": "seongnam",
+      "name": "성남지청",
+      "address": "경기도 성남시 분당구 성남대로 146(구미동)",
+      "phone": "031-788-1505",
+      "source": "https://www.moel.go.kr/seongnam/"
+    },
+    {
+      "id": "anyang",
+      "name": "안양지청",
+      "address": "경기도 안양시 만안구 전파로44번길 73",
+      "phone": "031-463-7300",
+      "source": "https://www.moel.go.kr/anyang/"
+    },
+    {
+      "id": "ansan",
+      "name": "안산지청",
+      "address": "경기도 안산시 단원구 적금로1길 26 (고잔동)",
+      "phone": "031-412-1992",
+      "source": "https://www.moel.go.kr/ansan/"
+    },
+    {
+      "id": "pyeongtaek",
+      "name": "평택지청",
+      "address": "경기도 평택시 고덕중앙5길 72",
+      "phone": "031-646-1114",
+      "source": "https://www.moel.go.kr/pyeongtaek/"
+    },
+    {
+      "id": "jungbu",
+      "name": "중부지방고용노동청",
+      "address": "인천 미추홀구 석정로 239 정부인천지방합동청사 2~6층",
+      "phone": "032-460-4545",
+      "source": "https://www.moel.go.kr/jungbu/"
+    },
+    {
+      "id": "incheonbukbu",
+      "name": "인천북부지청",
+      "address": "인천시 계양구 계양문화로59번길 6",
+      "phone": "032-540-7910",
+      "source": "https://www.moel.go.kr/incheonbukbu/"
+    },
+    {
+      "id": "bucheon",
+      "name": "부천지청",
+      "address": "경기도 부천시 원미구 석천로 207",
+      "phone": "032-714-8700",
+      "source": "https://www.moel.go.kr/bucheon/"
+    },
+    {
+      "id": "gangwon",
+      "name": "강원지청",
+      "address": "강원특별자치도 춘천시 후석로440번길 64(후평동), 춘천지방합동청사 2층",
+      "phone": "033-269-3551",
+      "source": "https://www.moel.go.kr/gangwon/"
+    },
+    {
+      "id": "gangneung",
+      "name": "강릉지청",
+      "address": "강원특별자치도 강릉시 경강로 1991",
+      "phone": "033-650-2500",
+      "source": "https://www.moel.go.kr/gangneung/"
+    },
+    {
+      "id": "wonju",
+      "name": "원주지청",
+      "address": "강원특별자치도 원주시 만대로 59 (무실동 1716-3)",
+      "phone": "033-769-0800",
+      "source": "https://www.moel.go.kr/wonju/"
+    },
+    {
+      "id": "taebaek",
+      "name": "태백지청",
+      "address": "강원특별자치도 태백시 황지로 119",
+      "phone": "033-550-8609",
+      "source": "https://www.moel.go.kr/taebaek/"
+    },
+    {
+      "id": "yeongwol",
+      "name": "영월출장소",
+      "address": "강원특별자치도 영월군 영월읍 단종로 8",
+      "phone": "033-374-0009",
+      "source": "https://www.moel.go.kr/yeongwol/"
+    },
+    {
+      "id": "busan",
+      "name": "부산지방고용노동청",
+      "address": "부산시 연제구 연제로 36(연산2동 1470-1)",
+      "phone": "051-853-0009",
+      "source": "https://www.moel.go.kr/busan/",
+      "phoneNote": "누리집 하단 '임금체불 등 노동관련 문의: 051)853-0009'"
+    },
+    {
+      "id": "busandongbu",
+      "name": "부산동부지청",
+      "address": "부산시 금정구 공단서로 12",
+      "phone": "051-559-6688",
+      "source": "https://www.moel.go.kr/busandongbu/"
+    },
+    {
+      "id": "busanbukbu",
+      "name": "부산북부지청",
+      "address": "부산시 사상구 백양대로 804 (덕포동)",
+      "phone": "051-309-1500",
+      "source": "https://www.moel.go.kr/busanbukbu/"
+    },
+    {
+      "id": "changwon",
+      "name": "창원지청",
+      "address": "경남 창원시 성산구 창이대로 532번길 28",
+      "phone": "055-239-6500",
+      "source": "https://www.moel.go.kr/changwon/"
+    },
+    {
+      "id": "ulsan",
+      "name": "울산지청",
+      "address": "울산광역시 남구 문수로392번길 22(옥동)",
+      "phone": "052-272-0009",
+      "source": "https://www.moel.go.kr/ulsan/"
+    },
+    {
+      "id": "ulsandongbu",
+      "name": "울산동부지청",
+      "address": "울산광역시 동구 등대로 50",
+      "phone": "052-259-3300",
+      "source": "https://www.moel.go.kr/ulsandongbu/"
+    },
+    {
+      "id": "yangsan",
+      "name": "양산지청",
+      "address": "양산시 동면 남양산 1길 58 (석산리)",
+      "phone": "055-370-0997",
+      "source": "https://www.moel.go.kr/yangsan/"
+    },
+    {
+      "id": "jinju",
+      "name": "진주지청",
+      "address": "경남 진주시 금산면 금산순환로11번길 43",
+      "phone": "055-752-0009",
+      "source": "https://www.moel.go.kr/jinju/"
+    },
+    {
+      "id": "tongyeong",
+      "name": "통영지청",
+      "address": "경상남도 통영시 광도면 죽림1로 69",
+      "phone": "055-650-1951",
+      "source": "https://www.moel.go.kr/tongyeong/"
+    },
+    {
+      "id": "daegu",
+      "name": "대구지방고용노동청",
+      "address": "대구 수성구 동대구로 231(범어동 743번지)",
+      "phone": "053-667-6200",
+      "source": "https://www.moel.go.kr/daegu/"
+    },
+    {
+      "id": "daeguseobu",
+      "name": "대구서부지청",
+      "address": "대구광역시 달서구 화암로 301(대곡동) 정부대구지방합동청사 3층",
+      "phone": "053-605-9000",
+      "source": "https://www.moel.go.kr/daeguseobu/"
+    },
+    {
+      "id": "pohang",
+      "name": "포항지청",
+      "address": "경북 포항시 남구 새천년대로 430(대잠동)",
+      "phone": "054-271-6700",
+      "source": "https://www.moel.go.kr/pohang/"
+    },
+    {
+      "id": "gumi",
+      "name": "구미지청",
+      "address": "경북 구미시 3공단1로 312-27(임수동 92-31)",
+      "phone": null,
+      "source": "https://www.moel.go.kr/gumi/",
+      "phoneNote": "누리집 하단에 지청 대표 번호 없음(1350, 고용 관련 문의 054-440-3300만 표기). 1350으로 연결"
+    },
+    {
+      "id": "yeongju",
+      "name": "영주지청",
+      "address": "경북 영주시 번영로 88",
+      "phone": "054-639-1111",
+      "source": "https://www.moel.go.kr/yeongju/",
+      "phoneNote": "누리집 하단 표기는 '639-1111'(지역번호 없음). 같은 줄 당직실 번호가 054-639-1199"
+    },
+    {
+      "id": "andong",
+      "name": "안동지청",
+      "address": "경북 안동시 경동로 400",
+      "phone": "054-851-8000",
+      "source": "https://www.moel.go.kr/andong/"
+    },
+    {
+      "id": "gwangju",
+      "name": "광주지방고용노동청",
+      "address": "전남광주통합특별시 북구 첨단과기로208번길 43 정부광주지방합동청사",
+      "phone": "062-975-6200",
+      "source": "https://www.moel.go.kr/gwangju/",
+      "phoneNote": "누리집 하단 '임금체불 등 노동 관련 문의: 062-975-6200'"
+    },
+    {
+      "id": "jeonju",
+      "name": "전주지청",
+      "address": "전북특별자치도 전주시 덕진구 건산로 251(인후동1가) 고용노동부종합청사",
+      "phone": "063-240-3400",
+      "source": "https://www.moel.go.kr/jeonju/"
+    },
+    {
+      "id": "iksan",
+      "name": "익산지청",
+      "address": "전북특별자치도 익산시 하나로 478(어양동 626-1)",
+      "phone": "063-839-0009",
+      "source": "https://www.moel.go.kr/iksan/"
+    },
+    {
+      "id": "gunsan",
+      "name": "군산지청",
+      "address": "전북특별자치도 군산시 조촌5길 44(조촌동 852-1)",
+      "phone": "063-452-0009",
+      "source": "https://www.moel.go.kr/gunsan/"
+    },
+    {
+      "id": "mokpo",
+      "name": "목포지청",
+      "address": "전남광주통합특별시 목포시 교육로41번길 8",
+      "phone": "061-280-0100",
+      "source": "https://www.moel.go.kr/mokpo/"
+    },
+    {
+      "id": "yeosu",
+      "name": "여수지청",
+      "address": "전남광주통합특별시 여수시 웅천북로 33 (웅천동)",
+      "phone": "061-650-0107",
+      "source": "https://www.moel.go.kr/yeosu/",
+      "phoneNote": "누리집 하단 '임금체불문의 (061)650-0107,0109'"
+    },
+    {
+      "id": "daejeon",
+      "name": "대전지방고용노동청",
+      "address": "대전시 서구 둔산북로 90번길 34(둔산동)",
+      "phone": "042-480-6290",
+      "source": "https://www.moel.go.kr/daejeon/"
+    },
+    {
+      "id": "cheongju",
+      "name": "청주지청",
+      "address": "충북 청주시 서원구 1순환로 1047 청주지방합동청사",
+      "phone": "043-299-1114",
+      "source": "https://www.moel.go.kr/cheongju/"
+    },
+    {
+      "id": "cheonan",
+      "name": "천안지청",
+      "address": "충남 천안시 서북구 원두정8길 3",
+      "phone": "041-560-2800",
+      "source": "https://www.moel.go.kr/cheonan/"
+    },
+    {
+      "id": "chungju",
+      "name": "충주지청",
+      "address": "충북 충주시 국원대로 3-3(봉방동)",
+      "phone": "043-840-4000",
+      "source": "https://www.moel.go.kr/chungju/"
+    },
+    {
+      "id": "boryeong",
+      "name": "보령지청",
+      "address": "보령시 옥마로 42",
+      "phone": "041-930-6138",
+      "source": "https://www.moel.go.kr/boryeong/"
+    },
+    {
+      "id": "seosan",
+      "name": "서산지청",
+      "address": "충청남도 서산시 쌍연남1로 37, 3층",
+      "phone": "041-661-5630",
+      "source": "https://www.moel.go.kr/seosan/"
+    }
+  ],
+  "regions": [
+    {
+      "sido": "서울특별시",
+      "sigungu": [
+        {
+          "name": "중구",
+          "office": "seoul"
+        },
+        {
+          "name": "종로구",
+          "office": "seoul"
+        },
+        {
+          "name": "동대문구",
+          "office": "seoul"
+        },
+        {
+          "name": "서초구",
+          "office": "seoul"
+        },
+        {
+          "name": "강남구",
+          "office": "seoulgangnam"
+        },
+        {
+          "name": "성동구",
+          "office": "seouldongbu"
+        },
+        {
+          "name": "광진구",
+          "office": "seouldongbu"
+        },
+        {
+          "name": "송파구",
+          "office": "seouldongbu"
+        },
+        {
+          "name": "강동구",
+          "office": "seouldongbu"
+        },
+        {
+          "name": "용산구",
+          "office": "seoulseobu"
+        },
+        {
+          "name": "마포구",
+          "office": "seoulseobu"
+        },
+        {
+          "name": "서대문구",
+          "office": "seoulseobu"
+        },
+        {
+          "name": "은평구",
+          "office": "seoulseobu"
+        },
+        {
+          "name": "영등포구",
+          "office": "seoulnambu"
+        },
+        {
+          "name": "강서구",
+          "office": "seoulnambu"
+        },
+        {
+          "name": "양천구",
+          "office": "seoulnambu"
+        },
+        {
+          "name": "중랑구",
+          "office": "seoulbukbu"
+        },
+        {
+          "name": "노원구",
+          "office": "seoulbukbu"
+        },
+        {
+          "name": "강북구",
+          "office": "seoulbukbu"
+        },
+        {
+          "name": "도봉구",
+          "office": "seoulbukbu"
+        },
+        {
+          "name": "성북구",
+          "office": "seoulbukbu"
+        },
+        {
+          "name": "관악구",
+          "office": "seoulgwanak"
+        },
+        {
+          "name": "구로구",
+          "office": "seoulgwanak"
+        },
+        {
+          "name": "금천구",
+          "office": "seoulgwanak"
+        },
+        {
+          "name": "동작구",
+          "office": "seoulgwanak"
+        }
+      ]
+    },
+    {
+      "sido": "경기도",
+      "sigungu": [
+        {
+          "name": "수원시",
+          "office": "gyeonggi"
+        },
+        {
+          "name": "용인시",
+          "office": "gyeonggi"
+        },
+        {
+          "name": "화성시",
+          "office": "gyeonggi"
+        },
+        {
+          "name": "의정부시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "동두천시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "양주시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "포천시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "연천군",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "구리시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "남양주시",
+          "office": "uijeongbu"
+        },
+        {
+          "name": "고양시",
+          "office": "goyang"
+        },
+        {
+          "name": "파주시",
+          "office": "goyang"
+        },
+        {
+          "name": "성남시",
+          "office": "seongnam"
+        },
+        {
+          "name": "광주시",
+          "office": "seongnam"
+        },
+        {
+          "name": "하남시",
+          "office": "seongnam"
+        },
+        {
+          "name": "양평군",
+          "office": "seongnam"
+        },
+        {
+          "name": "이천시",
+          "office": "seongnam"
+        },
+        {
+          "name": "여주시",
+          "office": "seongnam"
+        },
+        {
+          "name": "안양시",
+          "office": "anyang"
+        },
+        {
+          "name": "과천시",
+          "office": "anyang"
+        },
+        {
+          "name": "의왕시",
+          "office": "anyang"
+        },
+        {
+          "name": "군포시",
+          "office": "anyang"
+        },
+        {
+          "name": "광명시",
+          "office": "anyang"
+        },
+        {
+          "name": "안산시",
+          "office": "ansan"
+        },
+        {
+          "name": "시흥시",
+          "office": "ansan"
+        },
+        {
+          "name": "평택시",
+          "office": "pyeongtaek"
+        },
+        {
+          "name": "오산시",
+          "office": "pyeongtaek"
+        },
+        {
+          "name": "안성시",
+          "office": "pyeongtaek"
+        },
+        {
+          "name": "부천시",
+          "office": "bucheon"
+        },
+        {
+          "name": "김포시",
+          "office": "bucheon"
+        },
+        {
+          "name": "가평군",
+          "office": "gangwon"
+        }
+      ]
+    },
+    {
+      "sido": "인천광역시",
+      "sigungu": [
+        {
+          "name": "제물포구",
+          "office": "jungbu"
+        },
+        {
+          "name": "영종구",
+          "office": "jungbu"
+        },
+        {
+          "name": "미추홀구",
+          "office": "jungbu"
+        },
+        {
+          "name": "연수구",
+          "office": "jungbu"
+        },
+        {
+          "name": "남동구",
+          "office": "jungbu"
+        },
+        {
+          "name": "옹진군",
+          "office": "jungbu"
+        },
+        {
+          "name": "부평구",
+          "office": "incheonbukbu"
+        },
+        {
+          "name": "계양구",
+          "office": "incheonbukbu"
+        },
+        {
+          "name": "서해구",
+          "office": "incheonbukbu"
+        },
+        {
+          "name": "검단구",
+          "office": "incheonbukbu"
+        },
+        {
+          "name": "강화군",
+          "office": "incheonbukbu"
+        }
+      ]
+    },
+    {
+      "sido": "강원특별자치도",
+      "sigungu": [
+        {
+          "name": "춘천시",
+          "office": "gangwon"
+        },
+        {
+          "name": "화천군",
+          "office": "gangwon"
+        },
+        {
+          "name": "홍천군",
+          "office": "gangwon"
+        },
+        {
+          "name": "양구군",
+          "office": "gangwon"
+        },
+        {
+          "name": "인제군",
+          "office": "gangwon"
+        },
+        {
+          "name": "강릉시",
+          "office": "gangneung"
+        },
+        {
+          "name": "속초시",
+          "office": "gangneung"
+        },
+        {
+          "name": "동해시",
+          "office": "gangneung"
+        },
+        {
+          "name": "고성군",
+          "office": "gangneung"
+        },
+        {
+          "name": "양양군",
+          "office": "gangneung"
+        },
+        {
+          "name": "원주시",
+          "office": "wonju"
+        },
+        {
+          "name": "횡성군",
+          "office": "wonju"
+        },
+        {
+          "name": "태백시",
+          "office": "taebaek"
+        },
+        {
+          "name": "삼척시",
+          "office": "taebaek"
+        },
+        {
+          "name": "영월군",
+          "office": "yeongwol"
+        },
+        {
+          "name": "정선군",
+          "office": "yeongwol"
+        },
+        {
+          "name": "평창군",
+          "office": "yeongwol"
+        },
+        {
+          "name": "철원군",
+          "office": "uijeongbu"
+        }
+      ]
+    },
+    {
+      "sido": "부산광역시",
+      "sigungu": [
+        {
+          "name": "중구",
+          "office": "busan"
+        },
+        {
+          "name": "동구",
+          "office": "busan"
+        },
+        {
+          "name": "서구",
+          "office": "busan"
+        },
+        {
+          "name": "사하구",
+          "office": "busan"
+        },
+        {
+          "name": "영도구",
+          "office": "busan"
+        },
+        {
+          "name": "남구",
+          "office": "busan"
+        },
+        {
+          "name": "부산진구",
+          "office": "busan"
+        },
+        {
+          "name": "연제구",
+          "office": "busan"
+        },
+        {
+          "name": "동래구",
+          "office": "busandongbu"
+        },
+        {
+          "name": "금정구",
+          "office": "busandongbu"
+        },
+        {
+          "name": "수영구",
+          "office": "busandongbu"
+        },
+        {
+          "name": "해운대구",
+          "office": "busandongbu"
+        },
+        {
+          "name": "기장군",
+          "office": "busandongbu"
+        },
+        {
+          "name": "북구",
+          "office": "busanbukbu"
+        },
+        {
+          "name": "사상구",
+          "office": "busanbukbu"
+        },
+        {
+          "name": "강서구",
+          "office": "busanbukbu"
+        }
+      ]
+    },
+    {
+      "sido": "울산광역시",
+      "sigungu": [
+        {
+          "name": "남구",
+          "office": "ulsan"
+        },
+        {
+          "name": "울주군",
+          "office": "ulsan"
+        },
+        {
+          "name": "동구",
+          "office": "ulsandongbu"
+        },
+        {
+          "name": "중구",
+          "office": "ulsandongbu"
+        },
+        {
+          "name": "북구",
+          "office": "ulsandongbu"
+        }
+      ]
+    },
+    {
+      "sido": "경상남도",
+      "sigungu": [
+        {
+          "name": "창원시",
+          "office": "changwon"
+        },
+        {
+          "name": "함안군",
+          "office": "changwon"
+        },
+        {
+          "name": "의령군",
+          "office": "changwon"
+        },
+        {
+          "name": "창녕군",
+          "office": "changwon"
+        },
+        {
+          "name": "김해시",
+          "office": "yangsan"
+        },
+        {
+          "name": "밀양시",
+          "office": "yangsan"
+        },
+        {
+          "name": "양산시",
+          "office": "yangsan"
+        },
+        {
+          "name": "진주시",
+          "office": "jinju"
+        },
+        {
+          "name": "사천시",
+          "office": "jinju"
+        },
+        {
+          "name": "산청군",
+          "office": "jinju"
+        },
+        {
+          "name": "거창군",
+          "office": "jinju"
+        },
+        {
+          "name": "함양군",
+          "office": "jinju"
+        },
+        {
+          "name": "합천군",
+          "office": "jinju"
+        },
+        {
+          "name": "하동군",
+          "office": "jinju"
+        },
+        {
+          "name": "남해군",
+          "office": "jinju"
+        },
+        {
+          "name": "통영시",
+          "office": "tongyeong"
+        },
+        {
+          "name": "고성군",
+          "office": "tongyeong"
+        },
+        {
+          "name": "거제시",
+          "office": "tongyeong"
+        }
+      ]
+    },
+    {
+      "sido": "대구광역시",
+      "sigungu": [
+        {
+          "name": "중구",
+          "office": "daegu"
+        },
+        {
+          "name": "동구",
+          "office": "daegu"
+        },
+        {
+          "name": "북구",
+          "office": "daegu"
+        },
+        {
+          "name": "수성구",
+          "office": "daegu"
+        },
+        {
+          "name": "군위군",
+          "office": "daegu"
+        },
+        {
+          "name": "남구",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "서구",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "달서구",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "달성군",
+          "office": "daeguseobu"
+        }
+      ]
+    },
+    {
+      "sido": "경상북도",
+      "sigungu": [
+        {
+          "name": "경산시",
+          "office": "daegu"
+        },
+        {
+          "name": "영천시",
+          "office": "daegu"
+        },
+        {
+          "name": "청도군",
+          "office": "daegu"
+        },
+        {
+          "name": "군위군",
+          "office": "daegu"
+        },
+        {
+          "name": "고령군",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "성주군",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "칠곡군",
+          "office": "daeguseobu"
+        },
+        {
+          "name": "포항시",
+          "office": "pohang"
+        },
+        {
+          "name": "경주시",
+          "office": "pohang"
+        },
+        {
+          "name": "영덕군",
+          "office": "pohang"
+        },
+        {
+          "name": "울진군",
+          "office": "pohang"
+        },
+        {
+          "name": "울릉군",
+          "office": "pohang"
+        },
+        {
+          "name": "구미시",
+          "office": "gumi"
+        },
+        {
+          "name": "김천시",
+          "office": "gumi"
+        },
+        {
+          "name": "영주시",
+          "office": "yeongju"
+        },
+        {
+          "name": "봉화군",
+          "office": "yeongju"
+        },
+        {
+          "name": "문경시",
+          "office": "yeongju"
+        },
+        {
+          "name": "상주시",
+          "office": "yeongju"
+        },
+        {
+          "name": "안동시",
+          "office": "andong"
+        },
+        {
+          "name": "예천군",
+          "office": "andong"
+        },
+        {
+          "name": "의성군",
+          "office": "andong"
+        },
+        {
+          "name": "청송군",
+          "office": "andong"
+        },
+        {
+          "name": "영양군",
+          "office": "andong"
+        }
+      ]
+    },
+    {
+      "sido": "전남광주통합특별시",
+      "sigungu": [
+        {
+          "name": "광산구",
+          "office": "gwangju"
+        },
+        {
+          "name": "남구",
+          "office": "gwangju"
+        },
+        {
+          "name": "동구",
+          "office": "gwangju"
+        },
+        {
+          "name": "북구",
+          "office": "gwangju"
+        },
+        {
+          "name": "서구",
+          "office": "gwangju"
+        },
+        {
+          "name": "나주시",
+          "office": "gwangju"
+        },
+        {
+          "name": "화순군",
+          "office": "gwangju"
+        },
+        {
+          "name": "곡성군",
+          "office": "gwangju"
+        },
+        {
+          "name": "구례군",
+          "office": "gwangju"
+        },
+        {
+          "name": "담양군",
+          "office": "gwangju"
+        },
+        {
+          "name": "장성군",
+          "office": "gwangju"
+        },
+        {
+          "name": "영광군",
+          "office": "gwangju"
+        },
+        {
+          "name": "함평군",
+          "office": "gwangju"
+        },
+        {
+          "name": "목포시",
+          "office": "mokpo"
+        },
+        {
+          "name": "신안군",
+          "office": "mokpo"
+        },
+        {
+          "name": "진도군",
+          "office": "mokpo"
+        },
+        {
+          "name": "무안군",
+          "office": "mokpo"
+        },
+        {
+          "name": "영암군",
+          "office": "mokpo"
+        },
+        {
+          "name": "강진군",
+          "office": "mokpo"
+        },
+        {
+          "name": "해남군",
+          "office": "mokpo"
+        },
+        {
+          "name": "완도군",
+          "office": "mokpo"
+        },
+        {
+          "name": "장흥군",
+          "office": "mokpo"
+        },
+        {
+          "name": "순천시",
+          "office": "yeosu"
+        },
+        {
+          "name": "광양시",
+          "office": "yeosu"
+        },
+        {
+          "name": "보성군",
+          "office": "yeosu"
+        },
+        {
+          "name": "고흥군",
+          "office": "yeosu"
+        },
+        {
+          "name": "여수시",
+          "office": "yeosu"
+        }
+      ]
+    },
+    {
+      "sido": "전북특별자치도",
+      "sigungu": [
+        {
+          "name": "전주시",
+          "office": "jeonju"
+        },
+        {
+          "name": "남원시",
+          "office": "jeonju"
+        },
+        {
+          "name": "무주군",
+          "office": "jeonju"
+        },
+        {
+          "name": "장수군",
+          "office": "jeonju"
+        },
+        {
+          "name": "진안군",
+          "office": "jeonju"
+        },
+        {
+          "name": "완주군",
+          "office": "jeonju"
+        },
+        {
+          "name": "임실군",
+          "office": "jeonju"
+        },
+        {
+          "name": "순창군",
+          "office": "jeonju"
+        },
+        {
+          "name": "정읍시",
+          "office": "jeonju"
+        },
+        {
+          "name": "익산시",
+          "office": "iksan"
+        },
+        {
+          "name": "김제시",
+          "office": "iksan"
+        },
+        {
+          "name": "군산시",
+          "office": "gunsan"
+        },
+        {
+          "name": "부안군",
+          "office": "gunsan"
+        },
+        {
+          "name": "고창군",
+          "office": "gunsan"
+        }
+      ]
+    },
+    {
+      "sido": "충청북도",
+      "sigungu": [
+        {
+          "name": "청주시",
+          "office": "cheongju"
+        },
+        {
+          "name": "진천군",
+          "office": "cheongju"
+        },
+        {
+          "name": "괴산군",
+          "office": "cheongju"
+        },
+        {
+          "name": "보은군",
+          "office": "cheongju"
+        },
+        {
+          "name": "증평군",
+          "office": "cheongju"
+        },
+        {
+          "name": "옥천군",
+          "office": "cheongju"
+        },
+        {
+          "name": "영동군",
+          "office": "cheongju"
+        },
+        {
+          "name": "충주시",
+          "office": "chungju"
+        },
+        {
+          "name": "음성군",
+          "office": "chungju"
+        },
+        {
+          "name": "제천시",
+          "office": "chungju"
+        },
+        {
+          "name": "단양군",
+          "office": "chungju"
+        }
+      ]
+    },
+    {
+      "sido": "충청남도",
+      "sigungu": [
+        {
+          "name": "금산군",
+          "office": "daejeon"
+        },
+        {
+          "name": "공주시",
+          "office": "daejeon"
+        },
+        {
+          "name": "논산시",
+          "office": "daejeon"
+        },
+        {
+          "name": "계룡시",
+          "office": "daejeon"
+        },
+        {
+          "name": "천안시",
+          "office": "cheonan"
+        },
+        {
+          "name": "아산시",
+          "office": "cheonan"
+        },
+        {
+          "name": "당진시",
+          "office": "cheonan"
+        },
+        {
+          "name": "예산군",
+          "office": "cheonan"
+        },
+        {
+          "name": "보령시",
+          "office": "boryeong"
+        },
+        {
+          "name": "홍성군",
+          "office": "boryeong"
+        },
+        {
+          "name": "서천군",
+          "office": "boryeong"
+        },
+        {
+          "name": "부여군",
+          "office": "boryeong"
+        },
+        {
+          "name": "청양군",
+          "office": "boryeong"
+        },
+        {
+          "name": "서산시",
+          "office": "seosan"
+        },
+        {
+          "name": "태안군",
+          "office": "seosan"
+        }
+      ]
+    },
+    {
+      "sido": "대전광역시",
+      "office": "daejeon",
+      "sigungu": []
+    },
+    {
+      "sido": "세종특별자치시",
+      "office": "daejeon",
+      "sigungu": []
+    },
+    {
+      "sido": "제주특별자치도",
+      "office": "gwangju",
+      "sigungu": []
+    }
+  ],
+  "help": [
+    {
+      "id": "1350",
+      "name": "고용노동부 고객상담센터",
+      "phone": "1350",
+      "what": "임금, 퇴직금 같은 일 문제를 전화로 물어볼 수 있어요. 지역번호 없이 1350. 평일 9시~18시, 전화요금이 있어요. 영어·중국어 상담이 있어요(전화 메뉴 5번).",
+      "source": "https://1350.moel.go.kr/home/hp/ch/callchat.do"
+    },
+    {
+      "id": "1577-0071",
+      "name": "외국인력상담센터",
+      "phone": "1577-0071",
+      "what": "외국인 노동자 상담 전화예요. 17개 나라 말로 상담하고, 노동청 진정(신고) 접수를 도와줘요.",
+      "source": "https://www.moel.go.kr/local/daegu/news/notice/noticeView.do?bbs_seq=20260401120"
+    },
+    {
+      "id": "comwel",
+      "name": "근로복지공단 (대지급금 문의)",
+      "phone": "1588-0075",
+      "what": "회사 대신 나라가 밀린 임금 일부를 먼저 주는 '대지급금'을 물어보는 곳이에요. 전화요금이 있어요.",
+      "source": "https://welfare.comwel.or.kr/default/page.do?mCode=H030010000"
+    },
+    {
+      "id": "132",
+      "name": "대한법률구조공단",
+      "phone": "132",
+      "what": "월평균 임금이 400만 원보다 적으면 밀린 임금 소송을 무료로 도와받을 수 있어요. 지역번호 없이 132.",
+      "source": "https://welfare.comwel.or.kr/default/page.do?mCode=H030010000"
+    }
+  ]
+}

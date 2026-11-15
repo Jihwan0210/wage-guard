@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -91,6 +95,54 @@ public class DocumentService {
         return new Result(docType, fields, List.copyOf(unreadable), reported + masked);
     }
 
+    // 장마다 따로 읽고(동시에), 같은 키는 확신이 가장 높은 값으로 합친다. 값이 다르면 conflicts 에 모두 적는다
+    public BatchResult extractBatch(List<Page> pages) {
+        List<PageResult> results = new ArrayList<>();
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<Result>> jobs = pages.stream().map(p -> pool.submit(() -> extract(p.docType(), p.mediaType(), p.data()))).toList();
+            for (int i = 0; i < jobs.size(); i++) {
+                try {
+                    Result r = jobs.get(i).get();
+                    results.add(new PageResult(i + 1, r.docType(), true, r.fields(), r.unreadable(), r.maskedCount()));
+                } catch (ExecutionException e) {
+                    results.add(new PageResult(i + 1, pages.get(i).docType(), false, List.of(), List.of(), 0));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw failed();
+                }
+            }
+        }
+        if (results.stream().noneMatch(PageResult::ok)) {
+            throw failed();
+        }
+
+        List<SourcedField> fields = new ArrayList<>();
+        List<Conflict> conflicts = new ArrayList<>();
+        for (String key : KEYS) {
+            List<SourcedField> all = new ArrayList<>();
+            results.forEach(r -> r.fields().stream().filter(f -> f.key().equals(key))
+                    .forEach(f -> all.add(new SourcedField(key, f.value(), f.confidence(), r.page()))));
+            if (all.isEmpty()) {
+                continue;
+            }
+            SourcedField best = all.stream().reduce((a, b) -> b.confidence() > a.confidence() ? b : a).orElseThrow();
+            fields.add(best);
+            if (all.stream().anyMatch(f -> !same(f.value(), best.value()))) {
+                conflicts.add(new Conflict(key, all));
+            }
+        }
+        Set<String> unreadable = new LinkedHashSet<>();
+        results.forEach(r -> unreadable.addAll(r.unreadable()));
+        fields.forEach(f -> unreadable.remove(f.key()));
+        int masked = results.stream().mapToInt(PageResult::maskedCount).sum();
+        return new BatchResult(results, fields, List.copyOf(unreadable), conflicts, masked);
+    }
+
+    // 2156880 과 2156880.0 은 같은 값
+    private static boolean same(JsonNode a, JsonNode b) {
+        return a.isNumber() && b.isNumber() ? a.asDouble() == b.asDouble() : a.equals(b);
+    }
+
     private static ApiException failed() {
         return new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "OCR_FAILED", "file", "서류를 읽지 못했어요. 직접 입력해 주세요.");
     }
@@ -99,5 +151,22 @@ public class DocumentService {
     }
 
     public record Field(String key, JsonNode value, double confidence) {
+    }
+
+    public record Page(String docType, String mediaType, byte[] data) {
+    }
+
+    // page 는 1부터 (화면의 '1번 사진'). 못 읽은 장은 ok=false
+    public record PageResult(int page, String docType, boolean ok, List<Field> fields, List<String> unreadable, int maskedCount) {
+    }
+
+    public record SourcedField(String key, JsonNode value, double confidence, int page) {
+    }
+
+    public record Conflict(String key, List<SourcedField> values) {
+    }
+
+    public record BatchResult(List<PageResult> pages, List<SourcedField> fields, List<String> unreadable, List<Conflict> conflicts,
+            int maskedCount) {
     }
 }

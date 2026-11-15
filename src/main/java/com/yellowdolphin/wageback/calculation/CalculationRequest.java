@@ -11,7 +11,29 @@ public record CalculationRequest(
         Schedule schedule,
         Wage wage,
         List<Month> months,
-        Long lastThreeMonthsWages) {
+        Long lastThreeMonthsWages,
+        List<WorkDay> workDays,
+        Dismissal dismissal,
+        AnnualLeave annualLeave,
+        Probation probation) {
+
+    // v2 이전 필드만 쓰는 호출용
+    public CalculationRequest(Workplace workplace, Employment employment, Schedule schedule, Wage wage, List<Month> months,
+            Long lastThreeMonthsWages, List<WorkDay> workDays) {
+        this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, null, null, null);
+    }
+
+    // v2: 해고됨 + 해고를 며칠 전에 알렸나 (안 알렸으면 0)
+    public record Dismissal(Boolean dismissed, Integer noticeDaysBefore) {
+    }
+
+    // v2: 그만두기 전 마지막 1년(1년 미만이면 전체) 동안 쓴 연차 일수
+    public record AnnualLeave(Integer usedDays) {
+    }
+
+    // v2: 수습 중인지 + 1년 이상 계약인지 + 단순노무 일인지
+    public record Probation(Boolean onProbation, Boolean contractOneYearOrMore, Boolean simpleLabor) {
+    }
 
     public record Workplace(String size) {
     }
@@ -36,5 +58,9 @@ public record CalculationRequest(
             BigDecimal holidayHoursWithin8,
             BigDecimal holidayHoursOver8,
             Integer absentWeeks) {
+    }
+
+    // v2: 달력에서 넣은 하루 기록. start · end 는 "HH:mm", end 가 start 보다 이르면 다음 날로 본다
+    public record WorkDay(LocalDate date, String start, String end, Integer breakMinutes, Boolean holiday) {
     }
 }

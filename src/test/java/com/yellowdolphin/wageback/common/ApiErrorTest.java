@@ -46,6 +46,30 @@ class ApiErrorTest {
                 .andExpect(status().is(422)).andExpect(jsonPath("$.code").value("OCR_FAILED"));
     }
 
+    MockMultipartFile files(String name, int size) {
+        return new MockMultipartFile("files", name, "application/octet-stream", new byte[size]);
+    }
+
+    @Test
+    void 여러_장_업로드_오류_코드() throws Exception {
+        String url = "/api/v1/documents/extract-batch";
+        mvc.perform(multipart(url).file(files("a.png", 10)).file(files("b.png", 10)).param("docTypes", "PAYSLIP"))
+                .andExpect(status().is(400)).andExpect(jsonPath("$.code").value("INVALID_DOC_TYPE")).andExpect(jsonPath("$.field").value("docTypes"));
+        var seven = multipart(url);
+        for (int i = 0; i < 7; i++) {
+            seven.file(files(i + ".png", 10)).param("docTypes", "PAYSLIP");
+        }
+        mvc.perform(seven).andExpect(status().is(400)).andExpect(jsonPath("$.code").value("TOO_MANY_FILES"));
+        mvc.perform(multipart(url).file(files("a.png", 10)).file(files("b.hwp", 10)).param("docTypes", "PAYSLIP", "CONTRACT"))
+                .andExpect(status().is(415)).andExpect(jsonPath("$.field").value("files[1]"));
+        mvc.perform(multipart(url).file(files("a.png", 10)).file(files("b.pdf", 10 * 1024 * 1024 + 1)).param("docTypes", "PAYSLIP", "CONTRACT"))
+                .andExpect(status().is(413)).andExpect(jsonPath("$.code").value("FILE_TOO_LARGE")).andExpect(jsonPath("$.field").value("files[1]"));
+        mvc.perform(multipart(url).file(files("a.png", 10)).param("docTypes", "X"))
+                .andExpect(status().is(400)).andExpect(jsonPath("$.field").value("docTypes[0]"));
+        mvc.perform(multipart(url).file(files("a.png", 10)).file(files("b.jpg", 10)).param("docTypes", "PAYSLIP", "CONTRACT"))
+                .andExpect(status().is(422)).andExpect(jsonPath("$.code").value("OCR_FAILED"));
+    }
+
     @Test
     void 없는_결과는_404_CALCULATION_EXPIRED() throws Exception {
         mvc.perform(post("/api/v1/calculations/calc_none/explanation").contentType(MediaType.APPLICATION_JSON).content("{\"lang\":\"ko\"}"))
