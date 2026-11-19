@@ -561,6 +561,9 @@ dialog small, .words small { font-weight: 500; color: var(--muted); font-size: v
 /* 노동청 · 도움받을 곳 */
 .office { padding: var(--s5); border-radius: var(--r-lg); background: var(--brand-soft); box-shadow: inset 4px 0 0 var(--brand); }
 .office h2 { font-size: var(--fs-xl); }
+.addr-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+a.small-btn { color: var(--fg); text-decoration: none; }
+.small-btn[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); }
 .phones li + li { margin-top: var(--s2); }
 .phone small { line-height: 1.5; }
 .phone b { white-space: nowrap; }
