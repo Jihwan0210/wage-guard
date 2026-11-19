@@ -222,6 +222,8 @@
     pause: '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7M14 8.5v7"/>',
     cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>',
     book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 7.5h8M8 11h5"/>',
+    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
+    map: '<path d="M3.5 6.5L9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
     list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4 6.5l1 1 2-2M4 12l1 1 2-2M4 17.5l1 1 2-2"/>',
     coin: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 9l1.8 6.5L12 10.5l1.7 5L15.5 9M7.5 12h9"/>',
@@ -1104,6 +1106,52 @@
   }
   if (canSpeak) window.speechSynthesis.onvoiceschanged = function () { if (S.route === 'result' || S.route === 'guide') rerender(); };
 
+  // ---------- 말로 입력하기 (Web Speech API) ----------
+  // 지원하지 않는 브라우저에서는 단추를 숨긴다. 말한 내용은 글자로 바꾸려고 브라우저의 음성 인식 서비스로 보내진다
+  var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var SPEECH_LANG = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN' };
+  var rec = null;
+  function listenBtn() {
+    if (!Recognition) return '';
+    var on = !!rec;
+    return '<button type="button" id="listen" class="small-btn no-print" data-act="listen" aria-pressed="' + on + '">' + icon(on ? 'stop' : 'mic') +
+      '<span>' + t(on ? 'voice.stop' : 'voice.start') + '</span></button>' +
+      '<p class="hint" role="status">' + t(on ? 'voice.listening' : 'voice.note') + '</p>';
+  }
+  function listen() {
+    if (rec) { rec.stop(); return; }
+    // 이미 적은 글 뒤에 이어서 적는다. 서버 제한(2000자)에 맞춰 자른다
+    var base = S.p.facts ? S.p.facts.replace(/\s*$/, ' ') : '';
+    rec = new Recognition();
+    rec.lang = SPEECH_LANG[S.lang] || 'ko-KR';
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onresult = function (e) {
+      if (S.route !== 'form') { rec.stop(); return; }
+      var done = '', now = '';
+      for (var i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) done += e.results[i][0].transcript; else now += e.results[i][0].transcript;
+      }
+      S.p.facts = (base + done).slice(0, 2000);
+      var ta = document.getElementById('p-facts');
+      if (ta) ta.value = (base + done + now).slice(0, 2000);
+      save();
+    };
+    rec.onerror = function (e) {
+      toastT(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'voice.denied' : e.error === 'no-speech' ? 'voice.nothing' : 'voice.fail');
+    };
+    rec.onend = function () { rec = null; if (S.route === 'form') { render(); focusId('listen'); } };
+    try {
+      rec.start();
+    } catch (err) {
+      rec = null;
+      toastT('voice.fail');
+      return;
+    }
+    render();
+    focusId('listen');
+  }
+
   // ---------- 화면: 진정서 정보 ----------
   function vForm() {
     var R = viewResult();
@@ -1137,6 +1185,7 @@
       inp('p-job', 'job', t('form.job'), 'text', { req: t('form.jobReq'), ph: t('form.jobPh') }) + '</fieldset>' +
       '<div class="field"><label for="p-facts">' + t('form.facts') + ' <span class="opt">(' + t('opt') + ')</span></label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
       '<textarea id="p-facts" class="input" rows="5" aria-describedby="facts-help" data-p="facts">' + esc(p.facts) + '</textarea>' +
+      listenBtn() +
       (S.pErr.facts ? '<p class="err">' + esc(S.pErr.facts) + '</p>' : '') + '</div>' +
       '</div>' +
       '<aside class="side"><section class="note stack only-d"><h2>' + t('form.auto') + '</h2>' + auto + '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
@@ -1277,6 +1326,19 @@
     fetch('data/offices.json').then(function (r) { return r.json(); }).then(function (d) { OFF = d; }, function () { OFF = { regions: [], offices: [], help: [], failed: true }; })
       .then(function () { if (S.route === 'help' || S.route === 'counselor') rerender(); });
   }
+  function addrActions(address) {
+    var q = encodeURIComponent(address.split('(')[0].trim());
+    return '<div class="addr-actions"><button type="button" class="small-btn" data-act="addr-copy" data-v="' + esc(address) + '">' + icon('copy') + '<span>' + t('help.copyAddr') + '</span></button>' +
+      '<a class="small-btn" href="https://map.naver.com/p/search/' + q + '" target="_blank" rel="noopener">' + icon('map') + '<span>' + t('help.naver') + '</span></a>' +
+      '<a class="small-btn" href="https://map.kakao.com/link/search/' + q + '" target="_blank" rel="noopener">' + icon('map') + '<span>' + t('help.kakao') + '</span></a></div>' +
+      '<p class="hint">' + t('help.mapHint') + '</p>';
+  }
+  function copyAddr(text) {
+    var fail = function () { toastT('help.copyFail'); };
+    try {
+      navigator.clipboard.writeText(text).then(function () { toastT('help.copied'); }, fail);
+    } catch (e) { fail(); }
+  }
   function officeOf() {
     if (!OFF || !S.office.sido) return null;
     var r = OFF.regions.filter(function (x) { return x.sido === S.office.sido; })[0];
@@ -1295,7 +1357,7 @@
       r.sigungu.map(function (g) { return '<option' + (g.name === o.sgg ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select></div>' : '';
     var off = officeOf();
     var card = off ? '<section class="office stack" aria-live="polite"><span class="eyebrow">' + t('help.yours') + '</span><h2 lang="ko">' + esc(off.name) + '</h2>' +
-      '<p lang="ko">' + icon('pin') + ' ' + esc(off.address) + '</p>' +
+      '<p lang="ko">' + icon('pin') + ' ' + esc(off.address) + '</p>' + addrActions(off.address) +
       (off.phone ? '<a class="phone" href="tel:' + off.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong>' + t('help.call') + '</strong>' + (off.phoneNote ? '<small lang="ko">' + esc(off.phoneNote) + '</small>' : '') + '</span><b>' + esc(off.phone) + '</b></a>' : '<p class="hint">' + t('help.noPhone') + '</p>') +
       '<p class="hint">' + t('help.src', { d: esc(OFF.checkedAt || '') }) + ' <a href="' + esc(off.source) + '" target="_blank" rel="noopener">' + t('help.srcLink') + icon('out') + '</a></p></section>'
       : (o.sido && (!r || r.sigungu.length) && o.sgg ? '<p class="warnbox">' + t('help.notFound') + '</p>' : '');
@@ -1845,6 +1907,8 @@
     else if (a === 'pg-remove') { var gone = pageOf(t.dataset.id); setUrl(gone, null); PAGES.splice(PAGES.indexOf(gone), 1); rerender(); }
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
+    else if (a === 'listen') listen();
+    else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
     else if (a === 'confirm-make') makeDraft(t);
     else if (a === 'tr') { S.tr = t.dataset.v === '1'; render(); }
