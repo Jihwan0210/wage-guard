@@ -138,9 +138,10 @@
     var s = (S.easy && S.lang === 'ko' && L.ko && L.ko['easy.' + k]) || (L[S.lang] && L[S.lang][k]) || (L.ko && L.ko[k]) || k;
     return s.replace(/\{(\w+)\}/g, function (_, v) { return (vars || {})[v]; });
   }
+  var langLoad = {}; // 같은 언어 파일을 두 번 받지 않게 (한국어는 바탕 글 · 고른 언어로 두 번 불린다)
   function loadLang(lang) {
     if (L[lang]) return Promise.resolve();
-    return fetch('i18n/' + lang + '.json').then(function (r) { return r.json(); }).then(function (d) { L[lang] = d; }, function () { L[lang] = {}; });
+    return langLoad[lang] || (langLoad[lang] = fetch('i18n/' + lang + '.json').then(function (r) { return r.json(); }).then(function (d) { L[lang] = d; }, function () { L[lang] = {}; }));
   }
   function money(n) { return t('money', { n: Number(n).toLocaleString('ko-KR') }); }
   function won(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
