@@ -83,7 +83,7 @@ class RuleEngineTest {
         assertThat(r.dailyAverageWage().value()).isEqualTo("74967");
         Item s = item(r, "SEVERANCE", null);
         assertThat(s.amount()).isEqualTo(2_640_000L); // 88,000 × 30 × 365 ÷ 365
-        assertThat(s.formula()).contains("멘토 확인 필요");
+        assertThat(s.formula()).contains("1일 통상임금보다 적어").doesNotContain("멘토");
         assertThat(s.estimated()).isTrue(); // 10~12월 월급을 가정
 
         // 3개월 임금 9,200,000원 ÷ 92일 = 100,000 > 88,000 → 평균임금 그대로

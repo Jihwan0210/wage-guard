@@ -298,8 +298,8 @@ final class RuleEngine {
         if (average < ordinaryDaily) {
             daily = ordinaryDaily;
             note = " (평균임금 " + won(average) + "이 1일 통상임금보다 적어 " + won2(hourly) + " × " + hours(dailyHours)
-                    + "시간으로 계산, 멘토 확인 필요)";
-            warn("SEVERANCE_ORDINARY_WAGE", "평균임금이 통상임금보다 적어 퇴직금을 1일 통상임금으로 계산했어요. 계산 방식은 멘토 확인이 필요해요.");
+                    + "시간으로 계산)";
+            warn("SEVERANCE_ORDINARY_WAGE", "평균임금이 통상임금보다 적어 퇴직금을 1일 통상임금으로 계산했어요 (근로기준법 제2조 제2항).");
         }
         if (!assumed.isEmpty()) {
             note += " (" + String.join("·", assumed) + "은 계약대로 일하고 받았다고 가정)";
