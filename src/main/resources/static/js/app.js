@@ -586,17 +586,17 @@
       '<div class="side start-side">' + resume +
       '<fieldset class="stack"><legend class="label">' + LANG_TITLE + '</legend><div class="lang-btns" style="--n:' + LANGS.length + '">' + langs + '</div>' +
       (S.lang === 'ko' ? '<label class="check" for="easy"><input id="easy" type="checkbox" data-act="easy"' + (S.easy ? ' checked' : '') + '><span>' + t('easy.toggle') + '</span></label>' : '') + '</fieldset>' +
+      '<section class="agree-box stack" aria-labelledby="agree-t"><h2 id="agree-t">' + t('start.noteTitle') + '</h2>' +
+      '<p>' + t('start.noteBody') + '</p>' +
+      '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
       '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint">' + t('sit.help') + '</p><div class="sit-grid">' +
       SITS.map(function (x) {
         return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span>' + t('sit.' + x[0]) + '</span></label>';
       }).join('') + '</div>' + (S.sit.length ? '<p class="note" role="status">' + t('sit.chosen', { n: S.sit.length }) + '</p>' : '') + '</fieldset>' +
       '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
-      '<section class="agree-box stack" aria-labelledby="agree-t"><h2 id="agree-t">' + t('start.noteTitle') + '</h2>' +
-      '<p>' + t('start.noteBody') + '</p>' +
-      '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
       cta(primary(t('start.docBtn'), 'data-act="path" data-v="doc"', S.agreed) +
         '<button type="button" class="btn btn-line" data-act="path" data-v="manual"' + (S.agreed ? '' : ' disabled') + '>' + t('start.manualBtn') + '</button>' +
-        (S.agreed ? '' : '<p class="hint">' + t('start.agreeHint') + '</p>'), ' ') +
+        (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
       '</div></div>' + footer();
   }
 
@@ -1908,6 +1908,7 @@
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
     else if (a === 'listen') listen();
+    else if (a === 'to-agree') { var ag = document.getElementById('agree'); if (ag) { ag.scrollIntoView({ block: 'center' }); ag.focus({ preventScroll: true }); } }
     else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
     else if (a === 'confirm-make') makeDraft(t);
