@@ -1,0 +1,97 @@
+{
+  "name": "재직 중 지연이자: 2025-10-23 앞에 월급날이 지난 9월분은 빼고, 뒤에 지난 10 · 11월분만",
+  "source": "팀 손계산 (가상 인물). 근거 조문은 basis",
+  "basis": [
+    "근로기준법 제37조 제1항 제2호 (법률 제20520호, 2024. 10. 22. 공포, 2025. 10. 23. 시행): 재직 중 임금은 정기지급일 다음 날부터 지연이자 — https://www.law.go.kr/법령/근로기준법 (2026-11-20 확인)",
+    "같은 법 부칙 제2조: 시행 이후 지연이자 지급사유가 발생하는 경우부터 적용",
+    "근로기준법 시행령 제17조: 이율 연 100분의 20 — https://www.law.go.kr/법령/근로기준법시행령 (2026-11-20 확인)",
+    "가정: 월급날을 그 달 마지막 날로 봄 (실제 월급날이 다르면 날수가 달라진다)"
+  ],
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-02",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2299000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2025-09",
+        "paidAmount": 1299000,
+        "overtimeHours": null,
+        "nightHours": null,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      },
+      {
+        "month": "2025-10",
+        "paidAmount": 1299000,
+        "overtimeHours": null,
+        "nightHours": null,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      },
+      {
+        "month": "2025-11",
+        "paidAmount": 1299000,
+        "overtimeHours": null,
+        "nightHours": null,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      }
+    ],
+    "lastThreeMonthsWages": null,
+    "delayInterest": {
+      "baseDate": "2026-01-31"
+    }
+  },
+  "expected": {
+    "totalUnpaid": 3084383,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2025-09",
+        "amount": 1000000
+      },
+      {
+        "code": "BASE_WAGE",
+        "month": "2025-10",
+        "amount": 1000000
+      },
+      {
+        "code": "BASE_WAGE",
+        "month": "2025-11",
+        "amount": 1000000
+      },
+      {
+        "code": "DELAY_INTEREST",
+        "month": null,
+        "amount": 84383
+      }
+    ]
+  },
+  "handCalculation": [
+    "달마다 2,299,000 − 받은 1,299,000 = 1,000,000 못 받음",
+    "9월분: 월급날 2025-09-30 은 시행일(2025-10-23) 앞 → 재직 중 지연이자 없음",
+    "10월분: 월급날 2025-10-31 다음 날(11-01)부터 2026-01-31 까지 = 30 + 31 + 31 = 92일",
+    "11월분: 월급날 2025-11-30 다음 날(12-01)부터 2026-01-31 까지 = 31 + 31 = 62일",
+    "DELAY_INTEREST = (1,000,000 × 92 + 1,000,000 × 62) × 20% ÷ 365 = 30,800,000 ÷ 365 = 84,383.56 → 84,383",
+    "totalUnpaid = 3,000,000 + 84,383 = 3,084,383"
+  ]
+}

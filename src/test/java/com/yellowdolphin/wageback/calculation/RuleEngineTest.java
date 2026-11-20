@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -413,5 +416,22 @@ class RuleEngineTest {
     static Month month(String month, long paid, double overtime, double night, double holiday8, double holidayOver8) {
         return new Month(month, paid, BigDecimal.valueOf(overtime), BigDecimal.valueOf(night),
                 BigDecimal.valueOf(holiday8), BigDecimal.valueOf(holidayOver8), 0);
+    }
+
+    @Test
+    void 오늘_날짜는_서버_시간대와_상관없이_한국_기준() {
+        // UTC 로 12월 31일 15시 = 한국 1월 1일 0시. 서버가 UTC 여도 새해 최저임금 · 지연이자 날수를 쓴다
+        Clock utc = Clock.fixed(Instant.parse("2026-12-31T15:00:00Z"), ZoneOffset.UTC);
+        assertThat(RuleEngine.today(utc)).isEqualTo(LocalDate.of(2027, 1, 1));
+        assertThat(RuleEngine.today(Clock.fixed(Instant.parse("2026-12-31T14:59:59Z"), ZoneOffset.UTC))).isEqualTo(LocalDate.of(2026, 12, 31));
+    }
+
+    @Test
+    void 소멸시효_3년_안의_2023년도_최저임금과_비교한다() {
+        // 2023년 최저임금 시간급 9,620원. 월급 1,881,000 ÷ 209 = 9,000 → (9,620 − 9,000) × 209 = 129,580
+        CalculationResult r = calc(monthly("FIVE_OR_MORE", "2023-06-01", "2023-12-31", 1_881_000, 0, null,
+                month("2023-12", 1_881_000, 0, 0, 0, 0)));
+        assertThat(item(r, "MIN_WAGE_SHORTFALL", "2023-12").amount()).isEqualTo(129_580L);
+        assertThat(r.warnings()).extracting("code").contains("BELOW_MINIMUM_WAGE").doesNotContain("MIN_WAGE_UNKNOWN");
     }
 }
