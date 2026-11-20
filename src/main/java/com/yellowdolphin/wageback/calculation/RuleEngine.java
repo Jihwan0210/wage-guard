@@ -41,6 +41,8 @@ final class RuleEngine {
 
     static final String VERSION = "1.1.0";
     static final Map<Integer, BigDecimal> MIN_WAGES = loadMinWages();
+    // 재직 중 지연이자 시행일 (근로기준법 제37조 개정, 2024. 10. 22. 공포)
+    static final LocalDate EMPLOYED_INTEREST_FROM = LocalDate.of(2025, 10, 23);
 
     private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40), SIXTY = dec(60);
 
@@ -61,7 +63,7 @@ final class RuleEngine {
                     basis("근로기준법", "제46조 제1항", "회사 사정으로 쉬게 하면 평균임금의 70% 이상을 줘야 해요. 70%가 통상임금보다 많으면 통상임금을 줘도 돼요."),
                     basis("근로기준법 시행령", "제26조", "쉬는 동안 일부를 받았으면, 그만큼 빼고 계산해요.")),
             "DELAY_INTEREST", List.of(
-                    basis("근로기준법", "제37조 제1항", "그만둔 뒤 14일 안에 주지 않은 임금·퇴직금에는 그다음 날부터 이자가 붙어요."),
+                    basis("근로기준법", "제37조 제1항", "그만둔 뒤 14일 안에 주지 않은 임금·퇴직금에는 그다음 날부터 이자가 붙어요. 2025년 10월 23일부터는 일하는 중에 월급날 주지 않은 임금에도 붙어요."),
                     basis("근로기준법 시행령", "제17조", "그 이자는 1년에 20%예요.")));
 
     private static final Map<String, List<Basis>> BASIS = Map.of(
@@ -123,8 +125,18 @@ final class RuleEngine {
             hourlyFormula = f;
         }
         hourly = perHour.setScale(2, RoundingMode.DOWN);
-        dailyHours = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours()
+        BigDecimal perDay = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours()
                 : div(weekly, dec(req.schedule().workDaysPerWeek() == null ? 5 : req.schedule().workDaysPerWeek())).min(EIGHT);
+        if (weekly.compareTo(FORTY) < 0) {
+            // 단시간: 4주 소정근로시간 ÷ 통상근로자 4주 소정근로일수(20일) (근로기준법 시행령 제9조 별표2)
+            BigDecimal legal = div(weekly.multiply(dec(4)), dec(20));
+            if (legal.compareTo(perDay) != 0) {
+                warn("PART_TIME_DAILY_HOURS", "주 40시간보다 적게 일해서 하루 소정근로시간을 주 " + hours(weekly) + "시간 × 4 ÷ 20 = "
+                        + hours(legal) + "시간으로 계산했어요. 연차수당 · 해고예고수당 같은 하루치 금액에 쓰여요. (근로기준법 시행령 별표2)");
+            }
+            perDay = legal;
+        }
+        dailyHours = perDay;
         ordinaryDaily = trunc(hourly.multiply(dailyHours));
         months = withWorkDays();
     }
@@ -389,11 +401,10 @@ final class RuleEngine {
         if (req.delayInterest() == null) {
             return null;
         }
-        if (end == null) {
-            notApplied.add(new NotApplied("DELAY_INTEREST", "재직 중이라 지연이자(연 20%)는 계산하지 않아요. 그만둔 뒤 14일이 지나야 붙어요."));
-            return null;
-        }
         LocalDate baseDate = req.delayInterest().baseDate() == null ? LocalDate.now() : req.delayInterest().baseDate();
+        if (end == null) {
+            return employedInterest(items, baseDate, notApplied);
+        }
         LocalDate from = end.plusDays(1).plusDays(15); // 그만둔 날 다음 날부터 14일 안 → 15일째부터 이자
         long late = Math.max(0, ChronoUnit.DAYS.between(from, baseDate) + 1);
         long principal = items.stream().filter(i -> !Set.of("DISMISSAL_NOTICE", "SHUTDOWN_ALLOWANCE").contains(i.code()))
@@ -401,6 +412,32 @@ final class RuleEngine {
         warn("DELAY_INTEREST_CHECK", "지연이자는 그만둔 날 다음 날부터 14일이 지난 날부터 " + baseDate + "까지 센 추정이에요. 해고예고수당 · 휴업수당은 빼고 셌어요. 확인이 필요해요.");
         String f = won(principal) + " × 20% × " + late + "일 ÷ 365 (" + from + "부터 " + baseDate + "까지)";
         return item("DELAY_INTEREST", null, true, trunc(div(dec(principal).multiply(dec(late)).multiply(dec(20)), dec(36500))), f);
+    }
+
+    // 재직 중 지연이자: 달마다 못 받은 돈 × 20% × 월급날 다음 날부터 늦은 날 ÷ 365 (근로기준법 제37조 제1항 제2호, 2025. 10. 23. 시행)
+    // 월급날은 그 달 마지막 날로 본다. 부칙 제2조에 따라 시행일 뒤에 월급날이 온 달만 센다
+    private Item employedInterest(List<Item> items, LocalDate baseDate, List<NotApplied> notApplied) {
+        Map<String, Long> byMonth = new TreeMap<>();
+        items.stream().filter(i -> i.month() != null && i.amount() != null).forEach(i -> byMonth.merge(i.month(), i.amount(), Long::sum));
+        BigDecimal sum = BigDecimal.ZERO;
+        List<String> parts = new ArrayList<>();
+        for (Map.Entry<String, Long> e : byMonth.entrySet()) {
+            LocalDate payday = YearMonth.parse(e.getKey()).atEndOfMonth();
+            long late = ChronoUnit.DAYS.between(payday, baseDate);
+            if (e.getValue() == 0 || payday.isBefore(EMPLOYED_INTEREST_FROM) || late <= 0) {
+                continue;
+            }
+            sum = sum.add(dec(e.getValue()).multiply(dec(late)));
+            parts.add(won(e.getValue()) + " × " + late + "일(" + e.getKey() + "분)");
+        }
+        if (parts.isEmpty()) {
+            notApplied.add(new NotApplied("DELAY_INTEREST", "재직 중 지연이자는 2025년 10월 23일 뒤 월급날이 지난 못 받은 임금에만 붙어요."));
+            return null;
+        }
+        warn("DELAY_INTEREST_CHECK", "재직 중 지연이자는 월급날을 그 달 마지막 날로 보고 다음 날부터 " + baseDate
+                + "까지 센 추정이에요. 실제 월급날이 다르면 금액도 달라져요. 확인이 필요해요.");
+        String f = "(" + String.join(" + ", parts) + ") × 20% ÷ 365 (월급날을 그 달 마지막 날로 봄)";
+        return item("DELAY_INTEREST", null, true, trunc(div(sum.multiply(dec(20)), dec(36500))), f);
     }
 
     // 그 달에서 수습 90%를 적용할 날 수. 1년 이상 계약 + 단순노무 아님 + 입사 후 3개월 이내만 (최저임금법 제5조 제2항, 시행령 제3조)
