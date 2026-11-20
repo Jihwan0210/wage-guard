@@ -32,5 +32,6 @@ class LlmConfigTest {
         assertThat(names(all.withProperty("LLM_PROVIDER", "groq"))).containsExactly("GroqLlmClient");
         assertThat(names(all.withProperty("LLM_PROVIDER", " Gemini "))).containsExactly("GeminiLlmClient");
         assertThat(names(all.withProperty("LLM_PROVIDER", "claude"))).containsExactly("AnthropicLlmClient");
+        assertThat(names(all.withProperty("LLM_PROVIDER", "ollama"))).containsExactly("OpenAiCompatLlmClient");
     }
 }
