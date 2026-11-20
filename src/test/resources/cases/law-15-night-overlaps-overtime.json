@@ -1,0 +1,68 @@
+{
+  "name": "연장 + 야간 겹침: 14:00~01:00 (쉬는 1시간) 하루 10시간, 그중 밤 3시간",
+  "source": "근로기준법 제56조 제1항 · 제3항 원문 + 고용노동부 빠른인터넷상담 (겹치면 야간 가산을 더 줌, 금액은 팀 손계산)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202512011020569010365",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제56조 제1항 · 제3항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-01-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 12000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "workDays": [
+      {
+        "date": "2026-09-01",
+        "start": "14:00",
+        "end": "01:00",
+        "breakMinutes": 60,
+        "holiday": false
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "OVERTIME",
+        "month": "2026-09",
+        "amount": 36000
+      },
+      {
+        "code": "NIGHT",
+        "month": "2026-09",
+        "amount": 18000
+      }
+    ]
+  },
+  "handCalculation": [
+    "일한 시간 = 11시간 − 쉬는 1시간 = 10시간 → 8시간 넘은 2시간이 연장",
+    "밤 10시 ~ 새벽 1시 = 3시간이 야간 (쉬는 시간은 밤이 아닌 때로 봄)",
+    "연장 = 12,000 × 2 × 1.5 = 36,000, 야간 = 12,000 × 3 × 0.5 = 18,000 (겹친 2시간은 1.5 + 0.5 = 2배)"
+  ]
+}

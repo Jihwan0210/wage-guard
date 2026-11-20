@@ -29,11 +29,14 @@ public class ExplanationService {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{[A-Z0-9_]+\\.[a-z]+\\}\\}");
     private static final Pattern DIGIT = Pattern.compile("\\d");
+    // 단위 뒤에 바로 붙어도 되는 글자 (조사 · 문장부호). 이 앞의 겹친 단위만 지운다 ("월급" 의 "월" 은 안 지움)
+    private static final String AFTER_UNIT = "(?=$|[\\s.,!?)·:;]|[이을은에의으로과와까부입분치씩도만])";
 
     private static final String SYSTEM = """
             너는 임금 계산 결과를 근로자에게 쉬운 말로 설명한다.
             - 항목마다 한 문장, 언어는 %s, 쉬운 존댓말
             - 숫자(0-9)를 절대 쓰지 않는다. 금액 · 달은 주어진 자리표시자를 글자 그대로 쓴다
+            - 자리표시자에는 단위(원, 년 · 월, KRW, tháng)가 이미 들어 있으니 앞뒤에 단위를 또 쓰지 않는다
             - status 가 NO_DATA 면 정보가 없어 계산하지 않았으니 해당되면 입력해 달라고, INCLUDED_IN_WAGE 면 월급에 이미 들어 있다고 쓴다
             - estimated 가 true 면 추정한 금액이라고 밝힌다
             - 법률 판단이나 주어지지 않은 사실을 지어내지 않는다
@@ -133,6 +136,7 @@ public class ExplanationService {
         if (text == null || text.isBlank()) {
             return null;
         }
+        text = dropRepeatedUnits(text, values);
         Matcher m = PLACEHOLDER.matcher(text);
         StringBuilder out = new StringBuilder();
         int last = 0;
@@ -149,6 +153,23 @@ public class ExplanationService {
             return null;
         }
         return out.append(rest).toString();
+    }
+
+    // 자리표시자 값에 이미 있는 단위를 LLM 이 앞뒤에 또 쓴 것을 지운다
+    // "{{X.amount}}원" → 206,698원원, "{{X.month}} 월에" → 8월 월에, "tháng {{X.month}}" → tháng tháng 8/2026
+    static String dropRepeatedUnits(String text, Map<String, String> values) {
+        for (Map.Entry<String, String> v : values.entrySet()) {
+            String ph = Pattern.quote(v.getKey()), value = v.getValue();
+            String head = value.split(" ")[0];
+            if (!DIGIT.matcher(head).find()) {
+                text = text.replaceAll("(?iu)" + Pattern.quote(head) + "\\s?(?=" + ph + ")", "");
+            }
+            String tail = value.replaceAll("^.*\\d", "").strip();
+            if (!tail.isEmpty()) {
+                text = text.replaceAll("(?iu)(" + ph + ")\\s?" + Pattern.quote(tail) + AFTER_UNIT, "$1");
+            }
+        }
+        return text;
     }
 
     // 재생성까지 실패하면 항목별 고정 문구

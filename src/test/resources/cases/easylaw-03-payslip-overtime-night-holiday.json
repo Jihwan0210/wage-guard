@@ -1,0 +1,64 @@
+{
+  "name": "고용노동부 임금명세서 예시: 통상시급 15,822원, 연장 16 · 야간 2 · 휴일 4시간",
+  "source": "법제처 찾기쉬운 생활법령 (고용노동부 임금명세서 작성 예시, 금액이 적혀 있음)",
+  "sourceUrl": "https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1694&ccfNo=2&cciNo=3&cnpClsNo=1",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제56조 제1항~제3항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2021-01-04",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 15822,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2021-11",
+        "paidAmount": 0,
+        "overtimeHours": 16,
+        "nightHours": 2,
+        "holidayHoursWithin8": 4,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "OVERTIME",
+        "month": "2021-11",
+        "amount": 379728
+      },
+      {
+        "code": "NIGHT",
+        "month": "2021-11",
+        "amount": 15822
+      },
+      {
+        "code": "HOLIDAY",
+        "month": "2021-11",
+        "amount": 94932
+      }
+    ]
+  },
+  "handCalculation": [
+    "연장 = 16 × 15,822 × 1.5 = 379,728",
+    "야간 = 2 × 15,822 × 0.5 = 15,822",
+    "휴일 = 4 × 15,822 × 1.5 = 94,932"
+  ]
+}

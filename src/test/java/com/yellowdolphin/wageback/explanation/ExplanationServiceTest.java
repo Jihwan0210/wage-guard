@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +55,18 @@ class ExplanationServiceTest {
         // LLM 에는 금액이 가지 않는다
         assertFalse(prompts.get(0).contains("161976"));
         assertTrue(prompts.get(0).contains("{{OVERTIME.amount}}"));
+    }
+
+    @Test
+    void 자리표시자_앞뒤에_겹쳐_쓴_단위는_지운다() {
+        var ko = Map.of("{{A.amount}}", "206,698원", "{{A.month}}", "2026년 8월");
+        assertEquals("2026년 8월에 206,698원이에요.", ExplanationService.dropRepeatedUnits("{{A.month}} 월에 {{A.amount}}원이에요.", ko)
+                .replace("{{A.month}}", "2026년 8월").replace("{{A.amount}}", "206,698원"));
+        assertEquals("{{A.amount}} 이며", ExplanationService.dropRepeatedUnits("{{A.amount}} 원 이며", ko));
+        // 단위로 시작하는 낱말은 그대로 ("월급")
+        assertEquals("{{A.month}} 월급", ExplanationService.dropRepeatedUnits("{{A.month}} 월급", ko));
+        var vi = Map.of("{{A.amount}}", "206,698 KRW", "{{A.month}}", "tháng 8/2026");
+        assertEquals("cho {{A.month}} là {{A.amount}}.", ExplanationService.dropRepeatedUnits("cho tháng {{A.month}} là {{A.amount}} KRW.", vi));
     }
 
     @Test
