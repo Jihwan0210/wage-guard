@@ -640,7 +640,8 @@
     // 다 읽었으면 '확인하기', 아니면(못 읽음 포함) '읽기'
     var main = (u.status === 'done' && !unread && !waiting) || (!PAGES.length && read)
       ? primary(t('up.reviewBtn'), 'data-go="review"', true)
-      : primary(PAGES.length ? t('up.readBtn', { n: PAGES.length }) : t('up.readNone'), 'data-act="read"', PAGES.length > 0 && !waiting && !bad && !busy);
+      : PAGES.length ? primary(t('up.readBtn', { n: PAGES.length }), 'data-act="read"', !waiting && !bad && !busy)
+      : '<p class="hint">' + t('up.readNone') + '</p>';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(1) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('up.h1') + '</h1><p class="lead">' + t('up.lead') + '</p></div>' +
@@ -1243,7 +1244,7 @@
     var trName = langOf(trLang).name;
     var seg = trs.length ?
       '<div class="seg no-print" role="group" aria-label="' + t('cp.view') + '"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">' + t('cp.ko') + '</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">' + t('cp.both') + '</button></div>' : '';
-    return '<div class="wide col stack-lg">' + progress(4) + langBanner() +
+    return '<div class="split' + (showTr ? ' cp-both' : '') + '"><div class="stack-lg">' + progress(4) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('title.complaint') + '</h1><p class="note">' + t('cp.note') + '</p>' +
       '<p class="hint no-print">' + t('cp.fixHint') + ' <button type="button" class="btn-text" style="font-size:inherit" data-go="review">' + t('cp.recalc') + '</button></p></div>' +
       seg +
@@ -1254,11 +1255,11 @@
       (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(trName) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') +
       '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(plainText()) + '</textarea></div>' : '') +
-      '</div>' +
+      '</div><aside class="side no-print">' +
       cta(primary(t('cp.pdf'), 'data-act="print"') +
         '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>' +
         '<p class="hint">' + t('cp.copyHint') + '</p>' +
-        '<button type="button" class="btn-text" data-go="guide">' + t('cp.where') + '</button>', 'col wide');
+        '<button type="button" class="btn-text" data-go="guide">' + t('cp.where') + '</button>', ' ') + '</aside></div>';
   }
 
   // ---------- 화면: 절차 ----------
@@ -1266,7 +1267,7 @@
     var steps = [1, 2, 3, 4, 5, 6].map(function (n) {
       return '<li><div class="tl-mark" aria-hidden="true"><span class="tl-num">' + n + '</span>' + (n < 6 ? '<span class="tl-line"></span>' : '') + '</div>' +
         '<div class="tl-body"><strong>' + t('guide.s' + n) + '</strong><p>' + t('guide.s' + n + 'b') + '</p>' +
-        (n === 1 ? '<div class="nav-list">' + navRow('href="https://labor.moel.go.kr" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('data-go="help"', 'pin', t('guide.link2')) + '</div>' + '<p class="hint">' + term('complaint') + ' ' + term('laborOffice') + '</p>' : '') +
+        (n === 1 ? '<div class="nav-list">' + navRow('href="https://labor.moel.go.kr" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('data-go="help"', 'pin', t('guide.link2')) + '</div>' + '<p class="hint terms">' + term('complaint') + ' ' + term('laborOffice') + '</p>' : '') +
         (n === 6 ? '<div class="nav-list">' + navRow('data-go="daeji"', 'coin', t('title.daeji')) + '</div>' : '') + '</div></li>';
     }).join('');
     function phone(name, sub, num, tel) {
@@ -1584,6 +1585,17 @@
     save();
   }
   mobile.addEventListener('change', function () { render(); });
+  // 키보드가 올라오면 아래 고정 단추를 키보드 위로 올린다 (아이폰은 키보드가 화면을 덮기만 해서 단추가 가려진다)
+  var vv = window.visualViewport;
+  if (vv) {
+    var onKeyboard = function () {
+      var gap = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', (gap > 80 ? gap : 0) + 'px');
+      document.documentElement.classList.toggle('kb', vv.height < 520);
+    };
+    vv.addEventListener('resize', onKeyboard);
+    vv.addEventListener('scroll', onKeyboard);
+  }
   // 합계는 계산 결과마다 한 번 0 에서 올라가며 나타난다 (움직임 줄이기면 바로 숫자). 보여 주기만, 값은 서버 그대로
   var counted = '';
   function countUp() {
