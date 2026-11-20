@@ -569,9 +569,9 @@
   function cta(inner, extraClass) {
     return '<div class="cta ' + (extraClass || 'col') + '">' + inner + '</div>';
   }
-  // 주 버튼: 글자 + 노란 화살표
+  // 주 버튼: 글자만. 화살표를 덧붙이지 않는다 (공공 서비스 단추처럼 할 일을 글로만)
   function primary(label, attrs, enabled) {
-    return '<button type="button" class="btn btn-primary" ' + attrs + (enabled === false ? ' disabled' : '') + '><span>' + label + '</span>' + icon('arrow-r') + '</button>';
+    return '<button type="button" class="btn btn-primary" ' + attrs + (enabled === false ? ' disabled' : '') + '><span>' + label + '</span></button>';
   }
 
   // ---------- 화면: 시작 ----------
@@ -581,7 +581,7 @@
     }).join('');
     // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
     var resume = resumeTo ? '<section class="resume stack" aria-labelledby="resume-t"><h2 id="resume-t">' + t('resume.title') + '</h2><p>' + t('resume.body', { where: t(TITLE[resumeTo] || 'title.q') }) + '</p>' +
-      '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="resume"><span>' + t('resume.go') + '</span>' + icon('arrow-r') + '</button>' +
+      '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="resume"><span>' + t('resume.go') + '</span></button>' +
       '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     return '<div class="split wide-side">' +
       '<div class="start-main"><section class="hero">' + dolphin('mascot') +
@@ -719,11 +719,12 @@
   function qShell(n, legend, help, body) {
     var qs = qList();
     var bars = qs.map(function (_, j) { var i = j + 1; return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
-    var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length });
+    // 진행 표시에 지금 질문의 이름도 붙인다: 「질문 5 / 6 · 약속한 급여」
+    var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length }) + ' · ' + t('q.name' + n);
     return '<div class="split">' +
       '<div class="stack-lg">' +
       '<div class="progress"><div class="bar" style="--n:' + qs.length + '" aria-hidden="true">' + bars + '</div><span class="hint only-d">' + where + '</span>' +
-      '<button type="button" class="q-jump only-m" data-act="q-sheet" data-n="' + n + '" aria-haspopup="dialog">' + icon('list') + '<span>' + where + ' · ' + t('q.listNav') + '</span></button></div>' + langBanner() +
+      '<button type="button" class="q-jump only-m" data-act="q-sheet" data-n="' + n + '" aria-haspopup="dialog" aria-label="' + where + ', ' + t('q.listNav') + '">' + icon('list') + '<span>' + where + '</span></button></div>' + langBanner() +
       '<fieldset class="stack"><legend class="q-legend"><h1 tabindex="-1">' + legend + '</h1></legend>' +
       (help ? '<p class="lead">' + help + '</p>' : '') + body + '</fieldset></div>' +
       '<aside class="side"><nav class="qnav only-d" aria-label="' + t('q.listNav') + '"><p class="qlist-title">' + t('q.listTitle') + '</p><ol class="qlist">' + list + '</ol></nav>' + nextCta(qs[n - 1]) + '</aside></div>';
