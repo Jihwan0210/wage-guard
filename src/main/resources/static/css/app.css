@@ -469,7 +469,7 @@ dialog .stack { gap: var(--s4); }
   .top-title { display: none; }
   .wrap { padding-block: var(--s7) var(--s8); }
   .split { max-width: none; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--s7); align-items: start; }
-  .split.wide-side { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+  .split.wide-side { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: var(--s6); }
   .side { position: sticky; top: 92px; }
   .wide { max-width: 1120px; }
   .split .cta { margin-top: 0; }
@@ -477,14 +477,25 @@ dialog .stack { gap: var(--s4); }
   .hero h1 { padding-right: 0; max-width: 11em; }
   .mascot { position: static; width: 104px; order: -1; }
   .start-side { padding: var(--s5); border-radius: var(--r-lg); background: var(--bg); border: 1px solid var(--line); }
-  /* 시작 화면은 스크롤 없이: 상황은 두 줄로, 저장 안내 · 사전 · 지우기는 왼쪽 칸 아래 (상황을 골라도 움직이지 않게) */
-  .split.wide-side { grid-template-rows: auto 1fr; }
-  .split.wide-side > .start-side { grid-column: 2; grid-row: 1 / span 2; }
-  .split.wide-side > .foot-bar { grid-column: 1; margin-top: 0; }
-  .start-side .sit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .start-main { gap: var(--s5); }
-  .start-main .cta { max-width: 420px; }
-  .start-main .cta .hint { text-align: left; align-self: flex-start; }
+  /* 시작 화면은 한 화면(1280x800)에 스크롤 없이: 왼쪽 = 소개 · 언어 · 확인 · 시작 단추, 오른쪽 = 상황(세 줄) · 더 확인할 것 · 저장 안내.
+     상황을 골라도 높이가 그대로라 아래 묶음이 움직이지 않는다 */
+  .wrap:has(.wide-side) { max-width: 1200px; padding-block: var(--s5) var(--s4); }
+  .split.wide-side { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-rows: auto 1fr; gap: 0 var(--s6); }
+  .split.wide-side > .start-main { grid-column: 1; grid-row: 1 / span 2; }
+  .split.wide-side > .start-side { grid-column: 2; grid-row: 1; padding: var(--s4); gap: var(--s3); }
+  .split.wide-side > .foot-bar { grid-column: 2; margin-top: var(--s3); gap: var(--s1); }
+  .split.wide-side > .foot-bar .nav-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s4); }
+  .wide-side .mascot { display: none; }
+  .wide-side .hero { gap: var(--s2); }
+  .wide-side .hero h1 { font-size: 2rem; max-width: none; }
+  .start-main { gap: var(--s4); }
+  .start-main .cta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
+  .start-main .cta .hint { grid-column: 1 / -1; text-align: left; justify-self: start; }
+  .start-side .sit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+  .start-side .sit { min-height: 52px; padding: var(--s2) 30px var(--s2) var(--s3); gap: var(--s2); }
+  .start-side .sit:has(input:checked)::after { right: 10px; }
+  .start-side .nav-row { min-height: 48px; }
+  .start-side .nav-row small { display: none; }
   .row dt { width: 11em; }
   /* 진정서: 문서는 A4 처럼 좁게, 단추는 옆 칸. 번역을 나란히 볼 때는 문서 둘이 폭을 다 쓴다 */
   .split.cp-both { grid-template-columns: minmax(0, 1fr); }

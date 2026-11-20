@@ -1776,7 +1776,7 @@
       else if (x.key === 'weeklyContractHours') weekly = Number(v);
       else if (x.key === 'wageType') f.wageType = { HOURLY: 'hour', DAILY: 'day', MONTHLY: 'month' }[v] || '';
       else if (x.key === 'baseWage') f.wage = String(v);
-      else if (x.key === 'allowances') f.allowance = String(v.reduce(function (s, a) { return s + Number(a.amount); }, 0) || '');
+      else if (x.key === 'allowances') f.allowance = String(v.reduce(function (s, a) { return s + Number(a.amount); }, 0));
       else if (x.key === 'payMonth') f.month = v;
       else if (x.key === 'paidAmount') f.paid = String(v);
       else f[row] = String(v);
