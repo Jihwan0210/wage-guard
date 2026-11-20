@@ -169,6 +169,8 @@ input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 .bar span.on { background: var(--brand); }
 .bar span.now { background: var(--fg); }
 .progress .hint { font-weight: 600; }
+.q-jump { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin: -8px 0; padding: 0 var(--s2) 0 0; border: 0; background: none; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.q-jump .ico { width: 18px; height: 18px; }
 
 /* 질문 목록 (넓은 화면 옆 칸) */
 .qnav { padding: var(--s4); border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }

@@ -707,17 +707,23 @@
 
   // ---------- 화면: 직접 입력 ----------
   // 질문 화면 틀. 넓은 화면에서는 옆 칸에 질문 6개 목록 + 다음 버튼
-  function qShell(n, legend, help, body) {
-    var qs = qList();
-    var bars = qs.map(function (_, j) { var i = j + 1; return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
-    var list = qs.map(function (q, j) {
+  // 질문 목록: 넓은 화면은 옆 칸에 늘 보이고, 휴대폰은 진행 표시를 누르면 아래 시트로 뜬다
+  function qListHtml(n) {
+    return qList().map(function (q, j) {
       var i = j + 1, cur = i === n, done = !cur && valid(q);
       var inner = '<b>' + (done ? icon('check') : i) + '</b>' + t('q.name' + i);
       return '<li>' + (cur ? '<span aria-current="step">' + inner + '</span>' : '<button type="button" data-go="' + q + '"' + (done ? ' class="done"' : '') + '>' + inner + '</button>') + '</li>';
     }).join('');
+  }
+  function qSheet(n) { openSheet(t('q.listNav'), '<ol class="qlist">' + qListHtml(n) + '</ol>'); }
+  function qShell(n, legend, help, body) {
+    var qs = qList();
+    var bars = qs.map(function (_, j) { var i = j + 1; return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
+    var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length });
     return '<div class="split">' +
       '<div class="stack-lg">' +
-      '<div class="progress"><div class="bar" style="--n:' + qs.length + '" aria-hidden="true">' + bars + '</div><span class="hint">' + t('q.progress', { n: n, total: qs.length }) + '</span></div>' + langBanner() +
+      '<div class="progress"><div class="bar" style="--n:' + qs.length + '" aria-hidden="true">' + bars + '</div><span class="hint only-d">' + where + '</span>' +
+      '<button type="button" class="q-jump only-m" data-act="q-sheet" data-n="' + n + '" aria-haspopup="dialog">' + icon('list') + '<span>' + where + ' · ' + t('q.listNav') + '</span></button></div>' + langBanner() +
       '<fieldset class="stack"><legend class="q-legend"><h1 tabindex="-1">' + legend + '</h1></legend>' +
       (help ? '<p class="lead">' + help + '</p>' : '') + body + '</fieldset></div>' +
       '<aside class="side"><nav class="qnav only-d" aria-label="' + t('q.listNav') + '"><p class="qlist-title">' + t('q.listTitle') + '</p><ol class="qlist">' + list + '</ol></nav>' + nextCta(qs[n - 1]) + '</aside></div>';
@@ -1929,6 +1935,7 @@
     else if (a === 'copy') doCopy();
     else if (a === 'listen') listen();
     else if (a === 'to-agree') toAgree();
+    else if (a === 'q-sheet') qSheet(Number(t.dataset.n));
     else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
     else if (a === 'confirm-make') makeDraft(t);
