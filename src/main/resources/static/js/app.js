@@ -287,7 +287,7 @@
   function hoursOrNull(v) { return v === '' ? null : Number(v); }
   function lastMonth() {
     var f = S.f;
-    return (f.employed === 'no' && f.end ? f.end : new Date().toISOString()).slice(0, 7);
+    return (f.employed === 'no' && f.end ? f.end : ymdOf(new Date())).slice(0, 7);
   }
   // 못 받은 달 목록: 첫 달(질문 6) + 더한 달
   function monthList() {
