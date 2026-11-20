@@ -414,4 +414,13 @@ class RuleEngineTest {
         return new Month(month, paid, BigDecimal.valueOf(overtime), BigDecimal.valueOf(night),
                 BigDecimal.valueOf(holiday8), BigDecimal.valueOf(holidayOver8), 0);
     }
+
+    @Test
+    void 소멸시효_3년_안의_2023년도_최저임금과_비교한다() {
+        // 2023년 최저임금 시간급 9,620원. 월급 1,881,000 ÷ 209 = 9,000 → (9,620 − 9,000) × 209 = 129,580
+        CalculationResult r = calc(monthly("FIVE_OR_MORE", "2023-06-01", "2023-12-31", 1_881_000, 0, null,
+                month("2023-12", 1_881_000, 0, 0, 0, 0)));
+        assertThat(item(r, "MIN_WAGE_SHORTFALL", "2023-12").amount()).isEqualTo(129_580L);
+        assertThat(r.warnings()).extracting("code").contains("BELOW_MINIMUM_WAGE").doesNotContain("MIN_WAGE_UNKNOWN");
+    }
 }
