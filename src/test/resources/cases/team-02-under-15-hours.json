@@ -1,0 +1,89 @@
+{
+  "name": "초단시간(주 14시간) 시급제: 주휴 · 연차 · 퇴직금 없음, 초과근로 · 야간 가산은 있음",
+  "source": "팀 손계산 (가상 인물). 근거 조문은 basis",
+  "basis": [
+    "근로기준법 제18조 제3항: 4주 평균 1주 소정근로 15시간 미만은 제55조(주휴) · 제60조(연차) 미적용 — https://www.law.go.kr/법령/근로기준법 (2026-11-20 확인)",
+    "근로자퇴직급여 보장법 제4조 제1항 단서: 1주 소정근로 15시간 미만은 퇴직금 없음 — https://www.law.go.kr/법령/근로자퇴직급여보장법 (2026-11-20 확인)",
+    "기간제 및 단시간근로자 보호 등에 관한 법률 제6조 제3항: 단시간근로자 초과근로 50% 가산 — https://www.law.go.kr/법령/기간제및단시간근로자보호등에관한법률 (2026-11-20 확인)",
+    "근로기준법 제56조 제3항: 야간근로 50% 가산 (제18조 제3항이 빼는 것은 제55조 · 제60조뿐)"
+  ],
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-06",
+      "endDate": "2026-02-28"
+    },
+    "schedule": {
+      "weeklyContractHours": 14,
+      "dailyContractHours": 7,
+      "workDaysPerWeek": 2
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 11000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-02",
+        "paidAmount": 0,
+        "overtimeHours": 4,
+        "nightHours": 8,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      }
+    ],
+    "lastThreeMonthsWages": null,
+    "annualLeave": {
+      "usedDays": 0
+    }
+  },
+  "expected": {
+    "totalUnpaid": 726000,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2026-02",
+        "amount": 616000
+      },
+      {
+        "code": "OVERTIME",
+        "month": "2026-02",
+        "amount": 66000
+      },
+      {
+        "code": "NIGHT",
+        "month": "2026-02",
+        "amount": 44000
+      },
+      {
+        "code": "WEEKLY_HOLIDAY",
+        "month": "2026-02",
+        "amount": 0
+      },
+      {
+        "code": "SEVERANCE",
+        "month": null,
+        "amount": 0
+      },
+      {
+        "code": "ANNUAL_LEAVE",
+        "month": null,
+        "amount": 0
+      }
+    ]
+  },
+  "handCalculation": [
+    "2026년 2월은 28일 = 정확히 4주 (2월 1일 일요일 ~ 2월 28일 토요일)",
+    "BASE_WAGE = 시급 11,000 × 주 14시간 × 4주 = 616,000 (받은 돈 0)",
+    "OVERTIME = 11,000 × 초과 4시간 × 1.5 = 66,000",
+    "NIGHT = 11,000 × 야간 8시간 × 0.5 = 44,000",
+    "WEEKLY_HOLIDAY = 0 (주 15시간 미만), ANNUAL_LEAVE = 0, SEVERANCE = 0 (1년 넘게 일했어도 주 15시간 미만)",
+    "totalUnpaid = 616,000 + 66,000 + 44,000 = 726,000"
+  ]
+}
