@@ -1,0 +1,79 @@
+{
+  "checkedAt": "2026-11-15",
+  "note": "날짜 계산만, 금액 판정 없음. from: end=마지막으로 일한 날 다음 날(퇴직일)부터 셈, fired=해고된 날, unpaid=처음 못 받은 월급날. 날짜 세는 법(첫날 넣는지)에 따라 하루 다를 수 있음. 법 조문은 law.go.kr 에서 2026-11-15 확인.",
+  "deadlines": [
+    {
+      "id": "pay14",
+      "from": "end",
+      "plus": { "days": 15 },
+      "title": { "ko": "회사가 돈을 다 줘야 하는 날 (그만두고 14일)", "en": "Employer must pay everything (14 days after leaving)", "vi": "Hạn công ty phải trả hết (14 ngày sau khi nghỉ)" },
+      "what": {
+        "ko": "그만두면 회사는 14일 안에 월급 · 퇴직금을 모두 줘야 해요. 늦으면 늦은 날만큼 연 20% 이자(지연이자)도 줘야 해요. 서로 합의하면 날짜를 늦출 수 있어요.",
+        "en": "After you leave, the employer must pay all wages and severance within 14 days. If late, it must also pay 20% yearly interest for the late days. Both sides can agree to a later date.",
+        "vi": "Sau khi bạn nghỉ, công ty phải trả hết lương và trợ cấp thôi việc trong 14 ngày. Nếu trễ, phải trả thêm lãi 20%/năm cho số ngày trễ. Hai bên có thể thỏa thuận lùi ngày."
+      },
+      "sources": [
+        { "name": "근로기준법 제36조 · 제37조", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=285279&efYd=20261008" },
+        { "name": "근로기준법 시행령 제17조 (연 20%)", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=270551&efYd=20251023" }
+      ]
+    },
+    {
+      "id": "daeji",
+      "from": "end",
+      "plus": { "years": 1, "days": 1 },
+      "title": { "ko": "간이대지급금을 받으려면 노동청에 진정 (그만두고 1년)", "en": "File a complaint for the state wage advance (1 year after leaving)", "vi": "Nộp đơn khiếu nại để nhận tiền tạm ứng của nhà nước (1 năm sau khi nghỉ)" },
+      "what": {
+        "ko": "나라가 먼저 주는 간이대지급금은 그만둔 다음 날부터 1년 안에 노동청에 진정해야 받을 수 있어요(소송이면 2년). 확인서를 받으면 6개월 안에 근로복지공단에 청구해요.",
+        "en": "To get the simple wage advance from the state, file a complaint with the labor office within 1 year from the day after you left (2 years for a lawsuit). After you get the confirmation paper, claim it from COMWEL within 6 months.",
+        "vi": "Để nhận tiền tạm ứng đơn giản của nhà nước, hãy khiếu nại tại văn phòng lao động trong 1 năm kể từ ngày sau khi nghỉ (kiện ra tòa là 2 năm). Khi có giấy xác nhận, nộp yêu cầu cho COMWEL trong 6 tháng."
+      },
+      "sources": [
+        { "name": "임금채권보장법 시행령 제7조 · 제9조", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=291781&efYd=20261110" },
+        { "name": "근로복지공단 간이대지급금 안내", "url": "https://welfare.comwel.or.kr/default/page.do?mCode=H030010000" }
+      ]
+    },
+    {
+      "id": "unfair",
+      "from": "fired",
+      "plus": { "months": 3 },
+      "title": { "ko": "부당해고 구제신청 (해고되고 3개월)", "en": "Apply for unfair dismissal remedy (3 months after dismissal)", "vi": "Nộp đơn về sa thải trái luật (3 tháng sau khi bị sa thải)" },
+      "what": {
+        "ko": "해고가 부당하다고 생각하면 해고된 날부터 3개월 안에 지방노동위원회에 구제신청을 해요. 지나면 신청할 수 없어요. 5명 미만 회사는 해당되지 않아요.",
+        "en": "If you think the dismissal was unfair, apply to the Regional Labor Relations Commission within 3 months of the dismissal. After that you cannot apply. Workplaces with fewer than 5 workers are not covered.",
+        "vi": "Nếu bạn cho rằng bị sa thải trái luật, hãy nộp đơn lên Ủy ban Quan hệ Lao động khu vực trong 3 tháng kể từ ngày bị sa thải. Quá hạn sẽ không nộp được. Nơi làm việc dưới 5 người không áp dụng."
+      },
+      "sources": [
+        { "name": "근로기준법 제28조 제2항", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=285279&efYd=20261008" },
+        { "name": "노동위원회 부당해고 구제신청 안내", "url": "https://nlrc.go.kr/nlrc/commIntro/workGuide03.do" }
+      ]
+    },
+    {
+      "id": "wage3y",
+      "from": "unpaid",
+      "plus": { "years": 3 },
+      "title": { "ko": "못 받은 월급을 청구할 수 있는 기간 (3년)", "en": "Time limit to claim unpaid wages (3 years)", "vi": "Thời hạn đòi lương chưa trả (3 năm)" },
+      "what": {
+        "ko": "월급은 받기로 한 날부터 3년이 지나면 청구할 권리가 사라져요. 달마다 따로 세니까 가장 오래된 달이 먼저 끝나요.",
+        "en": "The right to claim wages ends 3 years after the pay day. Each month counts separately, so the oldest month ends first.",
+        "vi": "Quyền đòi lương hết sau 3 năm kể từ ngày trả lương. Mỗi tháng tính riêng, nên tháng cũ nhất hết hạn trước."
+      },
+      "sources": [
+        { "name": "근로기준법 제49조", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=285279&efYd=20261008" }
+      ]
+    },
+    {
+      "id": "sev3y",
+      "from": "end",
+      "plus": { "years": 3, "days": 1 },
+      "title": { "ko": "퇴직금을 청구할 수 있는 기간 (3년)", "en": "Time limit to claim severance pay (3 years)", "vi": "Thời hạn đòi trợ cấp thôi việc (3 năm)" },
+      "what": {
+        "ko": "퇴직금은 그만둔 뒤 3년이 지나면 청구할 권리가 사라져요.",
+        "en": "The right to claim severance pay ends 3 years after you leave.",
+        "vi": "Quyền đòi trợ cấp thôi việc hết sau 3 năm kể từ khi nghỉ."
+      },
+      "sources": [
+        { "name": "근로자퇴직급여 보장법 제10조", "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=284455&efYd=20260918" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "checkedAt": "2026-11-15",
+  "note": "금액 판정 없음. 확인한 공개 출처만. 법 조문 정본은 law.go.kr 에서 다시 확인.",
+  "guides": [
+    {
+      "id": "payslip",
+      "title": { "ko": "월급명세서를 꼭 받아야 해요", "en": "You must get a pay slip", "vi": "Bạn phải được nhận phiếu lương" },
+      "lines": {
+        "ko": [
+          "회사는 월급을 줄 때 월급명세서를 줘야 해요.",
+          "종이나 문자·이메일 같은 전자문서로 줄 수 있어요.",
+          "2021년 11월 19일부터 모든 회사에 해당돼요. 5명 미만 회사도 같아요.",
+          "명세서에는 받는 날, 전체 금액, 항목별 금액과 계산 방법, 뗀 돈이 적혀야 해요.",
+          "안 주면 노동청에 알릴 수 있어요."
+        ],
+        "en": [
+          "Your employer must give you a pay slip when paying wages.",
+          "It can be on paper or electronic (text message, email).",
+          "This applies to every workplace from 19 November 2021, including those with fewer than 5 workers.",
+          "It must show the pay date, total pay, each item and how it was calculated, and any deductions.",
+          "If you do not get one, you can report it to the labor office."
+        ],
+        "vi": [
+          "Khi trả lương, chủ phải đưa cho bạn phiếu lương.",
+          "Có thể là giấy hoặc bản điện tử (tin nhắn, email).",
+          "Áp dụng cho mọi nơi làm việc từ ngày 19/11/2021, kể cả nơi dưới 5 người.",
+          "Phiếu phải ghi ngày trả, tổng tiền, từng khoản và cách tính, và các khoản bị trừ.",
+          "Nếu không được nhận, bạn có thể báo cho văn phòng lao động."
+        ]
+      },
+      "sources": [
+        { "name": "근로기준법 제48조 제2항 (국가법령정보센터)", "url": "https://www.law.go.kr/법령/근로기준법/제48조" },
+        { "name": "정책브리핑: 임금명세서 교부 의무화 (고용노동부)", "url": "https://m.korea.kr/news/actuallyView.do?newsId=148904816" },
+        { "name": "고용노동부 서울서부지청 공지 (2021.11)", "url": "https://www.moel.go.kr/local/seoulseobu/news/notice/noticeView.do?bbs_seq=20211101223" }
+      ]
+    },
+    {
+      "id": "deduction",
+      "title": { "ko": "월급에서 함부로 떼면 안 돼요", "en": "Your pay cannot be cut freely", "vi": "Không được tùy tiện trừ lương" },
+      "lines": {
+        "ko": [
+          "월급은 돈으로, 직접, 전부 줘야 해요.",
+          "법이나 단체협약에 정한 것만 뗄 수 있어요. 세금·4대보험이 그 예예요.",
+          "기숙사비·밥값을 떼려면 미리 서로 합의해야 해요. 고용노동부가 숙소비 기준과 공제 동의서 양식을 안내해요.",
+          "동의한 적 없이 떼거나, 너무 많이 뗀 것 같으면 노동청이나 외국인력상담센터(1577-0071)에 물어보세요."
+        ],
+        "en": [
+          "Wages must be paid in money, directly to you, and in full.",
+          "Only deductions set by law or a collective agreement are allowed, such as tax and social insurance.",
+          "Dormitory or meal costs need your agreement in advance. The Ministry of Employment and Labor gives a guideline and a consent form.",
+          "If money was taken without your consent, or it seems too much, ask the labor office or the counseling center (1577-0071)."
+        ],
+        "vi": [
+          "Lương phải trả bằng tiền, trực tiếp cho bạn và trả đủ.",
+          "Chỉ được trừ những khoản luật hoặc thỏa ước tập thể cho phép, như thuế và bảo hiểm xã hội.",
+          "Muốn trừ tiền ký túc xá, tiền ăn thì phải thỏa thuận trước. Bộ Việc làm và Lao động có hướng dẫn và mẫu giấy đồng ý.",
+          "Nếu bị trừ khi bạn chưa đồng ý, hoặc trừ quá nhiều, hãy hỏi văn phòng lao động hoặc trung tâm tư vấn (1577-0071)."
+        ]
+      },
+      "sources": [
+        { "name": "근로기준법 제43조 (국가법령정보센터)", "url": "https://www.law.go.kr/법령/근로기준법/제43조" },
+        { "name": "고용노동부 서울북부지청: 고용허가 외국인근로자 숙소비 산정 가이드라인 (2025.6.20 변경, 공제동의서 양식 첨부)", "url": "https://www.moel.go.kr/local/seoulbukbu/news/notice/noticeView.do?bbs_seq=20250601505" }
+      ]
+    },
+    {
+      "id": "foreign-insurance",
+      "title": { "ko": "외국인 노동자 전용 보험", "en": "Insurance for foreign workers (EPS)", "vi": "Bảo hiểm dành cho lao động nước ngoài (EPS)" },
+      "lines": {
+        "ko": [
+          "고용허가제로 온 노동자에게는 전용 보험 4가지가 있어요.",
+          "회사가 드는 보험: 출국만기보험, 임금체불보증보험.",
+          "노동자가 드는 보험: 귀국비용보험, 상해보험.",
+          "출국만기보험은 퇴직금을 위한 보험이에요. 회사가 이 보험에 들면 퇴직금 제도를 만든 것으로 봐요.",
+          "내 보험을 어떻게 받는지는 외국인력상담센터(1577-0071)에 물어보세요."
+        ],
+        "en": [
+          "Workers under the Employment Permit System (EPS) have 4 special insurances.",
+          "Your employer joins: Departure Guarantee Insurance and Wage Arrears Guarantee Insurance.",
+          "You join: Return Cost Insurance and Casualty Insurance.",
+          "Departure Guarantee Insurance is for your severance pay.",
+          "To learn how to claim, call the counseling center (1577-0071)."
+        ],
+        "vi": [
+          "Người lao động theo chương trình EPS có 4 loại bảo hiểm riêng.",
+          "Chủ tham gia: bảo hiểm xuất cảnh và bảo hiểm bảo lãnh nợ lương.",
+          "Bạn tham gia: bảo hiểm chi phí về nước và bảo hiểm tai nạn.",
+          "Bảo hiểm xuất cảnh dùng cho tiền trợ cấp thôi việc của bạn.",
+          "Muốn biết cách nhận tiền, hãy gọi trung tâm tư vấn (1577-0071)."
+        ]
+      },
+      "sources": [
+        { "name": "정책브리핑: 고용허가제 외국인 근로자 전용보험 가입율 (고용노동부, 2021.6.9)", "url": "https://www.korea.kr/news/actuallyView.do?newsId=148888537" },
+        { "name": "외국인근로자의 고용 등에 관한 법률 제13조 (국가법령정보센터)", "url": "https://www.law.go.kr/법령/외국인근로자의고용등에관한법률/제13조" }
+      ]
+    },
+    {
+      "id": "foreign-help",
+      "title": { "ko": "외국인 노동자 상담", "en": "Help for foreign workers", "vi": "Hỗ trợ cho lao động nước ngoài" },
+      "lines": {
+        "ko": [
+          "외국인력상담센터: 1577-0071",
+          "17개 나라 말로 상담하고 신고도 도와줘요.",
+          "고용센터에도 여러 나라 말 상담원이 있어요.",
+          "회사를 바꾸는 일(사업장 변경)도 고용센터나 1577-0071에 물어보세요."
+        ],
+        "en": [
+          "Foreign Workers Counseling Center: 1577-0071",
+          "Counseling in 17 languages. They also help you report a problem.",
+          "Job Centers also have multilingual counselors.",
+          "About changing your workplace, ask a Job Center or 1577-0071."
+        ],
+        "vi": [
+          "Trung tâm tư vấn lao động nước ngoài: 1577-0071",
+          "Tư vấn bằng 17 ngôn ngữ và giúp bạn khai báo.",
+          "Trung tâm việc làm cũng có nhân viên tư vấn nhiều ngôn ngữ.",
+          "Muốn đổi nơi làm việc, hãy hỏi trung tâm việc làm hoặc 1577-0071."
+        ]
+      },
+      "sources": [
+        { "name": "고용노동부 서울서부지청 공지 (2026.4, '1577-0071, 17개국 언어로 상담 및 신고 연계')", "url": "https://moel.go.kr/local/seoulseobu/news/notice/noticeView.do?bbs_seq=20260401163" }
+      ]
+    },
+    {
+      "id": "jobless",
+      "group": "after",
+      "title": {
+        "ko": "스스로 그만둬도 실업급여를 받을 수 있는 경우",
+        "en": "Unemployment benefit even if you quit",
+        "vi": "Trợ cấp thất nghiệp dù bạn tự nghỉ việc"
+      },
+      "lines": {
+        "ko": [
+          "스스로 그만두면 보통 실업급여를 못 받아요. 하지만 아래 일이 그만두기 전 1년 안에 2개월 넘게 있었다면 받을 수 있어요.",
+          "월급이 밀렸을 때(임금체불)",
+          "받은 돈이 최저임금보다 적었을 때",
+          "일주일 연장 근로가 12시간을 넘었을 때(법 위반)",
+          "실제 근로조건이 처음 약속보다 낮아졌을 때",
+          "받을 수 있는지와 금액은 고용센터가 정해요. 이 서비스는 판단하지 않아요.",
+          "신청: 고용24에서 구직 등록 → 온라인 교육 → 신분증을 들고 사는 곳 고용센터에 가서 신청해요."
+        ],
+        "en": [
+          "If you quit on your own, you usually cannot get unemployment benefit. But you may get it if, within 1 year before leaving, any of these happened for 2 months or more:",
+          "Your wages were not paid (wage arrears)",
+          "Your pay was below the minimum wage",
+          "Overtime was more than 12 hours a week (against the law)",
+          "Your real working conditions became worse than what was promised",
+          "The job center decides if you can get it and how much. This service does not decide.",
+          "How to apply: register as a job seeker on Work24 → online training → visit the job center near your home with your ID."
+        ],
+        "vi": [
+          "Nếu tự nghỉ việc, thường bạn không nhận được trợ cấp thất nghiệp. Nhưng bạn có thể nhận nếu trong 1 năm trước khi nghỉ, có một trong các việc sau kéo dài từ 2 tháng trở lên:",
+          "Bị nợ lương",
+          "Tiền lương thấp hơn lương tối thiểu",
+          "Làm thêm giờ quá 12 tiếng một tuần (trái luật)",
+          "Điều kiện làm việc thực tế thấp hơn lúc đã hứa",
+          "Trung tâm việc làm quyết định bạn có được nhận và nhận bao nhiêu. Dịch vụ này không quyết định.",
+          "Cách nộp: đăng ký tìm việc trên Work24 → học trực tuyến → mang giấy tờ tùy thân đến trung tâm việc làm gần nhà."
+        ]
+      },
+      "sources": [
+        {
+          "name": "고용24 실업급여 안내",
+          "url": "https://www.work24.go.kr/cm/c/f/1100/selecSystInfo.do?systId=SI00000411&systCnntId=&systClId=SC00000254"
+        },
+        {
+          "name": "고용보험법 시행규칙 별표2 (국가법령정보센터)",
+          "url": "https://www.law.go.kr/LSW/flDownload.do?gubun=&flSeq=169481947&bylClsCd=110201"
+        },
+        {
+          "name": "고용노동부 고객상담센터 1350",
+          "url": "https://1350.moel.go.kr/home/hp/ch/callchat.do"
+        }
+      ]
+    },
+    {
+      "id": "unfair",
+      "group": "after",
+      "title": {
+        "ko": "부당해고 구제신청 (해고되고 3개월 안)",
+        "en": "Unfair dismissal remedy (within 3 months)",
+        "vi": "Đơn về sa thải trái luật (trong 3 tháng)"
+      },
+      "lines": {
+        "ko": [
+          "정당한 이유 없이 해고됐다면 지방노동위원회에 '구제신청'을 할 수 있어요. 일터로 돌아가거나 그동안 못 받은 임금을 받는 길이에요.",
+          "해고된 날부터 3개월 안에 해야 해요. 지나면 신청할 수 없어요.",
+          "회사가 있는 곳의 지방노동위원회에 내요. 노동위원회 누리집에서 온라인으로도 낼 수 있어요.",
+          "5명 미만 회사에는 이 제도가 적용되지 않아요.",
+          "해고가 부당한지는 노동위원회가 판단해요. 이 서비스는 판단하지 않아요."
+        ],
+        "en": [
+          "If you were dismissed without a fair reason, you can apply for a remedy to the Regional Labor Relations Commission. It can get you back to work or get the pay you missed.",
+          "You must apply within 3 months of the dismissal. After that you cannot apply.",
+          "Apply to the commission for the area where the company is. You can also apply online on the commission website.",
+          "This does not apply to workplaces with fewer than 5 workers.",
+          "The commission decides if the dismissal was unfair. This service does not decide."
+        ],
+        "vi": [
+          "Nếu bị sa thải không có lý do chính đáng, bạn có thể nộp đơn lên Ủy ban Quan hệ Lao động khu vực. Bạn có thể được quay lại làm hoặc nhận tiền lương bị mất.",
+          "Phải nộp trong 3 tháng kể từ ngày bị sa thải. Quá hạn sẽ không nộp được.",
+          "Nộp cho ủy ban nơi công ty đặt trụ sở. Cũng có thể nộp trực tuyến trên trang web của ủy ban.",
+          "Không áp dụng cho nơi làm việc dưới 5 người.",
+          "Ủy ban quyết định việc sa thải có trái luật hay không. Dịch vụ này không quyết định."
+        ]
+      },
+      "sources": [
+        {
+          "name": "노동위원회 부당해고 구제신청 안내",
+          "url": "https://nlrc.go.kr/nlrc/commIntro/workGuide03.do"
+        },
+        {
+          "name": "노동위원회 온라인 사건 신청",
+          "url": "https://nlrc.go.kr/nlrc/minwon/main.do"
+        },
+        {
+          "name": "근로기준법 제28조 (국가법령정보센터)",
+          "url": "https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=285279&efYd=20261008"
+        }
+      ]
+    }
+  ]
+}
