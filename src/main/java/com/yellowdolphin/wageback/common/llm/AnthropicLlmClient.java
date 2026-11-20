@@ -8,17 +8,13 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-// Anthropic Messages API 를 Java HttpClient 로 부른다. 키 · 모델 · 시간 제한은 환경변수
-@Component
+// Anthropic Messages API 를 Java HttpClient 로 부른다. 무료 키가 없을 때 LlmConfig 가 고른다
 public class AnthropicLlmClient implements LlmClient {
 
     private static final URI URL = URI.create("https://api.anthropic.com/v1/messages");
@@ -29,8 +25,7 @@ public class AnthropicLlmClient implements LlmClient {
     private final ObjectMapper mapper;
     private final HttpClient http;
 
-    public AnthropicLlmClient(@Value("${LLM_API_KEY:}") String apiKey, @Value("${LLM_MODEL:claude-haiku-5-5}") String model,
-            @Value("${LLM_TIMEOUT_SECONDS:30}") int timeoutSeconds, ObjectMapper mapper) {
+    public AnthropicLlmClient(String apiKey, String model, int timeoutSeconds, ObjectMapper mapper) {
         this.apiKey = apiKey;
         this.model = model;
         this.timeout = Duration.ofSeconds(timeoutSeconds);

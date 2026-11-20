@@ -1,0 +1,66 @@
+{
+  "name": "지연이자: 퇴직 후 14일 지나 못 받은 1,000만원, 1년 늦음",
+  "source": "변호사 칼럼 (1,000만원 × 20% × 1년 = 200만원, 금액이 적혀 있음. 고용노동부 계산식과 같음)",
+  "sourceUrl": "https://albup.co.kr/page/column_detail.php?content_id=3389",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제37조 제1항, 시행령 제17조",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-01-01",
+      "endDate": "2026-06-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 5000000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-05",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      },
+      {
+        "month": "2026-06",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "delayInterest": {
+      "baseDate": "2027-07-15"
+    }
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "DELAY_INTEREST",
+        "month": null,
+        "amount": 2000000
+      }
+    ]
+  },
+  "handCalculation": [
+    "5 · 6월 월급 5,000,000씩 못 받음 → 10,000,000",
+    "7/16 ~ 다음 해 7/15 = 365일",
+    "10,000,000 × 0.2 × 365 ÷ 365 = 2,000,000 (출처: 200만원)"
+  ]
+}

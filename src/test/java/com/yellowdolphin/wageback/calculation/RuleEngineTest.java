@@ -79,8 +79,8 @@ class RuleEngineTest {
     @Test
     void 경계4_평균임금이_통상임금보다_적으면_통상임금() {
         CalculationResult r = calc(monthly("FIVE_OR_MORE", "2025-01-01", "2025-12-31", MONTHLY_11000, 0, null));
-        // 평균임금 2,299,000 × 3 ÷ 92일 = 74,967.39 → 74,967 < 1일 통상임금 11,000 × 8 = 88,000
-        assertThat(r.dailyAverageWage().value()).isEqualTo("74967");
+        // 평균임금 2,299,000 × 3 ÷ 92일 = 74,967.39 (전까지) < 1일 통상임금 11,000 × 8 = 88,000
+        assertThat(r.dailyAverageWage().value()).isEqualTo("74967.39");
         Item s = item(r, "SEVERANCE", null);
         assertThat(s.amount()).isEqualTo(2_640_000L); // 88,000 × 30 × 365 ÷ 365
         assertThat(s.formula()).contains("1일 통상임금보다 적어").doesNotContain("멘토");
@@ -240,7 +240,7 @@ class RuleEngineTest {
     @Test
     void 최저임금표는_설정_파일에서_읽는다() {
         assertThat(RuleEngine.MIN_WAGES).containsEntry(2024, new BigDecimal("9860"))
-                .containsEntry(2025, new BigDecimal("10030")).containsEntry(2026, new BigDecimal("10320"));
+                .containsEntry(2025, new BigDecimal("10030")).containsEntry(2026, new BigDecimal("10320")).containsEntry(2027, new BigDecimal("10700"));
     }
 
     // ---- 도우미 ----
@@ -330,20 +330,48 @@ class RuleEngineTest {
                 "DELAY_INTEREST", null).amount()).isEqualTo(37_791L);
         // 14일이 안 지났으면 0원
         assertThat(item(calc(more(r, null, new CalculationRequest.DelayInterest(LocalDate.parse("2026-10-15")), null)), "DELAY_INTEREST", null).amount()).isZero();
-        // 재직 중이면 계산 안 함
+    }
+
+    @Test
+    void 재직_중_지연이자는_월급날_다음_날부터_2025년_10월_23일_뒤만() {
+        // 9월 월급 2,299,000원 못 받음, 월급날 9/30 → 10/1 ~ 11/14 = 45일. 2,299,000 × 20% × 45 ÷ 365 = 56,687.67 → 56,687
         CalculationRequest stay = monthly("FIVE_OR_MORE", "2026-01-01", null, MONTHLY_11000, 0, null, month("2026-09", 0, 0, 0, 0, 0));
-        assertThat(calc(more(stay, null, new CalculationRequest.DelayInterest(null), null)).notApplied()).extracting("code").contains("DELAY_INTEREST");
+        CalculationResult res = calc(more(stay, null, new CalculationRequest.DelayInterest(LocalDate.parse("2026-11-14")), null));
+        Item it = item(res, "DELAY_INTEREST", null);
+        assertThat(it.amount()).isEqualTo(56_687L);
+        assertThat(it.estimated()).isTrue();
+        assertThat(it.formula()).contains("2,299,000원 × 45일(2026-09분)");
+        // 월급날(2025-09-30)이 시행일 전이면 계산 안 함
+        CalculationRequest old = monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2025-09", 0, 0, 0, 0, 0));
+        CalculationResult before = calc(more(old, null, new CalculationRequest.DelayInterest(LocalDate.parse("2026-11-14")), null));
+        assertThat(before.items()).noneMatch(i -> i.code().equals("DELAY_INTEREST"));
+        assertThat(before.notApplied()).extracting("code").contains("DELAY_INTEREST");
+    }
+
+    @Test
+    void 단시간_하루_소정시간은_주시간_곱하기_4_나누기_20() {
+        // 주 24시간(하루 8시간 × 3일) → 하루 24 × 4 ÷ 20 = 4.8시간. 11,000 × 4.8 = 52,800 × 30일 = 1,584,000
+        CalculationRequest r = request("FIVE_OR_MORE", "2025-01-01", "2026-09-30", schedule(24, 8, 3),
+                new Wage("HOURLY", 11_000L, null, null, 0L), null, month("2026-09", 0, 0, 0, 0, 0));
+        CalculationResult res = calc(extra(r, new CalculationRequest.Dismissal(true, 0), null, null));
+        assertThat(item(res, "DISMISSAL_NOTICE", null).amount()).isEqualTo(1_584_000L);
+        assertThat(res.warnings()).extracting("code").contains("PART_TIME_DAILY_HOURS");
+        // 주 40시간은 그대로 하루 8시간, 안내 없음
+        CalculationResult full = calc(extra(monthly("FIVE_OR_MORE", "2025-01-01", "2026-09-30", MONTHLY_11000, 0, null, month("2026-09", 0, 0, 0, 0, 0)),
+                new CalculationRequest.Dismissal(true, 0), null, null));
+        assertThat(item(full, "DISMISSAL_NOTICE", null).amount()).isEqualTo(2_640_000L);
+        assertThat(full.warnings()).extracting("code").doesNotContain("PART_TIME_DAILY_HOURS");
     }
 
     @Test
     void 휴업수당은_평균임금_70퍼센트_5인_미만은_적용_안_함() {
         CalculationRequest r = monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
-        // 1일 평균임금 2,299,000 × 12 ÷ 365 = 75,583.56 → 75,583. 75,583 × 10일 × 70% = 529,081
+        // 1일 평균임금 2,299,000 × 12 ÷ 365 = 75,583.56 (전까지). 75,583.56 × 10일 × 70% = 529,084.92 → 529,084
         Item it = item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 0L))), "SHUTDOWN_ALLOWANCE", null);
-        assertThat(it.amount()).isEqualTo(529_081L);
+        assertThat(it.amount()).isEqualTo(529_084L);
         assertThat(it.estimated()).isTrue();
-        // 쉬는 동안 100,000원 받음: (755,830 − 100,000) × 70% = 459,081
-        assertThat(item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 100_000L))), "SHUTDOWN_ALLOWANCE", null).amount()).isEqualTo(459_081L);
+        // 쉬는 동안 100,000원 받음: (755,835.6 − 100,000) × 70% = 459,084.92 → 459,084
+        assertThat(item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 100_000L))), "SHUTDOWN_ALLOWANCE", null).amount()).isEqualTo(459_084L);
         CalculationRequest small = monthly("UNDER_FIVE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
         CalculationResult under = calc(more(small, null, null, new CalculationRequest.Shutdown(10, 0L)));
         assertThat(under.items()).noneMatch(i -> i.code().equals("SHUTDOWN_ALLOWANCE"));

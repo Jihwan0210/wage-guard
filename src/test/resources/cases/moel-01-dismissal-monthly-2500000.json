@@ -1,0 +1,58 @@
+{
+  "name": "해고예고수당: 월급 250만원 주 40시간, 예고 없이 해고",
+  "source": "고용노동부 빠른인터넷상담 (금액이 답변에 적혀 있음)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202402021500391531000",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제26조",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-01",
+      "endDate": "2026-09-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2500000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 2500000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "dismissal": {
+      "dismissed": true,
+      "noticeDaysBefore": 0
+    }
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "DISMISSAL_NOTICE",
+        "month": null,
+        "amount": 2870812
+      }
+    ]
+  },
+  "handCalculation": [
+    "시간급 = 2,500,000 ÷ 209 = 11961.72",
+    "1일 통상임금 = 11961.72 × 8 = 95693.76",
+    "해고예고수당 = 95693.76 × 30 = 2,870,812 (출처: 2,870,812원)"
+  ]
+}

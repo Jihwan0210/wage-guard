@@ -1,0 +1,62 @@
+{
+  "name": "최저임금 2025: 기본급 180만 + 매달 현금 식대 20만 · 교통비 10만 → 미달 아님",
+  "source": "고용노동부 빠른인터넷상담 (2025 월 환산 2,096,270원, 매달 현금 복리후생비는 2024년부터 전액 산입)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202503191018445910459",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "최저임금법 제6조 제4항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 1800000,
+      "ordinaryAllowances": [
+        {
+          "name": "식대",
+          "amount": 200000
+        },
+        {
+          "name": "교통비",
+          "amount": 100000
+        }
+      ],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2025-09",
+        "paidAmount": 2100000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": 0,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2025-09",
+        "amount": 0
+      }
+    ]
+  },
+  "handCalculation": [
+    "1,800,000 + 200,000 + 100,000 = 2,100,000 ≥ 2,096,270 (2025 월 환산액) → 최저임금 차액 없음",
+    "9월 월급을 다 받아 체불 0원"
+  ]
+}

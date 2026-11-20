@@ -1,0 +1,72 @@
+{
+  "name": "못 쓴 연차수당: 통상임금 월 274만 5천원, 퇴사할 때 7일 남음",
+  "source": "노무사 상담 답변 (약 735,500원 = 2,745,000 ÷ 209 × 8 × 7 이 적혀 있음)",
+  "sourceUrl": "https://www.findsemusa.com/labor/consult/consultView.do?qidx=14447",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제60조, 제61조",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-01",
+      "endDate": "2026-09-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2545000,
+      "ordinaryAllowances": [
+        {
+          "name": "식대",
+          "amount": 200000
+        }
+      ],
+      "otherAllowances": [
+        {
+          "name": "운전보조금",
+          "amount": 200000
+        },
+        {
+          "name": "고정연장수당",
+          "amount": 100000
+        }
+      ],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 3045000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "annualLeave": {
+      "usedDays": 8
+    }
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "ANNUAL_LEAVE",
+        "month": null,
+        "amount": 735502
+      }
+    ]
+  },
+  "handCalculation": [
+    "통상임금 = 기본급 2,545,000 + 식대 200,000 = 2,745,000 (운전보조금 · 고정연장수당은 통상임금에서 뺌, 출처와 같음)",
+    "1년 이상 일함 → 연차 15일, 8일 씀 → 7일 남음",
+    "시간급 = 13133.97, 1일 = 105071.76",
+    "105071.76 × 7 = 735,502 (출처: 약 735,500원)"
+  ]
+}

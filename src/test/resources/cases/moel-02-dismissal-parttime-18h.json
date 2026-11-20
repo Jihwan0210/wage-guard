@@ -1,0 +1,58 @@
+{
+  "name": "해고예고수당: 시급 9,620원 주 18시간(월4·수7·금7) 단시간 근로자",
+  "source": "고용노동부 빠른인터넷상담 (금액이 답변에 적혀 있음)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202508131007170850206",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제26조, 시행령 제9조 별표2",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2022-06-01",
+      "endDate": "2023-06-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 18,
+      "dailyContractHours": null,
+      "workDaysPerWeek": 3
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 9620,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2023-06",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "dismissal": {
+      "dismissed": true,
+      "noticeDaysBefore": 0
+    }
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "DISMISSAL_NOTICE",
+        "month": null,
+        "amount": 1038960
+      }
+    ]
+  },
+  "handCalculation": [
+    "하루 소정근로시간 = 18 × 4주 ÷ 20일 = 3.6시간 (실제 하루 7시간이 아님)",
+    "1일 통상임금 = 9,620 × 3.6 = 34632.00",
+    "해고예고수당 = 34632.00 × 30 = 1,038,960 (출처: 1,038,960원)"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "못 쓴 연차수당: 딱 1년(2025-10-01 ~ 2026-09-30) 일하고 그만둠 → 11일",
+  "source": "대법원 2021. 10. 14. 선고 2021다227100 판결 (1년 기간제는 연차 최대 11일, 15일은 생기지 않음)",
+  "sourceUrl": "https://www.law.go.kr/판례/(2021다227100)",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제60조 제1항 · 제2항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-10-01",
+      "endDate": "2026-09-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2299000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 2299000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "annualLeave": {
+      "usedDays": 0
+    }
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "ANNUAL_LEAVE",
+        "month": null,
+        "amount": 968000
+      }
+    ]
+  },
+  "handCalculation": [
+    "1년 미만 동안 한 달 개근마다 1일 → 11일. 1년을 채운 다음 날 일하지 않아 15일은 생기지 않음 (판결)",
+    "1일 통상임금 = 2,299,000 ÷ 209 × 8 = 88,000 → 88,000 × 11 = 968,000"
+  ]
+}

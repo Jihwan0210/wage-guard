@@ -1,0 +1,7 @@
+# 키 파일은 이미지에 넣지 않는다 (배포 환경변수로 넣기)
+llm-keys.properties
+.git
+.gradle
+build
+docs
+*.md

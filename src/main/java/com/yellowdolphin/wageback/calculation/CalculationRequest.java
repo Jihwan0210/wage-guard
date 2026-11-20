@@ -31,7 +31,7 @@ public record CalculationRequest(
         this(workplace, employment, schedule, wage, months, lastThreeMonthsWages, workDays, dismissal, annualLeave, probation, null, null);
     }
 
-    // v2: 퇴직 후 14일이 지나도 못 받은 돈의 지연이자를 어느 날까지 셀까 (null 이면 오늘)
+    // v2: 못 받은 돈의 지연이자를 어느 날까지 셀까 (null 이면 오늘). 퇴직자는 14일 뒤부터, 재직자는 월급날 다음 날부터
     public record DelayInterest(LocalDate baseDate) {
     }
 

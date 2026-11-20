@@ -18,10 +18,10 @@
   "source": "출처 (판결 사건번호, 공개 사례 링크, 계산기 화면 캡처 위치 등)",
   "request": { "...": "POST /api/v1/calculations 요청 그대로 (API.md)" },
   "expected": {
-    "totalUnpaid": 4957435,
+    "totalUnpaid": 4957469,
     "items": [
       { "code": "BASE_WAGE", "month": "2026-09", "amount": 456880 },
-      { "code": "SEVERANCE", "month": null, "amount": 4316983 }
+      { "code": "SEVERANCE", "month": null, "amount": 4317017 }
     ]
   },
   "handCalculation": ["(선택) 계산 과정 메모"]
