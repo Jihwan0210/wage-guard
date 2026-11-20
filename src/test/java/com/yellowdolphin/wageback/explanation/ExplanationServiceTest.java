@@ -57,6 +57,27 @@ class ExplanationServiceTest {
     }
 
     @Test
+    void 자리표시자_뒤에_다시_붙인_원_월은_뺀다() {
+        // 작은 모델은 "{{X.month}}월의 … {{X.amount}}원을" 처럼 단위를 한 번 더 붙인다
+        String doubled = GOOD.replace("{{OVERTIME.month}}에", "{{OVERTIME.month}}월에")
+                .replace("{{OVERTIME.amount}}이에요", "{{OVERTIME.amount}} 원이에요")
+                .replace("{{TOTAL.unpaid}}을", "{{TOTAL.unpaid}}원을");
+        var e = service(doubled).explain(RESULT, "ko");
+        assertFalse(e.fallback());
+        assertEquals("2026년 9월에 더 일한 시간은 161,976원이에요.", e.items().get(0).text());
+        assertEquals("모두 2,721,300원을 못 받았어요.", e.summary());
+    }
+
+    @Test
+    void 단위가_아닌_글자는_그대로_둔다() {
+        // "원래" · "월급" 처럼 원 · 월로 시작하는 낱말은 지우지 않는다
+        String words = GOOD.replace("{{OVERTIME.amount}}이에요", "{{OVERTIME.amount}} 원래 받을 돈이에요")
+                .replace("{{OVERTIME.month}}에", "{{OVERTIME.month}} 월급에");
+        var e = service(words).explain(RESULT, "ko");
+        assertEquals("2026년 9월 월급에 더 일한 시간은 161,976원 원래 받을 돈이에요.", e.items().get(0).text());
+    }
+
+    @Test
     void 자리표시자_밖_숫자면_재생성한다() {
         var e = service(WITH_DIGIT, WITH_DIGIT, GOOD).explain(RESULT, "ko");
         assertEquals(3, prompts.size());

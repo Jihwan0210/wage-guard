@@ -29,13 +29,15 @@ public class ExplanationService {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{[A-Z0-9_]+\\.[a-z]+\\}\\}");
     private static final Pattern DIGIT = Pattern.compile("\\d");
+    // 채운 값이 「…원」 · 「…월」 로 끝나는데 LLM 이 자리표시자 뒤에 같은 단위를 또 붙인 것 (뒤가 끝 · 띄어쓰기 · 문장부호 · 조사일 때만)
+    private static final Pattern REPEATED_UNIT = Pattern.compile("^\\s*([원월])(?=$|[\\s.,!?·)]|[을를이가은는의에과와으로도만까부입])");
 
     private static final String SYSTEM = """
             너는 임금 계산 결과를 근로자에게 쉬운 말로 설명한다.
             - 항목마다 한 문장, 언어는 %s, 쉬운 존댓말
             - 숫자(0-9)를 절대 쓰지 않는다. 금액 · 달은 주어진 자리표시자를 글자 그대로 쓴다
             - status 가 NO_DATA 면 정보가 없어 계산하지 않았으니 해당되면 입력해 달라고, INCLUDED_IN_WAGE 면 월급에 이미 들어 있다고 쓴다
-            - estimated 가 true 면 추정한 금액이라고 밝힌다
+            - estimated 가 true 면 추정한 금액이라 실제와 다를 수 있다고 밝힌다
             - 법률 판단이나 주어지지 않은 사실을 지어내지 않는다
             - summary 는 summaryPlaceholder 를 넣은 한 문장
             답은 JSON 한 개만: {"items":[{"key":"OVERTIME","text":"..."}],"summary":"..."}
@@ -136,19 +138,27 @@ public class ExplanationService {
         Matcher m = PLACEHOLDER.matcher(text);
         StringBuilder out = new StringBuilder();
         int last = 0;
+        String unit = "";
         while (m.find()) {
-            String outside = text.substring(last, m.start());
+            String outside = dropUnit(text.substring(last, m.start()), unit);
             if (DIGIT.matcher(outside).find() || !values.containsKey(m.group())) {
                 return null;
             }
-            out.append(outside).append(values.get(m.group()));
+            String value = values.get(m.group());
+            out.append(outside).append(value);
+            unit = value.isEmpty() ? "" : value.substring(value.length() - 1);
             last = m.end();
         }
-        String rest = text.substring(last);
+        String rest = dropUnit(text.substring(last), unit);
         if (DIGIT.matcher(rest).find() || rest.contains("{{")) {
             return null;
         }
         return out.append(rest).toString();
+    }
+
+    private static String dropUnit(String after, String unit) {
+        Matcher u = REPEATED_UNIT.matcher(after);
+        return u.find() && u.group(1).equals(unit) ? after.substring(u.end()) : after;
     }
 
     // 재생성까지 실패하면 항목별 고정 문구
