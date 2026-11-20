@@ -69,6 +69,16 @@ class ExplanationServiceTest {
     }
 
     @Test
+    void 한국어_답에_한자가_섞이면_재생성한다() {
+        // 작은 모델이 「일한工的 금액」 처럼 중국어 글자를 섞어 쓴다
+        String han = GOOD.replace("더 일한 시간은", "더 일한工的 시간은");
+        var e = service(han, GOOD).explain(RESULT, "ko");
+        assertEquals(2, prompts.size());
+        assertFalse(e.fallback());
+        assertEquals("2026년 9월에 더 일한 시간은 161,976원이에요.", e.items().get(0).text());
+    }
+
+    @Test
     void 단위가_아닌_글자는_그대로_둔다() {
         // "원래" · "월급" 처럼 원 · 월로 시작하는 낱말은 지우지 않는다
         String words = GOOD.replace("{{OVERTIME.amount}}이에요", "{{OVERTIME.amount}} 원래 받을 돈이에요")

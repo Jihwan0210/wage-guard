@@ -30,6 +30,8 @@ public class ExplanationService {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{[A-Z0-9_]+\\.[a-z]+\\}\\}");
     private static final Pattern DIGIT = Pattern.compile("\\d");
     // 채운 값이 「…원」 · 「…월」 로 끝나는데 LLM 이 자리표시자 뒤에 같은 단위를 또 붙인 것 (뒤가 끝 · 띄어쓰기 · 문장부호 · 조사일 때만)
+    // 한국어 답에 섞인 한자(중국어 글자). 작은 모델이 가끔 섞는다. 화면 글은 한자를 쓰지 않으니 나오면 다시 시킨다
+    private static final Pattern HAN = Pattern.compile("\\p{IsHan}");
     private static final Pattern REPEATED_UNIT = Pattern.compile("^\\s*([원월])(?=$|[\\s.,!?·)]|[을를이가은는의에과와으로도만까부입])");
 
     private static final String SYSTEM = """
@@ -122,13 +124,13 @@ public class ExplanationService {
         List<Explanation.Item> items = new ArrayList<>();
         for (var slot : slots.entrySet()) {
             String t = replace(texts.get(slot.getKey()), values);
-            if (t == null) {
+            if (t == null || "ko".equals(lang) && HAN.matcher(t).find()) {
                 return null;
             }
             items.add(new Explanation.Item(slot.getValue().path("code").asString(), t));
         }
         String summary = replace(answer.path("summary").asString(""), values);
-        return summary == null ? null : new Explanation(lang, items, summary, false);
+        return summary == null || "ko".equals(lang) && HAN.matcher(summary).find() ? null : new Explanation(lang, items, summary, false);
     }
 
     private static String replace(String text, Map<String, String> values) {
