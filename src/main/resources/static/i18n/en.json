@@ -93,6 +93,7 @@
   "err.400": "Please check what you entered.",
   "err.expired": "30 minutes have passed. Please calculate again.",
   "err.429": "Too many requests. Please try again in about a minute.",
+  "err.daily": "This feature has reached today's limit. Please try again tomorrow. You can still see your calculation.",
   "err.503": "The plain-language explanation is not available now. The calculated amount is not affected.",
   "title.upload": "Upload documents",
   "up.h1": "Upload photos of your documents",

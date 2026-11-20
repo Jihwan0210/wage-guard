@@ -52,4 +52,27 @@ class RateLimitFilterTest {
         now.set(60_000);
         assertEquals(200, call("/api/v1/documents/extract", "1.1.1.1").getStatus());
     }
+
+    @Test
+    void 하루_전체_상한을_넘으면_처음_온_사람도_429_다음_날엔_다시_된다() throws Exception {
+        for (int i = 0; i < 300; i++) { // 서로 다른 300명이 한 번씩
+            assertEquals(200, call("/api/v1/documents/extract", "10.0." + i / 250 + "." + i % 250).getStatus());
+        }
+        MockHttpServletResponse res = call("/api/v1/documents/extract", "9.9.9.9");
+        assertEquals(429, res.getStatus());
+        assertTrue(res.getContentAsString().contains("DAILY_LIMIT"));
+        assertEquals(200, call("/api/v1/calculations", "9.9.9.9").getStatus()); // LLM 을 안 쓰는 계산은 상한이 없다
+        assertEquals(200, call("/api/v1/calculations/a/explanation", "9.9.9.9").getStatus()); // 해설은 따로 센다
+        now.set(86_400_000);
+        assertEquals(200, call("/api/v1/documents/extract", "9.9.9.9").getStatus());
+    }
+
+    @Test
+    void 분당_제한에_걸린_요청은_하루_상한에서_빼지_않는다() throws Exception {
+        allowedOf("/api/v1/documents/extract", 50); // 한 사람이 50번: 5번만 통과
+        for (int i = 0; i < 295; i++) {
+            assertEquals(200, call("/api/v1/documents/extract", "10.1." + i / 250 + "." + i % 250).getStatus());
+        }
+        assertEquals(429, call("/api/v1/documents/extract", "9.9.9.9").getStatus());
+    }
 }

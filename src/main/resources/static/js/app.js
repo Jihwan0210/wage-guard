@@ -262,7 +262,7 @@
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (data) {
         if (r.ok) return data;
-        var key = r.status === 404 ? 'err.expired' : { 413: 'err.413', 415: 'err.415', 422: 'err.422', 429: 'err.429', 503: 'err.503' }[r.status] || 'err.default';
+        var key = r.status === 404 ? 'err.expired' : data.code === 'DAILY_LIMIT' ? 'err.daily' : { 413: 'err.413', 415: 'err.415', 422: 'err.422', 429: 'err.429', 503: 'err.503' }[r.status] || 'err.default';
         var e = new Error(r.status === 400 ? data.detail || t('err.400') : t(key));
         e.status = r.status; e.code = data.code; e.field = data.field;
         throw e;
