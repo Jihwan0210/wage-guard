@@ -1,0 +1,52 @@
+{
+  "name": "휴일근로: 시급 12,000원, 휴일에 10시간 → 8시간 1.5배 + 2시간 2배",
+  "source": "근로기준법 제56조 제2항 원문 + 고용노동부 빠른인터넷상담 (규칙만 있음, 금액은 팀 손계산)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202410300932373390655",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제56조 제2항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-01-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 12000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 8,
+        "holidayHoursOver8": 2,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "HOLIDAY",
+        "month": "2026-09",
+        "amount": 192000
+      }
+    ]
+  },
+  "handCalculation": [
+    "12,000 × 8 × 1.5 = 144,000, 12,000 × 2 × 2.0 = 48,000 → 192,000"
+  ]
+}

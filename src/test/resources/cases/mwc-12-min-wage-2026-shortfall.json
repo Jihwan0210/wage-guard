@@ -1,0 +1,53 @@
+{
+  "name": "최저임금 2026: 월급 198만 5,500원(시급 9,500원) → 차액",
+  "source": "최저임금위원회 연도별 결정현황 · 법제처 생활법령 (2026 시급 10,320원, 월 환산 2,156,880원이 적혀 있음)",
+  "sourceUrl": "https://www.minimumwage.go.kr/minWage/policy/decisionMain.do",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "최저임금법 제6조 제1항 · 제3항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-01-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 1985500,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-09",
+        "paidAmount": 1985500,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": 171380,
+    "items": [
+      {
+        "code": "MIN_WAGE_SHORTFALL",
+        "month": "2026-09",
+        "amount": 171380
+      }
+    ]
+  },
+  "handCalculation": [
+    "1,985,500 ÷ 209 = 9,500",
+    "(10,320 − 9,500) × 209 = 171,380 = 2,156,880 − 1,985,500"
+  ]
+}

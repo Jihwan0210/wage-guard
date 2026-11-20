@@ -1,0 +1,67 @@
+{
+  "name": "지연이자: 퇴직 후 14일 지나 못 받은 100만원, 100일 늦음",
+  "source": "고용노동부 빠른인터넷상담 (지연이자 = 체불액 × 0.2 × 체불일수 ÷ 365, 금액은 팀 손계산)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202410070244173310427",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제37조 제1항, 시행령 제17조",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-01-01",
+      "endDate": "2026-06-30"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2200000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-06",
+        "paidAmount": 1200000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "delayInterest": {
+      "baseDate": "2026-10-23"
+    }
+  },
+  "expected": {
+    "totalUnpaid": 1054794,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2026-06",
+        "amount": 1000000
+      },
+      {
+        "code": "SEVERANCE",
+        "month": null,
+        "amount": 0
+      },
+      {
+        "code": "DELAY_INTEREST",
+        "month": null,
+        "amount": 54794
+      }
+    ]
+  },
+  "handCalculation": [
+    "6월 월급 2,200,000 중 1,200,000만 받음 → 1,000,000 체불 (1년 미만이라 퇴직금 0)",
+    "그만둔 날 7/1, 14일 안 = 7/15 → 7/16 ~ 10/23 = 100일",
+    "1,000,000 × 0.2 × 100 ÷ 365 = 54,794"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "최저임금 2027: 월급 209만원(시급 1만원) → 차액",
+  "source": "고용노동부 2027년 최저임금 고시 보도자료 (시급 10,700원, 월 환산 2,236,300원)",
+  "sourceUrl": "https://moel.go.kr/news/enews/report/enewsView.do?news_seq=19659",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "최저임금법 제6조 제1항 · 제3항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2027-01-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2090000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2027-01",
+        "paidAmount": 2090000,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": 146300,
+    "items": [
+      {
+        "code": "MIN_WAGE_SHORTFALL",
+        "month": "2027-01",
+        "amount": 146300
+      }
+    ]
+  },
+  "handCalculation": [
+    "2,090,000 ÷ 209 = 10,000",
+    "(10,700 − 10,000) × 209 = 146,300 = 2,236,300 − 2,090,000"
+  ]
+}

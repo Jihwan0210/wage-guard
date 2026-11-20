@@ -1,0 +1,55 @@
+{
+  "name": "주휴수당: 시급 1만원 주 6일 35시간 (4인 사업장), 2026년 2월 4주",
+  "source": "고용노동부 빠른인터넷상담 (계산 방법이 적혀 있고 금액은 팀 손계산)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202403221010432241000",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제55조 제1항, 시행령 제9조 별표2",
+  "request": {
+    "workplace": {
+      "size": "UNDER_FIVE"
+    },
+    "employment": {
+      "startDate": "2026-02-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 35,
+      "dailyContractHours": null,
+      "workDaysPerWeek": 6
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 10000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-02",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "WEEKLY_HOLIDAY",
+        "month": "2026-02",
+        "amount": 280000
+      }
+    ]
+  },
+  "handCalculation": [
+    "1일 소정근로시간 = 35 × 4 ÷ 20 = 7시간 (= 35 ÷ 40 × 8)",
+    "한 주 주휴수당 = 7 × 10,000 = 70,000",
+    "2월 4주 = 280,000",
+    "주휴는 5인 미만에도 적용 (시행령 별표1)"
+  ]
+}

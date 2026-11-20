@@ -1,0 +1,53 @@
+{
+  "name": "주휴수당: 시급 1만원 주 20시간(월8·수8·금4), 2026년 2월 4주",
+  "source": "고용노동부 빠른인터넷상담 (한 주 40,000원이 답변에 적혀 있음)",
+  "sourceUrl": "https://www.moel.go.kr/minwon/fastcounsel/fastcounselView.do?inetDcssMngId=202401081620124231000",
+  "checkedAt": "2026-11-20",
+  "legalBasis": "근로기준법 제55조 제1항, 제18조 제3항",
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2026-02-01",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 20,
+      "dailyContractHours": null,
+      "workDaysPerWeek": 3
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 10000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-02",
+        "paidAmount": 0,
+        "overtimeHours": 0,
+        "nightHours": 0,
+        "holidayHoursWithin8": 0,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": null,
+    "items": [
+      {
+        "code": "WEEKLY_HOLIDAY",
+        "month": "2026-02",
+        "amount": 160000
+      }
+    ]
+  },
+  "handCalculation": [
+    "주휴시간 = 20 ÷ 40 × 8 = 4.0시간, 한 주 40,000원 (출처)",
+    "2월 28일 = 4주 → 40,000 × 4 = 160,000"
+  ]
+}

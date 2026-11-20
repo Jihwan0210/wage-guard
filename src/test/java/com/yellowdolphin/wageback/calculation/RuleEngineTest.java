@@ -79,8 +79,8 @@ class RuleEngineTest {
     @Test
     void 경계4_평균임금이_통상임금보다_적으면_통상임금() {
         CalculationResult r = calc(monthly("FIVE_OR_MORE", "2025-01-01", "2025-12-31", MONTHLY_11000, 0, null));
-        // 평균임금 2,299,000 × 3 ÷ 92일 = 74,967.39 → 74,967 < 1일 통상임금 11,000 × 8 = 88,000
-        assertThat(r.dailyAverageWage().value()).isEqualTo("74967");
+        // 평균임금 2,299,000 × 3 ÷ 92일 = 74,967.39 (전까지) < 1일 통상임금 11,000 × 8 = 88,000
+        assertThat(r.dailyAverageWage().value()).isEqualTo("74967.39");
         Item s = item(r, "SEVERANCE", null);
         assertThat(s.amount()).isEqualTo(2_640_000L); // 88,000 × 30 × 365 ÷ 365
         assertThat(s.formula()).contains("1일 통상임금보다 적어").doesNotContain("멘토");
@@ -366,12 +366,12 @@ class RuleEngineTest {
     @Test
     void 휴업수당은_평균임금_70퍼센트_5인_미만은_적용_안_함() {
         CalculationRequest r = monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
-        // 1일 평균임금 2,299,000 × 12 ÷ 365 = 75,583.56 → 75,583. 75,583 × 10일 × 70% = 529,081
+        // 1일 평균임금 2,299,000 × 12 ÷ 365 = 75,583.56 (전까지). 75,583.56 × 10일 × 70% = 529,084.92 → 529,084
         Item it = item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 0L))), "SHUTDOWN_ALLOWANCE", null);
-        assertThat(it.amount()).isEqualTo(529_081L);
+        assertThat(it.amount()).isEqualTo(529_084L);
         assertThat(it.estimated()).isTrue();
-        // 쉬는 동안 100,000원 받음: (755,830 − 100,000) × 70% = 459,081
-        assertThat(item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 100_000L))), "SHUTDOWN_ALLOWANCE", null).amount()).isEqualTo(459_081L);
+        // 쉬는 동안 100,000원 받음: (755,835.6 − 100,000) × 70% = 459,084.92 → 459,084
+        assertThat(item(calc(more(r, null, null, new CalculationRequest.Shutdown(10, 100_000L))), "SHUTDOWN_ALLOWANCE", null).amount()).isEqualTo(459_084L);
         CalculationRequest small = monthly("UNDER_FIVE", "2025-01-01", null, MONTHLY_11000, 0, null, month("2026-09", MONTHLY_11000, 0, 0, 0, 0));
         CalculationResult under = calc(more(small, null, null, new CalculationRequest.Shutdown(10, 0L)));
         assertThat(under.items()).noneMatch(i -> i.code().equals("SHUTDOWN_ALLOWANCE"));

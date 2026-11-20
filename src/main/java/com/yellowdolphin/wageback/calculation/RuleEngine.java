@@ -39,7 +39,7 @@ import com.yellowdolphin.wageback.calculation.CalculationResult.WorkWeek;
 // 룰 엔진: 항목별 체불액을 계산한다. 금액은 여기서만 만든다
 final class RuleEngine {
 
-    static final String VERSION = "1.1.0";
+    static final String VERSION = "1.2.0";
     static final Map<Integer, BigDecimal> MIN_WAGES = loadMinWages();
     // 재직 중 지연이자 시행일 (근로기준법 제37조 개정, 2024. 10. 22. 공포)
     static final LocalDate EMPLOYED_INTEREST_FROM = LocalDate.of(2025, 10, 23);
@@ -91,7 +91,8 @@ final class RuleEngine {
     private final boolean underFive;
     private final long base, allowances;
     private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly, dailyHours;
-    private final long ordinaryDaily; // 1일 통상임금 = 시간급 × 하루 소정시간
+    // 1일 통상임금 = 시간급 × 하루 소정시간. 전(소수 둘째 자리)까지 두고 마지막 금액에서만 원 미만을 버린다 (고용노동부 계산 예시와 같게)
+    private final BigDecimal ordinaryDaily;
     private final String hourlyFormula;
     private final Map<String, Notice> warnings = new LinkedHashMap<>();
     private final List<WorkWeek> workWeeks = new ArrayList<>();
@@ -137,7 +138,7 @@ final class RuleEngine {
             perDay = legal;
         }
         dailyHours = perDay;
-        ordinaryDaily = trunc(hourly.multiply(dailyHours));
+        ordinaryDaily = hourly.multiply(dailyHours).setScale(2, RoundingMode.DOWN);
         months = withWorkDays();
     }
 
@@ -301,24 +302,25 @@ final class RuleEngine {
         }
         long bonus = nz(req.wage().annualBonus());
         BigDecimal total = wages.add(div(dec(bonus).multiply(dec(3)), dec(12)));
-        long average = trunc(div(total, dec(windowDays)));
+        // 평균임금도 전까지 둔다 (고용노동부 퇴직금 계산 예시: 88,641원 31전)
+        BigDecimal average = div(total, dec(windowDays)).setScale(2, RoundingMode.DOWN);
         String averageFormula = "3개월 임금 총액 " + won(trunc(wages)) + (bonus > 0 ? " + 연간 상여금 " + won(bonus) + " × 3 ÷ 12" : "")
                 + " ÷ " + windowDays + "일";
 
-        long daily = average;
+        BigDecimal daily = average;
         String note = "";
-        if (average < ordinaryDaily) {
+        if (average.compareTo(ordinaryDaily) < 0) {
             daily = ordinaryDaily;
-            note = " (평균임금 " + won(average) + "이 1일 통상임금보다 적어 " + won2(hourly) + " × " + hours(dailyHours)
+            note = " (평균임금 " + won2(average) + "이 1일 통상임금보다 적어 " + won2(hourly) + " × " + hours(dailyHours)
                     + "시간으로 계산)";
             warn("SEVERANCE_ORDINARY_WAGE", "평균임금이 통상임금보다 적어 퇴직금을 1일 통상임금으로 계산했어요 (근로기준법 제2조 제2항).");
         }
         if (!assumed.isEmpty()) {
             note += " (" + String.join("·", assumed) + "은 계약대로 일하고 받았다고 가정)";
         }
-        long amount = trunc(div(dec(daily).multiply(dec(30)).multiply(dec(serviceDays)), dec(365)));
-        Item item = item("SEVERANCE", null, !assumed.isEmpty(), amount, won(daily) + " × 30일 × " + serviceDays + "일 ÷ 365" + note);
-        return new Severance(item, new Value(Long.toString(average), averageFormula));
+        long amount = trunc(div(daily.multiply(dec(30)).multiply(dec(serviceDays)), dec(365)));
+        Item item = item("SEVERANCE", null, !assumed.isEmpty(), amount, won2(daily) + " × 30일 × " + serviceDays + "일 ÷ 365" + note);
+        return new Severance(item, new Value(average.toPlainString(), averageFormula));
     }
 
     // ---- 해고예고수당 · 연차수당 · 수습 (v2) ----
@@ -341,9 +343,9 @@ final class RuleEngine {
             return item("DISMISSAL_NOTICE", null, false, 0L, notice + "일 전에 알려서 해고예고수당이 없어요");
         }
         warn("DISMISSAL_CHECK", "천재지변 같은 일이나, 일하는 사람이 일부러 회사에 큰 손해를 끼쳐 해고된 경우에는 해고예고수당을 못 받을 수 있어요. 확인이 필요해요.");
-        String f = won(ordinaryDaily) + " × 30일 (1일 통상임금 " + won2(hourly) + " × " + hours(dailyHours) + "시간)"
+        String f = won2(ordinaryDaily) + " × 30일 (1일 통상임금 " + won2(hourly) + " × " + hours(dailyHours) + "시간)"
                 + (notice > 0 ? " (" + notice + "일 전에 알림 — 30일보다 짧아 30일분 전부로 계산, 확인 필요)" : " (미리 알리지 않음)");
-        return item("DISMISSAL_NOTICE", null, notice > 0, ordinaryDaily * 30, f);
+        return item("DISMISSAL_NOTICE", null, notice > 0, trunc(ordinaryDaily.multiply(dec(30))), f);
     }
 
     // 못 쓴 연차수당: 마지막 1년(1년 미만이면 전체)에 생긴 연차 − 쓴 날 × 1일 통상임금 (근로기준법 제60조)
@@ -365,9 +367,9 @@ final class RuleEngine {
         long unused = Math.max(0, earned - used);
         warn("ANNUAL_LEAVE_CHECK", "연차수당은 출근율 80% 이상(1년 미만은 매달 빠짐없이 출근)이라고 보고, 마지막 1년에 생긴 연차만 계산했어요. "
                 + "그 전 해에 남은 연차나 회사의 연차 사용 권유(사용 촉진)는 반영하지 않았어요. 확인이 필요해요.");
-        String f = won(ordinaryDaily) + " × 못 쓴 " + unused + "일 (" + (years == 0 ? "1년 미만, 개근한 달 수" : years + "년 일함")
+        String f = won2(ordinaryDaily) + " × 못 쓴 " + unused + "일 (" + (years == 0 ? "1년 미만, 개근한 달 수" : years + "년 일함")
                 + " → 생긴 연차 " + earned + "일 − 쓴 " + used + "일)";
-        return item("ANNUAL_LEAVE", null, true, ordinaryDaily * unused, f);
+        return item("ANNUAL_LEAVE", null, true, trunc(ordinaryDaily.multiply(dec(unused))), f);
     }
 
     // 휴업수당: (평균임금 × 쉰 날 − 받은 돈) × 70%. 70%가 통상임금보다 많으면 (통상임금 × 쉰 날 − 받은 돈)
@@ -383,13 +385,13 @@ final class RuleEngine {
             return null;
         }
         long monthlyWage = type.equals("MONTHLY") ? base + allowances : trunc(hourly.multiply(monthlyHours));
-        long average = trunc(div(dec(monthlyWage * 12), dec(365)));
+        BigDecimal average = div(dec(monthlyWage * 12), dec(365)).setScale(2, RoundingMode.DOWN);
         long days = s.days(), got = nz(s.paidAmount());
-        long amount = trunc(div(dec(Math.max(0, average * days - got) * 7), dec(10)));
-        String f = "(1일 평균임금 " + won(average) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + ") × 70% (평균임금은 월 " + won(monthlyWage) + " × 12 ÷ 365로 추정)";
-        if (average * 7 > ordinaryDaily * 10) {
-            amount = Math.max(0, ordinaryDaily * days - got);
-            f = "1일 통상임금 " + won(ordinaryDaily) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + " (평균임금 70%가 통상임금보다 많아 통상임금으로)";
+        long amount = trunc(average.multiply(dec(days)).subtract(dec(got)).max(BigDecimal.ZERO).multiply(new BigDecimal("0.7")));
+        String f = "(1일 평균임금 " + won2(average) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + ") × 70% (평균임금은 월 " + won(monthlyWage) + " × 12 ÷ 365로 추정)";
+        if (average.multiply(new BigDecimal("0.7")).compareTo(ordinaryDaily) > 0) {
+            amount = Math.max(0, trunc(ordinaryDaily.multiply(dec(days))) - got);
+            f = "1일 통상임금 " + won2(ordinaryDaily) + " × " + days + "일" + (got > 0 ? " − 받은 " + won(got) : "") + " (평균임금 70%가 통상임금보다 많아 통상임금으로)";
         }
         warn("SHUTDOWN_CHECK", "휴업수당은 회사 사정으로 쉰 경우에만 받아요. 평균임금은 약속한 월급으로 추정했어요. 노동위원회 승인을 받은 휴업이면 더 적을 수 있어요. 확인이 필요해요.");
         return item("SHUTDOWN_ALLOWANCE", null, true, amount, f);
