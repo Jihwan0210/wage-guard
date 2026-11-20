@@ -286,6 +286,10 @@
     return m && m[1];
   }
   function hoursOrNull(v) { return v === '' ? null : Number(v); }
+  function toAgree() {
+    var ag = document.getElementById('agree');
+    if (ag) { ag.scrollIntoView({ block: 'center' }); ag.focus({ preventScroll: true }); }
+  }
   function lastMonth() {
     var f = S.f;
     return (f.employed === 'no' && f.end ? f.end : ymdOf(new Date())).slice(0, 7);
@@ -580,24 +584,25 @@
       '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="resume"><span>' + t('resume.go') + '</span>' + icon('arrow-r') + '</button>' +
       '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     return '<div class="split wide-side">' +
-      '<section class="hero">' + dolphin('mascot') +
+      '<div class="start-main"><section class="hero">' + dolphin('mascot') +
       '<h1 tabindex="-1">' + t('start.title') + '</h1>' +
       '<p class="lead">' + t('start.lead') + '</p>' +
-      '<p class="trust">' + icon('lock') + t('start.trust') + '</p></section>' +
-      '<div class="side start-side">' + resume +
+      '<p class="trust">' + icon('lock') + t('start.trust') + '</p></section>' + resume +
       '<fieldset class="stack"><legend class="label">' + LANG_TITLE + '</legend><div class="lang-btns" style="--n:' + LANGS.length + '">' + langs + '</div>' +
       (S.lang === 'ko' ? '<label class="check" for="easy"><input id="easy" type="checkbox" data-act="easy"' + (S.easy ? ' checked' : '') + '><span>' + t('easy.toggle') + '</span></label>' : '') + '</fieldset>' +
       '<section class="agree-box stack" aria-labelledby="agree-t"><h2 id="agree-t">' + t('start.noteTitle') + '</h2>' +
       '<p>' + t('start.noteBody') + '</p>' +
       '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
+      // 단추는 흐리게 꺼 두지 않는다. 확인에 체크하지 않고 누르면 체크 칸으로 데려간다
+      cta(primary(t('start.docBtn'), 'data-act="path" data-v="doc"') +
+        '<button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('start.manualBtn') + '</button>' +
+        (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
+      '</div><div class="start-side">' +
       '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint">' + t('sit.help') + '</p><div class="sit-grid">' +
       SITS.map(function (x) {
         return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span>' + t('sit.' + x[0]) + '</span></label>';
       }).join('') + '</div>' + (S.sit.length ? '<p class="note" role="status">' + t('sit.chosen', { n: S.sit.length }) + '</p>' : '') + '</fieldset>' +
       '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
-      cta(primary(t('start.docBtn'), 'data-act="path" data-v="doc"', S.agreed) +
-        '<button type="button" class="btn btn-line" data-act="path" data-v="manual"' + (S.agreed ? '' : ' disabled') + '>' + t('start.manualBtn') + '</button>' +
-        (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
       '</div></div>' + footer();
   }
 
@@ -1878,6 +1883,7 @@
     else if (a === 'sheet-close') closeSheet();
     else if (a === 'item') itemSheet(Number(t.dataset.i));
     else if (a === 'path') {
+      if (!S.agreed) { toAgree(); toastT('start.agreeHint'); return; }
       S.path = t.dataset.v;
       // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
       if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
@@ -1910,7 +1916,7 @@
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
     else if (a === 'listen') listen();
-    else if (a === 'to-agree') { var ag = document.getElementById('agree'); if (ag) { ag.scrollIntoView({ block: 'center' }); ag.focus({ preventScroll: true }); } }
+    else if (a === 'to-agree') toAgree();
     else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
     else if (a === 'confirm-make') makeDraft(t);
