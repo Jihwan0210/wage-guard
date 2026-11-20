@@ -344,8 +344,8 @@
       dismissal: has('fired') && f.notice ? { dismissed: true, noticeDaysBefore: f.notice === 'none' ? 0 : f.notice === 'full' ? 30 : Number(f.noticeDays) } : undefined,
       annualLeave: has('leave') && f.used !== '' ? { usedDays: Number(f.used) } : undefined,
       probation: has('minw') && f.prob === 'yes' ? { onProbation: true, contractOneYearOrMore: f.year1 === 'yes', simpleLabor: f.simple ? f.simple === 'yes' : null } : undefined,
-      // 7단계: 지연이자는 오늘까지 센다(baseDate null), 휴업수당은 쉰 날 · 그동안 받은 돈
-      delayInterest: has('over14') && f.employed === 'no' ? { baseDate: null } : undefined,
+      // 7단계: 지연이자는 오늘까지 센다(baseDate null). 재직 중이면 늘 보낸다(2025. 10. 23.부터 재직자도 이자). 휴업수당은 쉰 날 · 그동안 받은 돈
+      delayInterest: (has('over14') && f.employed === 'no') || f.employed === 'yes' ? { baseDate: null } : undefined,
       shutdown: has('shut') && Number(f.shutDays) > 0 ? { days: Number(f.shutDays), paidAmount: Number(f.shutPaid) || 0 } : undefined
     };
   }
