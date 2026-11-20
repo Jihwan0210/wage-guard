@@ -560,7 +560,7 @@
   // 시작 화면 아래에만: 저장 안내 + 쉬운 말 사전 + 내 정보 지우기 (다른 화면은 결과의 목록 줄에서)
   function footer() {
     return '<footer class="foot-bar no-print"><p class="hint">' + icon('lock') + ' ' + t('foot.saved') + '</p>' +
-      '<div class="nav-list">' + navRow('data-go="words"', 'book', t('title.words')) + navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div><p class="hint team">' + dolphin('team-ico') + t('foot.team') + '</p></footer>';
+      '<div class="nav-list">' + navRow('data-go="words"', 'book', t('title.words')) + navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div></footer>';
   }
   function progress(step) {
     var bars = [1, 2, 3, 4].map(function (i) { return '<span' + (i < step ? ' class="on"' : i === step ? ' class="now"' : '') + '></span>'; }).join('');
@@ -598,12 +598,13 @@
         '<button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('start.manualBtn') + '</button>' +
         (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
       '</div><div class="start-side">' +
-      '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint">' + t('sit.help') + '</p><div class="sit-grid">' +
+      // 고른 개수는 안내 글 자리에 바꿔 쓴다 (줄이 늘어 아래가 밀려 내려가지 않게)
+      '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint" role="status">' + (S.sit.length ? t('sit.chosen', { n: S.sit.length }) : t('sit.help')) + '</p><div class="sit-grid">' +
       SITS.map(function (x) {
         return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span>' + t('sit.' + x[0]) + '</span></label>';
-      }).join('') + '</div>' + (S.sit.length ? '<p class="note" role="status">' + t('sit.chosen', { n: S.sit.length }) + '</p>' : '') + '</fieldset>' +
+      }).join('') + '</div></fieldset>' +
       '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
-      '</div></div>' + footer();
+      '</div>' + footer() + '</div>';
   }
 
   // ---------- 화면: 서류 올리기 ----------
