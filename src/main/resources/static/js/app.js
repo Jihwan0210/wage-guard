@@ -1202,10 +1202,11 @@
       return s.heading === EDITABLE && S.factsText != null ? { heading: s.heading, body: S.factsText } : s;
     });
   }
+  function signMonth() { var d = new Date(); return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월'; }
   function plainText() {
     var out = [S.draft.draftKo.title, ''];
     draftSections().forEach(function (s) { out.push('[' + s.heading + ']', s.body, ''); });
-    out.push('2026년 11월    일', '진정인 ' + (S.p.name || '[이름]') + ' (서명)');
+    out.push(signMonth() + '    일', '진정인 ' + (S.p.name || '[이름]') + ' (서명)');
     return out.join('\n');
   }
 
@@ -1242,7 +1243,7 @@
       seg +
       '<div class="paper-grid' + (showTr ? ' tr-on' : '') + '">' +
       '<article class="paper" lang="ko"><h2 class="doc-title">' + esc(d.draftKo.title) + '</h2>' + ko +
-      '<p class="sign">2026년 11월 [  ]일<br>진정인 ' + esc(S.p.name || '[이름]') + ' (서명)</p>' +
+      '<p class="sign">' + signMonth() + ' [  ]일<br>진정인 ' + esc(S.p.name || '[이름]') + ' (서명)</p>' +
       '<p class="foot">' + esc(d.disclaimer) + ' 제출 전 내용이 사실과 같은지 확인하세요.</p></article>' +
       (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(trName) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') +
       '</div>' +
