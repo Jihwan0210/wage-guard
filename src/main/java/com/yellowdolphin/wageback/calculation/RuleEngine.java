@@ -252,21 +252,35 @@ final class RuleEngine {
             paidHours = paidHours.add(holidayHours);
         }
 
-        BigDecimal min = MIN_WAGES.get(ym.getYear());
+        BigDecimal full = MIN_WAGES.get(ym.getYear()), min = full;
         int probation = probationDays(ym);
         String minText = min == null ? "" : won(min.longValue());
         if (min != null && probation > 0) {
-            // 수습 날은 90%: 최저임금 × (1 − 0.1 × 수습 날 ÷ 그 달 일한 날)
+            // 월급은 한 달 치로 견준다. 수습 날은 90%: 최저임금 × (1 − 0.1 × 수습 날 ÷ 그 달 일한 날)
             min = min.multiply(dec(days * 10L - probation)).divide(dec(days * 10L), 2, RoundingMode.DOWN);
             minText = won2(min) + "(수습 " + probation + "일은 90%)";
             warn("PROBATION_MIN_WAGE", "수습 3개월 동안은 최저임금의 90%까지만 줘도 돼서, 그 날들은 90%로 비교했어요. (최저임금법 제5조 제2항)");
         }
         if (min == null) {
             warn("MIN_WAGE_UNKNOWN_" + ym.getYear(), ym.getYear() + "년 최저임금 기준이 없어 그 해는 최저임금 비교를 하지 않았어요.");
+        } else if (probation > 0 && !type.equals("MONTHLY")) {
+            // 시급 · 일급은 날마다 견준다: 수습 날은 90%, 수습이 끝난 날부터 100%.
+            // 수습 날에 90%보다 더 받은 몫으로 수습 뒤의 부족분을 깎지 않는다 (최저임금법 제6조 제3항: 못 미치는 부분만 무효)
+            BigDecimal low = full.multiply(dec(9)).divide(dec(10), 2, RoundingMode.DOWN);
+            BigDecimal lowHours = div(paidHours.multiply(dec(probation)), dec(days)), fullHours = paidHours.subtract(lowHours);
+            BigDecimal gapLow = low.subtract(hourly).max(BigDecimal.ZERO), gapFull = full.subtract(hourly).max(BigDecimal.ZERO);
+            long amount = trunc(gapLow.multiply(lowHours).add(gapFull.multiply(fullHours)));
+            if (amount > 0) {
+                String f = "(" + won(full.longValue()) + " − " + won2(hourly) + ") × 수습 뒤 " + hours(fullHours.setScale(2, RoundingMode.DOWN)) + "시간"
+                        + (gapLow.signum() > 0 ? " + (" + won2(low) + " − " + won2(hourly) + ") × 수습 " + probation + "일 " + hours(lowHours.setScale(2, RoundingMode.DOWN)) + "시간"
+                                : " (수습 " + probation + "일은 90%인 " + won2(low) + " 이상이라 차액 없음)");
+                items.add(item("MIN_WAGE_SHORTFALL", mo, false, amount, f));
+                warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(full.longValue()) + ")보다 적게 받은 달이 있어요.");
+            }
         } else if (hourly.compareTo(min) < 0) {
             String f = "(" + minText + " − " + won2(hourly) + ") × " + hours(paidHours.setScale(2, RoundingMode.DOWN)) + "시간";
             items.add(item("MIN_WAGE_SHORTFALL", mo, false, trunc(min.subtract(hourly).multiply(paidHours)), f));
-            warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(min.longValue()) + ")보다 적게 받은 달이 있어요.");
+            warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(full.longValue()) + ")보다 적게 받은 달이 있어요.");
         }
         return items;
     }
