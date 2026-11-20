@@ -5,10 +5,12 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -43,6 +45,8 @@ final class RuleEngine {
     static final Map<Integer, BigDecimal> MIN_WAGES = loadMinWages();
     // 재직 중 지연이자 시행일 (근로기준법 제37조 개정, 2024. 10. 22. 공포)
     static final LocalDate EMPLOYED_INTEREST_FROM = LocalDate.of(2025, 10, 23);
+
+    static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40), SIXTY = dec(60);
 
@@ -401,7 +405,7 @@ final class RuleEngine {
         if (req.delayInterest() == null) {
             return null;
         }
-        LocalDate baseDate = req.delayInterest().baseDate() == null ? LocalDate.now() : req.delayInterest().baseDate();
+        LocalDate baseDate = req.delayInterest().baseDate() == null ? today(Clock.systemUTC()) : req.delayInterest().baseDate();
         if (end == null) {
             return employedInterest(items, baseDate, notApplied);
         }
@@ -580,7 +584,12 @@ final class RuleEngine {
 
     private int minimumWageYear() {
         return months().stream().map(m -> YearMonth.parse(m.month()).getYear()).max(Integer::compare)
-                .orElse(end != null ? end.getYear() : LocalDate.now().getYear());
+                .orElse(end != null ? end.getYear() : today(Clock.systemUTC()).getYear());
+    }
+
+    // 오늘 날짜는 서버가 어느 시간대에서 돌든 한국 기준 (해외 서버는 보통 UTC 라 아침 9시 전에는 어제로 나온다)
+    static LocalDate today(Clock clock) {
+        return LocalDate.now(clock.withZone(KST));
     }
 
     private List<Month> months() {
