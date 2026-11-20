@@ -20,3 +20,6 @@ application-local.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# LLM 키
+llm-keys.properties
