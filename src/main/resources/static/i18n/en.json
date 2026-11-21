@@ -22,7 +22,7 @@
   "start.noteBody": "This is a reference calculation, not legal advice. For a firm answer, call 1350 (Ministry of Employment and Labor) or ask a labor attorney.",
   "start.agree": "I have read this",
   "start.docBtn": "Start with documents",
-  "start.manualBtn": "Enter by hand (no documents)",
+  "start.manualBtn": "Type it in myself",
   "start.agreeHint": "Tick the box above to start",
   "money": "{n} won",
   "unit": "won",

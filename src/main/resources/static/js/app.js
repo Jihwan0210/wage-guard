@@ -1476,7 +1476,7 @@
     }
     var r = c.res, res = '';
     if (r) {
-      var rows = r.findings.map(function (f) {
+      var rows = r.findings.slice().sort(function (a, b) { return (b.level === 'PROBLEM') - (a.level === 'PROBLEM'); }).map(function (f) { // 문제(빨강) 먼저, 빠짐(노랑) 다음
         var bad = f.level === 'PROBLEM';
         return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span><strong>' + t(bad ? 'ct.bad' : 'ct.miss') + '</strong> ' +
           (f.code === 'MIN_WAGE' ? t('ct.r.MIN_WAGE', { h: Number(r.hourlyWage).toLocaleString('ko-KR'), y: r.minimumWageYear, m: Number(r.minimumWage).toLocaleString('ko-KR') }) : f.code === 'OVER_52' ? t('ct.r.OVER_52') : t('ct.r.miss', { w: t('ct.w.' + f.code) })) +
