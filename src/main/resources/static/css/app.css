@@ -248,6 +248,8 @@ legend { padding: 0; margin-bottom: var(--s2); }
 .sit-t > span { display: inline-block; }
 .sit-mark { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--input-line); display: grid; place-items: center; color: transparent; }
 .sit-mark .ico { width: 16px; height: 16px; stroke-width: 2.5; }
+/* 휴대폰: 아이콘 · 동그라미와 글 사이를 조금 좁혀 「그만둔 지 14일이 지났는데 못 받았어요」가 390px 에서 한 줄에 들어가게 */
+@media (max-width: 959px) { .sit { gap: var(--s2); padding-left: var(--s3); } }
 .sit:has(input:checked) { border-color: var(--fg); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--fg); }
 .sit:has(input:checked) .sit-mark { background: var(--fg); border-color: var(--fg); color: var(--bg); }
 .sit:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -489,16 +491,19 @@ dialog .stack { gap: var(--s4); }
   .start-side { padding: var(--s5); border-radius: var(--r-lg); background: var(--bg); border: 1px solid var(--line); }
   /* 시작 화면은 한 화면(1280x800)에 스크롤 없이: 왼쪽 = 소개 · 언어 · 확인 · 시작 단추, 오른쪽 = 상황(세 줄) · 더 확인할 것 · 저장 안내.
      상황을 골라도 높이가 그대로라 아래 묶음이 움직이지 않는다 */
-  .wrap:has(.wide-side) { max-width: 1200px; padding-block: var(--s3) var(--s2); }
+  .wrap:has(.wide-side) { max-width: 1200px; padding-block: var(--s2); }
   .split.wide-side { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-rows: auto 1fr; gap: 0 var(--s6); }
-  .split.wide-side > .start-main { grid-column: 1; grid-row: 1 / span 2; }
-  .split.wide-side > .start-side { grid-column: 2; grid-row: 1; padding: var(--s4); gap: var(--s3); }
-  .split.wide-side > .foot-bar { grid-column: 2; margin-top: var(--s2); gap: 0; }
+  /* 저장 안내 · 사전 · 지우기 줄은 왼쪽 칸 밑(오른쪽 상황 카드가 더 길어서 왼쪽 아래가 비어 있다) */
+  .split.wide-side > .start-main { grid-column: 1; grid-row: 1; gap: var(--s3); }
+  .split.wide-side > .start-side { grid-column: 2; grid-row: 1 / span 2; padding: var(--s4); gap: var(--s3); }
+  .split.wide-side > .foot-bar { grid-column: 1; grid-row: 2; margin-top: var(--s2); gap: 0; }
+  .split.wide-side > .foot-bar .nav-row { min-height: 48px; }
+  .wide-side .agree-box { padding: var(--s3) var(--s4); gap: var(--s2); }
+  .wide-side .start-main > fieldset { gap: var(--s2); }
   .split.wide-side > .foot-bar .nav-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s4); }
   .wide-side .mascot { display: none; }
-  .wide-side .hero { gap: var(--s2); }
-  .wide-side .hero h1 { font-size: 2rem; max-width: none; }
-  .start-main { gap: var(--s4); }
+  .wide-side .hero { gap: var(--s1); }
+  .wide-side .hero h1 { font-size: 1.75rem; max-width: none; }
   .start-main .cta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
   .start-main .cta .hint { grid-column: 1 / -1; text-align: left; justify-self: start; }
   .start-side .sit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -619,7 +624,7 @@ a.small-btn { color: var(--fg); text-decoration: none; }
 .ct-list li { display: flex; gap: var(--s2); align-items: flex-start; overflow-wrap: anywhere; }
 .ct-list li > .ico { flex-shrink: 0; margin-top: 2px; }
 .ct-list small { font-size: var(--fs-sm); }
-.ct-list small a { color: inherit; }
+.ct-list small a { color: inherit; display: inline-flex; align-items: center; min-height: 44px; } /* 기한 화면 근거 링크도 누르는 높이 44px */
 /* 사전 */
 .words li { border-bottom: 1px solid var(--line); }
 .word summary { font-size: var(--fs-lg); gap: var(--s2); flex-wrap: wrap; }

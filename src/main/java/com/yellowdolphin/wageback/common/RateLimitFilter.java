@@ -14,8 +14,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// IP당 분당 요청 제한: 업로드 5(한 장 · 여러 장 요청 합쳐서) · 해설/진정서 10 · 그 외 API 60 (API.md 요청 제한)
-// LLM 을 부르는 요청은 모든 사용자를 합쳐 하루 상한도 둔다: 업로드 300 · 해설/진정서 600
+// IP당 분당 요청 제한: 업로드 5(한 장 · 여러 장 요청 합쳐서) · 해설/진정서/내용증명 10 · 그 외 API 60 (API.md 요청 제한)
+// LLM 을 부르는 요청은 모든 사용자를 합쳐 하루 상한도 둔다: 업로드 300 · 해설/진정서/내용증명 600
 // (누가 작정하고 불러도 LLM 요금이 끝없이 나가지 않게)
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -48,7 +48,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String path = request.getRequestURI();
         String bucket = path.endsWith("/documents/extract") || path.endsWith("/documents/extract-batch") ? "upload"
-                : path.endsWith("/explanation") || path.endsWith("/complaint-draft") ? "ai" : "api";
+                : path.endsWith("/explanation") || path.endsWith("/complaint-draft") || path.endsWith("/demand-letter") ? "ai" : "api";
         int limit = switch (bucket) {
             case "upload" -> 5;
             case "ai" -> 10;
