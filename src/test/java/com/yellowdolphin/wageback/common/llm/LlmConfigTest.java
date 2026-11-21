@@ -17,12 +17,14 @@ class LlmConfigTest {
     }
 
     @Test
-    void 키가_있는_것만_Gemini_Groq_Claude_순서로() {
+    void 키가_있는_것만_Claude_Gemini_Groq_순서로() {
         assertThat(names(new MockEnvironment())).containsExactly("AnthropicLlmClient"); // 아무것도 없으면 Claude (키 없음 → 503)
         assertThat(names(new MockEnvironment().withProperty("GROQ_API_KEY", "g").withProperty("GEMINI_API_KEY", "m")))
                 .containsExactly("GeminiLlmClient", "GroqLlmClient");
         assertThat(names(new MockEnvironment().withProperty("GROQ_API_KEY", "g").withProperty("LLM_API_KEY", "c")))
-                .containsExactly("GroqLlmClient", "AnthropicLlmClient");
+                .containsExactly("AnthropicLlmClient", "GroqLlmClient");
+        assertThat(names(new MockEnvironment().withProperty("GROQ_API_KEY", "g").withProperty("GEMINI_API_KEY", "m").withProperty("LLM_API_KEY", "c")))
+                .containsExactly("AnthropicLlmClient", "GeminiLlmClient", "GroqLlmClient");
     }
 
     @Test

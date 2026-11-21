@@ -28,7 +28,7 @@ public class DocumentService {
 
     static final List<String> KEYS = List.of("companyName", "employeeCount", "startDate", "endDate", "weeklyContractHours",
             "dailyContractHours", "workDaysPerWeek", "wageType", "baseWage", "allowances", "payMonth", "paidAmount",
-            "overtimeHours", "nightHours", "holidayHours");
+            "overtimeHours", "nightHours", "holidayHours", "jobTitle", "workplaceAddress", "workplacePhone", "workerName", "workerPhone", "workerAddress", "ownerName");
 
     // 주민등록번호: 생년월일 6자리 + (-) + 7자리
     static final Pattern RRN = Pattern.compile("(?<!\\d)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\s*-?\\s*[1-8]\\d{6}(?!\\d)");
@@ -41,7 +41,7 @@ public class DocumentService {
             - allowances 는 [{"name": "수당 이름", "amount": 금액}] 배열
             - confidence 는 0~1, 글자가 흐리거나 추측이면 낮게
             - 주민등록번호 · 외국인등록번호 등 식별번호는 절대 옮겨 적지 말고, 본 개수만 maskedCount 에 적는다
-            - 이름 · 주소 · 연락처는 읽지 않는다
+            - 진정서를 미리 채우려고 근로자 이름 · 연락처 · 주소(workerName · workerPhone · workerAddress), 대표자 이름(ownerName), 사업장 주소 · 전화(workplaceAddress · workplacePhone), 하는 일(jobTitle)을 글자 그대로 읽는다 (시연판. 팀 원칙 3 예외 — 대표 결정 2026-11-21)
             답은 JSON 한 개만: {"fields":[{"key":"baseWage","value":2156880,"confidence":0.9}],"unreadable":["overtimeHours"],"maskedCount":0}
             """.formatted(String.join(", ", KEYS));
 

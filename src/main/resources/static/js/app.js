@@ -1765,6 +1765,9 @@
     var weekly = 0;
     res.fields.forEach(function (x) {
       var v = x.value, row = ROW_OF[x.key];
+      // 진정서 칸은 진정서 화면에 미리 채운다 (이미 쓴 값은 안 덮음. 이름 · 연락처도 읽는 것은 시연판 — 대표 결정 11-21)
+      var pk = { workplaceAddress: 'waddr', workplacePhone: 'wphone', jobTitle: 'job', workerName: 'name', workerPhone: 'phone', workerAddress: 'addr', ownerName: 'owner' }[x.key];
+      if (pk && v != null && !S.p[pk]) S.p[pk] = String(v);
       if (!row || v == null) return;
       if (x.key === 'companyName') f.company = String(v);
       else if (x.key === 'employeeCount') f.size = Number(v) >= 5 ? 'five' : 'under';
