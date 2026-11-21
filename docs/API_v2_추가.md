@@ -64,6 +64,24 @@
 
 시험: `DocumentServiceTest`(합치기 · 충돌 · 일부 실패 · 모두 실패, 가짜 LLM), `ApiErrorTest.여러_장_업로드_오류_코드`, `RateLimitFilterTest`.
 
+### 진정서 칸을 미리 채우는 추출 키 (최종본 1121, 한 장 · 여러 장 경로 공통)
+`API.md` 의 추출 키에 아래 7개를 더했다. 값은 서류에 적힌 글자 그대로(문자열)이고, 없으면 `unreadable` 또는 빠진다.
+
+| 키 | 화면 진정서 칸 | 뜻 |
+|---|---|---|
+| `jobTitle` | 하는 일 (`job`) | 근로계약서 · 명세서의 업무 · 직종 |
+| `workplaceAddress` | 사업장 주소 (`waddr`) | 회사(일한 곳) 주소 |
+| `workplacePhone` | 사업장 전화 (`wphone`) | 회사 전화 |
+| `ownerName` | 대표자 이름 (`owner`) | 사업주 · 대표 |
+| `workerName` | 내 이름 (`name`) | 근로자 이름 |
+| `workerPhone` | 내 연락처 (`phone`) | 근로자 전화 |
+| `workerAddress` | 내 주소 (`addr`) | 근로자 주소 |
+
+- 화면(`app.js applyExtract`)은 진정서 칸이 비어 있을 때만 넣고, 사용자가 이미 쓴 값은 덮지 않는다. 서류에서 온 칸에는 「서류에서 읽음」 표시가 붙는다.
+- 회사 이름(`companyName`) · 기간(`startDate` · `endDate`) · 체불 금액(계산 결과)은 원래대로 진정서에 자동으로 들어간다.
+- **사람 이름 · 연락처 · 주소(`workerName` · `workerPhone` · `workerAddress`, `ownerName`)를 읽는 것은 시연판 한정이다(대표 결정 2026-11-21).** 팀 원칙 3(개인정보 최소 수집)의 예외라서 **develop 에 올리기 전 팀 확인이 필요하다.** 읽은 값은 서버에 저장 · 로그하지 않고, 화면은 sessionStorage(탭을 닫으면 지워짐)에만 둔다.
+- 시험: `DocumentServiceTest.진정서_칸_키도_받는다`.
+
 ## POST /api/v1/calculations — `workDays` (하루 기록) 더함
 
 기존 요청 · 응답은 그대로다. 요청에 **선택** 필드 `workDays` 를, 응답에 `workWeeks` 를 더했다 (`engineVersion` 1.1.0).
