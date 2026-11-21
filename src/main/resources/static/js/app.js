@@ -18,6 +18,8 @@
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
   var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'pause'], ['over14', 'cal']];
   var mobile = window.matchMedia('(max-width: 959px)');
+  // 카메라로 바로 찍기는 손가락으로 쓰는 기기(휴대폰 · 태블릿)에서만. PC 는 파일 고르기만 (화면 너비가 아니라 입력 방식으로 판단)
+  var touch = window.matchMedia('(pointer: coarse)');
   // 쉬운 말 사전: 언어 파일의 w.<id> (말) · w.<id>.d (풀이) · w.<id>.law (근거, 한국어 파일에만)
   var WORDS = ['ordinaryWage', 'averageWage', 'weeklyHoliday', 'overtime', 'night', 'holidayWork', 'severance', 'minWage', 'underFive', 'complaint', 'laborOffice', 'daeji'];
   var ITEM_WORD = { OVERTIME: 'overtime', NIGHT: 'night', HOLIDAY: 'holidayWork', WEEKLY_HOLIDAY: 'weeklyHoliday', SEVERANCE: 'severance', MIN_WAGE_SHORTFALL: 'minWage' };
@@ -42,14 +44,14 @@
       route: 'start', agreed: false, lang: 'ko', big: false, easy: false, sit: [], path: '',
       up: { status: 'idle' },
       f: blankFields(), src: {}, from: {}, conf: {}, low: {}, ok: {}, unread: {}, fieldErr: {},
-      p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' }, pErr: {},
+      p: { name: '', phone: '', addr: '', owner: '', waddr: '', wphone: '', job: '', facts: '' }, pErr: {}, psrc: {},
       formTried: false, factsText: null, editing: false, tr: true,
       calc: null, explain: null, explainState: '', draft: null,
       calM: '', calSel: '', ready: {}, office: { sido: '', sgg: '' }, dj: {},
       ct: { type: '', wage: '', daily: '', weekly: '', size: '', written: {}, res: null, read: false, busy: false }, dl: { end: '', fired: '', unpaid: '' }
     };
   }
-  var PRIVATE = ['p', 'draft', 'factsText', 'pErr'];
+  var PRIVATE = ['p', 'draft', 'factsText', 'pErr', 'psrc'];
   function load() {
     var s = fresh();
     try {
@@ -501,6 +503,11 @@
     } catch (e) {}
     render(dir);
   }
+  function home() {
+    if (S.route === 'start') { window.scrollTo(0, 0); var h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); return; }
+    if (S.agreed && FREE.indexOf(S.route) < 0) resumeTo = S.route;
+    go('start');
+  }
   function back() {
     var prev = stack.pop();
     if (!prev) prev = 'start';
@@ -519,12 +526,13 @@
     var steps = [1, 2, 3, 4].map(function (i) {
       return '<li' + (step === i ? ' aria-current="step"' : step > i ? ' class="done"' : '') + '><b>' + (step > i ? icon('check') : i) + '</b>' + t('step.' + i) + '</li>';
     }).join('');
-    var brand = '<span class="brand">' + dolphin('') + '<span>' + t('brand') + '</span></span>';
+    // 상표(돌고래 + 이름)는 어느 화면에서나 시작 화면으로 가는 링크. 쓰던 값은 그대로 두고, 시작 화면에 '이어서 하기'가 뜬다
+    var brand = '<a class="brand" href="#start" data-act="home">' + dolphin('') + '<span class="brand-t">' + t('brand') + '</span><span class="sr">, ' + t('brand.home') + '</span></a>';
     var left = r === 'start'
       ? brand
       : '<button type="button" class="icon-btn" data-act="back" aria-label="' + t('top.back') + '">' + icon('arrow-l') + '</button>' +
-        '<span class="top-title">' + esc(TITLE[r] ? t(TITLE[r]) : '') + '</span>' +
-        '<span class="brand-desk">' + brand + '</span>';
+        '<span class="brand-desk">' + brand + '</span>' +
+        '<span class="top-title">' + esc(TITLE[r] ? t(TITLE[r]) : '') + '</span>';
     var me = langOf(S.lang);
     return '<header class="top"><div class="top-in">' + left +
       (hasTabs() ? tabs('tabs-top') : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
@@ -598,10 +606,10 @@
         '<button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('start.manualBtn') + '</button>' +
         (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
       '</div><div class="start-side">' +
-      // 고른 개수는 안내 글 자리에 바꿔 쓴다 (줄이 늘어 아래가 밀려 내려가지 않게)
+      // 고른 개수는 안내 글 자리에 바꿔 쓴다 (줄이 늘어 아래가 밀려 내려가지 않게). 문구의 | 는 줄을 바꿔도 되는 자리(덩어리째 넘어감)
       '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint" role="status">' + (S.sit.length ? t('sit.chosen', { n: S.sit.length }) : t('sit.help')) + '</p><div class="sit-grid">' +
       SITS.map(function (x) {
-        return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span>' + t('sit.' + x[0]) + '</span></label>';
+        return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span class="sit-t">' + t('sit.' + x[0]).split('|').map(function (c) { return '<span>' + c + '</span>'; }).join(' ') + '</span><span class="sit-mark" aria-hidden="true">' + icon('check') + '</span></label>';
       }).join('') + '</div></fieldset>' +
       '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
       '</div>' + footer() + '</div>';
@@ -648,12 +656,12 @@
       '<div class="stack"><h1 tabindex="-1">' + t('up.h1') + '</h1><p class="lead">' + t('up.lead') + '</p></div>' +
       '<section><h2 class="sr">' + t('up.howTitle') + '</h2><ul class="howto">' + how + '</ul></section>' +
       '<div class="capture">' +
-      '<div class="btn-row">' +
-      '<label class="btn btn-primary" for="cam">' + icon('camera') + '<span>' + t('up.cam') + '</span></label>' +
-      '<label class="btn btn-line" for="file">' + icon('file') + '<span>' + t('up.pick') + '</span></label></div>' +
-      '<input id="cam" class="sr" type="file" accept="image/*" capture="environment" data-act="files"' + (busy ? ' disabled' : '') + '>' +
+      '<div class="btn-row' + (touch.matches ? '' : ' one') + '">' +
+      (touch.matches ? '<label class="btn btn-primary" for="cam">' + icon('camera') + '<span>' + t('up.cam') + '</span></label>' : '') +
+      '<label class="btn ' + (touch.matches ? 'btn-line' : 'btn-primary') + '" for="file">' + icon('file') + '<span>' + t('up.pick') + '</span></label></div>' +
+      (touch.matches ? '<input id="cam" class="sr" type="file" accept="image/*" capture="environment" data-act="files"' + (busy ? ' disabled' : '') + '>' : '') +
       '<input id="file" class="sr" type="file" accept="application/pdf,image/*,.hwp" multiple data-act="files"' + (busy ? ' disabled' : '') + '>' +
-      '<input id="retake" class="sr" type="file" accept="application/pdf,image/*" capture="environment" data-act="retake-file" tabindex="-1" aria-hidden="true">' +
+      '<input id="retake" class="sr" type="file" accept="application/pdf,image/*"' + (touch.matches ? ' capture="environment"' : '') + ' data-act="retake-file" tabindex="-1" aria-hidden="true">' +
       '<p class="hint only-d">' + t('up.dropHint') + '</p>' +
       '<p class="hint">' + t('up.limits', { max: MAX_PAGES }) + '<br>' + t('up.hwpHint') + '</p></div>' +
       list + status + '</div>' +
@@ -680,7 +688,7 @@
       '<p class="pg-name">' + esc(p.file.name) + '</p>' +
       (p.state === 'bad' ? '' : '<label class="sr" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
       warn +
-      '<div class="pg-acts">' + (p.url ? btn('rotate', 'rotate', t('up.rotate')) : '') + btn('retake', 'camera', t('up.retake')) + btn('remove', 'x', t('up.remove')) + '</div></div></li>';
+      '<div class="pg-acts">' + (p.url ? btn('rotate', 'rotate', t('up.rotate')) : '') + (touch.matches ? btn('retake', 'camera', t('up.retake')) : btn('retake', 'file', t('up.replace'))) + btn('remove', 'x', t('up.remove')) + '</div></div></li>';
   }
   // 데스크톱: 휴대폰으로 이 주소 열기 QR (주소만 담는다. 사진은 주고받지 않음)
   var qrSvg = '';
@@ -966,16 +974,20 @@
       [t('review.g1'), (f.company ? row(t('review.company'), f.company, 'company', 'q1') : '') + row(t('q.name1'), { five: t('q1.five'), under: t('q1.under'), unsure: t('review.unsure') }[f.size], 'size', 'q1')],
       [t('review.g2'), row(t('q2.label'), f.start ? krOrLocal(f.start) : '', 'start', 'q2') + row(t('review.end'), f.employed === 'yes' ? t('q3.yes') : f.end ? krOrLocal(f.end) : '', 'end', 'q3')],
       [t('review.g3'), row(t('q4.days'), dayText2, 'days', 'q4') + row(t('review.day'), timeText, 'time', 'q4') + row(t('review.work'), rec ? t('review.workN', { n: rec }) : '', 'work', 'cal')],
-      [t('review.g4'), row({ hour: t('q5.hour'), day: t('q5.day'), month: t('q5.month') }[f.wageType] || t('q.name5'), f.wage ? won(f.wage) : '', 'wage', 'q5') + row(t('q6.allow'), f.allowance ? won(f.allowance) : '', 'allowance', 'q6')],
+      [t('review.g4'), row({ hour: t('q5.hour'), day: t('q5.day'), month: t('q5.month') }[f.wageType] || t('q.name5'), f.wage ? won(f.wage) : '', 'wage', 'q5') + row(t('review.allow'), f.allowance ? won(f.allowance) : '', 'allowance', 'q6')],
       [t('review.g5'), (f.month || S.unread.month ? row(t('q6.extraMonth'), f.month ? ymName(f.month) : '', 'month', 'q6') : '') + row(t('q.name6'), f.paid !== '' ? won(f.paid) : '', 'paid', 'q6') + moreRows +
         row(t('review.ot'), f.ot ? t('cal.hoursShort', { h: f.ot }) : '', 'ot', 'q6') + row(t('review.night'), f.night ? t('cal.hoursShort', { h: f.night }) : '', 'night', 'q6') + row(t('review.holiday'), f.holiday ? t('cal.hoursShort', { h: f.holiday }) : '', 'holiday', 'q6')]
     ].map(function (g) { return '<section class="group"><h2>' + g[0] + '</h2><dl class="rows">' + g[1] + '</dl></section>'; }).join('');
     var left = lowLeft();
     var ok = valid('review');
+    // 답하지 않은 질문이 있으면 무엇이 빠졌는지 · 어디로 가면 되는지를 맨 위에 (계산 단추만 꺼져 있으면 찾을 수 없다)
+    var qs = qList(), missQ = qs.filter(function (q) { return !valid(q); });
+    var missBox = missQ.length ? '<section class="warnbox stack" aria-labelledby="miss-t"><h2 id="miss-t">' + t('review.missTitle') + '</h2><div class="nav-list">' +
+      missQ.map(function (q) { return navRow('data-go="' + q + '"', 'pen', t('q.name' + (qs.indexOf(q) + 1))); }).join('') + '</div></section>' : '';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(2) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('review.title') + '</h1><p class="lead">' + t('review.lead') + '</p></div>' +
-      groups + '</div>' +
+      missBox + groups + '</div>' +
       '<aside class="side"><div class="note stack"><h2>' + t('review.legend') + '</h2><div class="legend-row" style="flex-direction:column"><span><span class="tag">' + t('review.doc') + '</span> ' + t('review.legDoc') + '</span><span><span class="tag self">' + t('review.self') + '</span> ' + t('review.legSelf') + '</span><span><span class="tag warn">' + t('review.legWarnTag') + '</span> ' + t('review.legWarn') + '</span></div></div>' +
       '<p class="hint">' + t('review.rule') + '</p>' +
       cta(primary(t('calc.btn'), 'data-act="calculate"', ok) +
@@ -1174,17 +1186,21 @@
     function inp(id, key, label, type, opts) {
       opts = opts || {};
       var miss = (opts.req && S.formTried && !p[key] && opts.req) || S.pErr[key];
-      return '<div class="field"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(' + t('opt') + ')</span>') + '</label>' +
+      var doc = p[key] && (S.psrc || {})[key] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : '';
+      return '<div class="field"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(' + t('opt') + ')</span>') + doc + '</label>' +
         '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
         ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>' +
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
-    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd>' + esc(S.f.company || t('form.noCompany')) + ' · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
+    function docTag(k) { return S.src[k] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : ''; }
+    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd>' + esc(S.f.company || t('form.noCompany')) + ' · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + docTag('company') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + docTag('start') + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
+    var nDoc = Object.keys(S.psrc || {}).filter(function (k) { return S.psrc[k] === 'doc' && p[k]; }).length;
+    var docNote = nDoc ? '<p class="note" role="status">' + icon('check') + ' ' + t('form.docNote', { n: nDoc }) + '</p>' : '';
     var got = READY.filter(function (k) { return S.ready[k]; }).length;
     var readyBox = '<section class="note stack"><h2>' + t('title.ready') + '</h2><p>' + t('form.ready', { n: got, m: READY.length }) + '</p><button type="button" class="btn-text" style="align-self:flex-start" data-go="ready">' + t('form.readyGo') + '</button></section>';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(4) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('form.title') + '</h1><p class="lead">' + t('form.lead') + '</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('form.title') + '</h1><p class="lead">' + t('form.lead') + '</p></div>' + docNote +
       '<section class="note stack only-m"><h2>' + t('form.auto') + '</h2>' + auto +
       '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
       '<div class="only-m">' + readyBox + '</div>' +
@@ -1471,7 +1487,7 @@
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('ct.title') + '</h1><p class="lead">' + t('ct.lead') + '</p></div>' +
-      '<section class="stack"><label class="btn btn-line" for="ct-cam">' + icon('camera') + '<span>' + t(c.busy ? 'ct.reading' : 'ct.photo') + '</span></label>' +
+      '<section class="stack"><label class="btn btn-line" for="ct-cam">' + icon(touch.matches ? 'camera' : 'file') + '<span>' + t(c.busy ? 'ct.reading' : touch.matches ? 'ct.photo' : 'ct.file') + '</span></label>' +
       '<input id="ct-cam" class="sr" type="file" accept="image/*,application/pdf" data-act="ct-file"' + (c.busy ? ' disabled' : '') + '>' +
       '<p class="hint" role="status">' + (c.read ? t('ct.readDone') : t('ct.photoHint')) + '</p></section>' +
       '<fieldset class="stack"><legend class="label">1. ' + t('ct.q1') + '</legend><p class="hint">' + t('ct.q1h') + '</p>' + items + '</fieldset>' +
@@ -1499,7 +1515,7 @@
     c.busy = true; render();
     api('/api/v1/documents/extract', form).then(function (res) {
       var v = {};
-      res.fields.forEach(function (f) { v[f.key] = f.value; });
+      res.fields.forEach(function (f) { v[f.key] = f.value; fillP(f.key, f.value); });
       if (v.wageType) c.type = v.wageType;
       if (v.baseWage) c.wage = String(v.baseWage);
       if (v.weeklyContractHours) c.weekly = String(v.weeklyContractHours);
@@ -1593,6 +1609,7 @@
     save();
   }
   mobile.addEventListener('change', function () { render(); });
+  touch.addEventListener('change', function () { render(); });
   // 키보드가 올라오면 아래 고정 단추를 키보드 위로 올린다 (아이폰은 키보드가 화면을 덮기만 해서 단추가 가려진다)
   var vv = window.visualViewport;
   if (vv) {
@@ -1760,14 +1777,22 @@
     if (Array.isArray(v)) return won(v.reduce(function (s, a) { return s + Number(a.amount); }, 0));
     return typeof v === 'number' ? v.toLocaleString('ko-KR') : String(v);
   }
+  // 서류에서 읽은 값 → 진정서 칸. 빈 칸에만 넣고 「서류에서 읽음」 표시(psrc). 사용자가 고치면 표시가 빠진다
+  var P_OF = { workplaceAddress: 'waddr', workplacePhone: 'wphone', jobTitle: 'job', workerName: 'name', workerPhone: 'phone', workerAddress: 'addr', ownerName: 'owner', companyName: 'company' };
+  function fillP(key, v) {
+    var pk = P_OF[key];
+    if (!pk || v == null || String(v).trim() === '' || S.p[pk]) return;
+    S.p[pk] = String(v).trim();
+    S.psrc = S.psrc || {};
+    S.psrc[pk] = 'doc';
+  }
   function applyExtract(res) {
     var f = S.f;
     var weekly = 0;
     res.fields.forEach(function (x) {
       var v = x.value, row = ROW_OF[x.key];
       // 진정서 칸은 진정서 화면에 미리 채운다 (이미 쓴 값은 안 덮음. 이름 · 연락처도 읽는 것은 시연판 — 대표 결정 11-21)
-      var pk = { workplaceAddress: 'waddr', workplacePhone: 'wphone', jobTitle: 'job', workerName: 'name', workerPhone: 'phone', workerAddress: 'addr', ownerName: 'owner' }[x.key];
-      if (pk && v != null && !S.p[pk]) S.p[pk] = String(v);
+      fillP(x.key, v);
       if (!row || v == null) return;
       if (x.key === 'companyName') f.company = String(v);
       else if (x.key === 'employeeCount') f.size = Number(v) >= 5 ? 'five' : 'under';
@@ -1895,11 +1920,14 @@
   function focusId(id) { var el = document.getElementById(id); if (el) el.focus(); }
 
   document.addEventListener('click', function (e) {
+    // 본문으로 건너뛰기: 주소(#main)를 바꾸면 화면 이동으로 읽혀 시작 화면으로 가 버리므로 초점만 옮긴다
+    if (e.target.closest('.skip')) { e.preventDefault(); var m = document.getElementById('main'); if (m) { m.tabIndex = -1; m.focus(); } return; }
     var t = e.target.closest('[data-go],[data-act]');
     if (!t || t.disabled) return;
     if (t.dataset.go !== undefined && t.dataset.go !== '') { go(t.dataset.go); return; }
     var a = t.dataset.act;
-    if (a === 'back') back();
+    if (a === 'home') { e.preventDefault(); home(); }
+    else if (a === 'back') back();
     else if (a === 'big') { S.big = !S.big; render(); }
     else if (a === 'lang') { var fromSheet = !!t.closest('dialog'); closeSheet(); setLang(t.dataset.v).then(function () { if (fromSheet) focusId('lang-top'); }); }
     else if (a === 'lang-sheet') langSheet();
@@ -1991,7 +2019,7 @@
       refreshNext();
     }
     else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
-    else if (t.dataset.p !== undefined) { S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; save(); }
+    else if (t.dataset.p !== undefined) { S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save(); }
   });
 
   // 시트: 바깥(어두운 곳)을 누르면 닫힘. 안쪽은 .sheet-in 이 덮고 있어 dialog 자체를 누른 것은 바깥뿐
