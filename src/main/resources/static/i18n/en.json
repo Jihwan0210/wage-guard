@@ -40,6 +40,7 @@
   "result.expire": "The result is deleted after 30 minutes. Save it as a PDF to keep it.",
   "result.items": "Amount by item",
   "result.itemsHint": "Tap to see the formula and legal basis",
+  "status.ZERO_HOURS": "None (0 hours)",
   "status.NO_DATA": "No information",
   "status.INCLUDED_IN_WAGE": "Included in monthly pay",
   "result.estimated": "Estimate",

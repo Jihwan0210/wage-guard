@@ -129,6 +129,8 @@
   var inFrame = window.self !== window.top;
 
   // ---------- 도우미 ----------
+  // 괄호 뒤 조사가 다음 줄 첫머리로 떨어지지 않게: '(사용 촉진)는' → ')는' 를 한 덩어리로 (esc 다음에 쓴다)
+  function nobr(html) { return html.replace(/\)([가-힣]{1,3})(?=[\s.,!?]|$)/g, '<span class="nw">)$1</span>'); }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -379,6 +381,8 @@
       items: c.items.map(function (it) {
         var b = (it.legalBasis || [])[0] || {};
         var name = names['item.' + it.code] || it.label;
+        // 서류 · 입력에 0시간이라고 적혀 있어 계산할 것이 없는 수당은 '정보 없음 · 입력하기' 대신 '해당 없음 (0시간)' (금액은 서버 그대로)
+        var zero = it.status === 'NO_DATA' && !(S.f.work && Object.keys(S.f.work).length) && ({ NIGHT: S.f.night, HOLIDAY: S.f.holiday, OVERTIME: S.f.ot }[it.code] === '0');
         return {
           code: it.code,
           name: name,
@@ -387,8 +391,8 @@
           basis: it.legalBasis || [],
           label: name + (it.month ? ' (' + monthName(it.month) + ')' : ''),
           amount: it.status === 'CALCULATED' ? it.amount : null,
-          status: it.status === 'CALCULATED' ? '' : t('status.' + it.status),
-          missing: it.status === 'NO_DATA',
+          status: it.status === 'CALCULATED' ? '' : zero ? t('status.ZERO_HOURS') : t('status.' + it.status),
+          missing: it.status === 'NO_DATA' && !zero,
           estimated: !!it.estimated,
           explain: explain[it.code] || pending,
           article: [b.law, b.article].filter(Boolean).join(' '),
@@ -882,7 +886,7 @@
       }).join('');
       var body = pick(g.lines) || [];
       return '<li class="info-card stack"><h2>' + esc(pick(g.title)) + (mine(g) ? ' <span class="tag">' + t('info.mine') + '</span>' : '') + '</h2>' +
-        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('dot') + esc(b) + '</li>'; }).join('') + '</ul>' +
+        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('dot') + '<span>' + nobr(esc(b)) + '</span></li>'; }).join('') + '</ul>' +
         (src ? '<div class="nav-list">' + src + '</div>' : '') + '</li>';
     }).join('');
     return '<div class="wide col stack-lg">' + langBanner() +
@@ -1063,7 +1067,7 @@
       '<span class="total-read">' + esc(readable(R.total)) + '</span>' +
       '<p class="disclaim">' + t('result.disclaim') + ' <button type="button" class="btn-text" data-act="disclaim">' + t('result.more') + '</button></p></div></div>' +
       '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
-    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul lang="ko">' + R.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul></section>' : '';
+    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul lang="ko">' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
     var weeks = R.weeks.length ? '<dt>' + t('result.weeks') + '</dt><dd><ul class="weeks" lang="ko">' + R.weeks.map(function (w) { return '<li><b>' + esc(krOrLocal(w.weekStart)) + '~</b> ' + esc(w.formula) + '</li>'; }).join('') + '</ul></dd>' : '';
     var more = '<section class="stack" aria-labelledby="more-t"><h2 id="more-t">' + t('result.next') + '</h2><div class="nav-list">' +
       navRow('data-act="print"', 'print', t('result.pdf'), t('result.expire')) +
@@ -1270,7 +1274,7 @@
       '<div class="seg no-print" role="group" aria-label="' + t('cp.view') + '"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">' + t('cp.ko') + '</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">' + t('cp.both') + '</button></div>' : '';
     return '<div class="split' + (showTr ? ' cp-both' : '') + '"><div class="stack-lg">' + progress(4) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('title.complaint') + '</h1><p class="note">' + t('cp.note') + '</p>' +
-      '<p class="hint no-print">' + t('cp.fixHint') + ' <button type="button" class="btn-text" style="font-size:inherit" data-go="review">' + t('cp.recalc') + '</button></p></div>' +
+      '<p class="hint no-print">' + t('cp.fixHint') + '</p><button type="button" class="btn-text no-print" style="align-self:flex-start" data-go="review">' + t('cp.recalc') + '</button></div>' +
       seg +
       '<div class="paper-grid' + (showTr ? ' tr-on' : '') + '">' +
       '<article class="paper" lang="ko"><h2 class="doc-title">' + esc(d.draftKo.title) + '</h2>' + ko +

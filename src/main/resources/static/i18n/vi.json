@@ -40,6 +40,7 @@
   "result.expire": "Kết quả sẽ bị xóa sau 30 phút. Hãy lưu thành PDF để giữ lại.",
   "result.items": "Số tiền theo từng khoản",
   "result.itemsHint": "Chạm để xem cách tính và căn cứ",
+  "status.ZERO_HOURS": "Không có (0 giờ)",
   "status.NO_DATA": "Chưa có thông tin",
   "status.INCLUDED_IN_WAGE": "Đã gồm trong lương tháng",
   "result.estimated": "Ước tính",

@@ -100,6 +100,7 @@ a { color: inherit; text-underline-offset: 3px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.nw { white-space: nowrap; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: absolute; left: var(--s2); top: var(--s2); z-index: var(--z-toast); min-height: 44px; display: inline-flex; align-items: center; padding: var(--s2) var(--s4); background: var(--btn-bg); color: var(--btn-fg); border-radius: var(--r-sm); transform: translateY(-200%); }
 .skip:focus { transform: none; }
@@ -407,10 +408,10 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .seg button { min-height: 44px; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); font-weight: 600; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--bg); color: var(--fg); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--fg); }
 .paper-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); align-items: start; }
-.paper { background: var(--paper); border: 1px solid var(--input-line); border-radius: var(--r-xs); padding: var(--s6) var(--s5); display: flex; flex-direction: column; gap: var(--s5); font-size: 0.9375rem; line-height: 1.75; }
+.paper { background: var(--paper); border: 1px solid var(--input-line); border-radius: var(--r-xs); padding: var(--s6) var(--s5); display: flex; flex-direction: column; gap: var(--s5); font-size: max(0.9375rem, var(--fs-sm)); line-height: 1.75; }
 .paper h2.doc-title { text-align: center; font-size: 1.375rem; letter-spacing: 0.3em; padding-bottom: var(--s3); border-bottom: 3px double var(--strong-line); }
 .paper section { display: flex; flex-direction: column; gap: 6px; }
-.paper h3 { margin: 0; font-size: 0.9375rem; font-weight: 700; border-bottom: 1px solid var(--strong-line); padding-bottom: 4px; display: flex; justify-content: space-between; gap: var(--s2); align-items: baseline; }
+.paper h3 { margin: 0; font-size: inherit; font-weight: 700; border-bottom: 1px solid var(--strong-line); padding-bottom: 4px; display: flex; justify-content: space-between; gap: var(--s2); align-items: baseline; }
 .paper h3 span { font-size: var(--fs-sm); font-weight: 600; color: var(--brand-deep); }
 .paper table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .paper th, .paper td { padding: 6px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
@@ -501,6 +502,7 @@ dialog .stack { gap: var(--s4); }
   .start-main .cta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
   .start-main .cta .hint { grid-column: 1 / -1; text-align: left; justify-self: start; }
   .start-side .sit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .start-side .sit:last-child:nth-child(odd) { grid-column: 1 / -1; } /* 11개라 남는 마지막 하나는 한 줄 전체 */
   .start-side .sit { min-height: 52px; padding: 6px var(--s3); gap: var(--s2); }
   .start-side .nav-row { min-height: 48px; }
   .start-side .nav-row small { display: none; }
@@ -513,6 +515,7 @@ dialog .stack { gap: var(--s4); }
   .side .qr h2 { font-size: var(--fs-md); }
   .side .qr p { font-size: var(--fs-sm); }
   .result-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); grid-template-areas: "sum items"; gap: var(--s5) var(--s7); }
+  .r-sum { position: sticky; top: 92px; } /* 합계 · 진정서 단추는 항목을 내려 봐도 옆에 남는다 */
   .paper-grid.tr-on { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .paper-grid .tr-inline { display: none; }
   .paper-grid.tr-on .tr-col { display: flex; }
@@ -615,6 +618,7 @@ a.small-btn { color: var(--fg); text-decoration: none; }
 .dj-bad > .ico, .dj-bad strong { color: var(--err); }
 .ct-list li { display: flex; gap: var(--s2); align-items: flex-start; overflow-wrap: anywhere; }
 .ct-list li > .ico { flex-shrink: 0; margin-top: 2px; }
+.ct-list small { font-size: var(--fs-sm); }
 .ct-list small a { color: inherit; }
 /* 사전 */
 .words li { border-bottom: 1px solid var(--line); }
