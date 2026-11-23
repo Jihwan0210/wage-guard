@@ -31,6 +31,8 @@ public class ExplanationService {
     private static final Pattern DIGIT = Pattern.compile("\\d");
     // 단위 뒤에 바로 붙어도 되는 글자 (조사 · 문장부호). 이 앞의 겹친 단위만 지운다 ("월급" 의 "월" 은 안 지움)
     private static final String AFTER_UNIT = "(?=$|[\\s.,!?)·:;]|[이을은에의으로과와까부입분치씩도만])";
+    // 한국어 답에 섞인 한자(중국어 글자). 작은 모델이 가끔 섞는다. 화면 글은 한자를 쓰지 않으니 나오면 다시 시킨다
+    private static final Pattern HAN = Pattern.compile("\\p{IsHan}");
 
     private static final String SYSTEM = """
             너는 임금 계산 결과를 근로자에게 쉬운 말로 설명한다.
@@ -38,7 +40,7 @@ public class ExplanationService {
             - 숫자(0-9)를 절대 쓰지 않는다. 금액 · 달은 주어진 자리표시자를 글자 그대로 쓴다
             - 자리표시자에는 단위(원, 년 · 월, KRW, tháng)가 이미 들어 있으니 앞뒤에 단위를 또 쓰지 않는다
             - status 가 NO_DATA 면 정보가 없어 계산하지 않았으니 해당되면 입력해 달라고, INCLUDED_IN_WAGE 면 월급에 이미 들어 있다고 쓴다
-            - estimated 가 true 면 추정한 금액이라고 밝힌다
+            - estimated 가 true 면 추정한 금액이라 실제와 다를 수 있다고 밝힌다
             - 법률 판단이나 주어지지 않은 사실을 지어내지 않는다
             - summary 는 summaryPlaceholder 를 넣은 한 문장
             답은 JSON 한 개만: {"items":[{"key":"OVERTIME","text":"..."}],"summary":"..."}
@@ -123,13 +125,13 @@ public class ExplanationService {
         List<Explanation.Item> items = new ArrayList<>();
         for (var slot : slots.entrySet()) {
             String t = replace(texts.get(slot.getKey()), values);
-            if (t == null) {
+            if (t == null || "ko".equals(lang) && HAN.matcher(t).find()) {
                 return null;
             }
             items.add(new Explanation.Item(slot.getValue().path("code").asString(), t));
         }
         String summary = replace(answer.path("summary").asString(""), values);
-        return summary == null ? null : new Explanation(lang, items, summary, false);
+        return summary == null || "ko".equals(lang) && HAN.matcher(summary).find() ? null : new Explanation(lang, items, summary, false);
     }
 
     private static String replace(String text, Map<String, String> values) {

@@ -79,6 +79,59 @@ class ComplaintServiceTest {
         assertNull(d.translation());
     }
 
+    static ComplaintController.LetterRequest letterRequest(String lang, String account) {
+        Request r = request(lang);
+        return new ComplaintController.LetterRequest(r.complainant(), r.respondent(), r.job(), false, r.extraFacts(), account, null, lang);
+    }
+
+    @Test
+    void 내용증명_인적사항_계좌는_LLM에_보내지_않고_금액은_계산값_그대로() {
+        List<String> sent = new ArrayList<>();
+        var service = new ComplaintService((s, p, f) -> {
+            sent.add(s + p);
+            return "다듬은 문단입니다.";
+        }, new JsonMapper());
+        var d = service.letter(RESULT, letterRequest("en", "국민은행 123-45-6789"));
+
+        for (String p : sent) {
+            assertFalse(p.contains("홍길동") || p.contains("김사장") || p.contains("010-1111-2222") || p.contains("서울시") || p.contains("123-45-6789"), p);
+        }
+        var ko = d.draftKo().sections();
+        assertEquals("내용증명", d.draftKo().title());
+        assertEquals(8, ko.size());
+        assertEquals("홍길동 · 010-1111-2222\n서울시 어딘가", ko.get(0).body());
+        assertEquals("○○식당 (대표 김사장)\n서울시 가게", ko.get(1).body());
+        assertEquals("2026년 9월분 미지급 임금 456,880원\n2026년 9월분 연장근로수당 161,976원\n합계 금 육십일만팔천팔백오십육원(₩618,856)", ko.get(4).body());
+        assertTrue(ko.get(3).body().startsWith("발신인은 2025. 3. 3.부터 2026. 10. 31.까지 수신인의 사업장에서 주방 보조 업무로 근무하고 퇴직하였으나"), ko.get(3).body());
+        assertTrue(ko.get(3).body().endsWith("\n다듬은 문단입니다."));
+        assertTrue(ko.get(5).body().contains("근로기준법 제36조") && ko.get(5).body().contains("제37조 제1항 제1호") && ko.get(5).body().contains("연 100분의 20")
+                && ko.get(5).body().contains("근로기준법 제43조"), ko.get(5).body());
+        assertTrue(ko.get(6).body().contains("이 내용증명을 받은 날부터 7일 이내") && ko.get(6).body().contains("국민은행 123-45-6789"), ko.get(6).body());
+        assertFalse(String.valueOf(ko).contains("징역") || String.valueOf(ko).contains("형사"));
+        assertEquals(8, d.translation().sections().size());
+        assertTrue(d.translation().sections().get(4).body().endsWith("Total 618,856 KRW"));
+    }
+
+    @Test
+    void 내용증명_계좌를_안_쓰면_급여_받던_계좌_재직중이면_제2호() {
+        var service = new ComplaintService((s, p, f) -> "진정인은 500000원을 받지 못하였습니다.", new JsonMapper());
+        Request r = request("ko");
+        var d = service.letter(RESULT, new ComplaintController.LetterRequest(r.complainant(), r.respondent(), r.job(), true, r.extraFacts(), " ", 10, "ko"));
+        var ko = d.draftKo().sections();
+        assertTrue(ko.get(6).body().contains("발신인이 급여를 받던 발신인 명의 계좌") && ko.get(6).body().contains("받은 날부터 10일 이내"));
+        assertTrue(ko.get(5).body().contains("제37조 제1항 제2호") && !ko.get(5).body().contains("제36조"));
+        assertTrue(ko.get(3).body().contains("현재까지") && ko.get(3).body().endsWith(r.extraFacts())); // 새 숫자를 만든 답은 버림
+    }
+
+    @Test
+    void 한글_금액() {
+        assertEquals("금 육백팔십일만오천오백육십일원(₩6,815,561)", com.yellowdolphin.wageback.common.Words.wonHangul(6815561));
+        assertEquals("금 삼억원(₩300,000,000)", com.yellowdolphin.wageback.common.Words.wonHangul(300000000));
+        assertEquals("금 일억일만원(₩100,010,000)", com.yellowdolphin.wageback.common.Words.wonHangul(100010000));
+        assertEquals("금 십만원(₩100,000)", com.yellowdolphin.wageback.common.Words.wonHangul(100000));
+        assertEquals("금 영원(₩0)", com.yellowdolphin.wageback.common.Words.wonHangul(0));
+    }
+
     @Test
     void LLM이_숫자를_만들면_원문_그대로() {
         var service = new ComplaintService((s, p, f) -> "진정인은 500000원을 받지 못하였습니다.", new JsonMapper());

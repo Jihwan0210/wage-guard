@@ -49,6 +49,25 @@ public final class Words {
         return String.format(Locale.ROOT, "ko".equals(lang) ? "%,d원" : "%,d KRW", amount);
     }
 
+    // 내용증명 금액 표기: 6815561 → 금 육백팔십일만오천오백육십일원(₩6,815,561)
+    public static String wonHangul(long amount) {
+        String digits = "영일이삼사오육칠팔구";
+        String[] small = { "", "십", "백", "천" }, big = { "", "만", "억", "조" };
+        StringBuilder out = new StringBuilder();
+        String s = Long.toString(amount);
+        for (int i = 0; i < s.length(); i++) {
+            int d = s.charAt(i) - '0', pos = s.length() - 1 - i;
+            if (d > 0) {
+                out.append(d == 1 && pos % 4 > 0 ? "" : digits.charAt(d)).append(small[pos % 4]);
+            }
+            // 만 · 억 자리: 그 네 자리 중 하나라도 0 이 아니면 단위를 붙인다
+            if (pos % 4 == 0 && pos > 0 && Long.parseLong(s.substring(Math.max(0, i - 3), i + 1)) > 0) {
+                out.append(big[pos / 4]);
+            }
+        }
+        return "금 " + (amount == 0 ? "영" : out) + "원(₩" + String.format(Locale.ROOT, "%,d", amount) + ")";
+    }
+
     // "2026-09" → 2026년 9월 / September 2026 / tháng 9/2026
     public static String month(String yearMonth, String lang) {
         YearMonth ym = YearMonth.parse(yearMonth);

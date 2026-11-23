@@ -2,7 +2,7 @@ package com.yellowdolphin.wageback.calculation;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +53,7 @@ public final class ContractCheck {
             }
         }
 
-        int year = r.year() == null ? LocalDate.now().getYear() : r.year();
+        int year = r.year() == null ? RuleEngine.today(Clock.systemUTC()).getYear() : r.year();
         BigDecimal min = RuleEngine.MIN_WAGES.get(year);
         String hourly = null, formula = null;
         if (r.wage() == null || r.wageType() == null) {

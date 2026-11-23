@@ -40,6 +40,22 @@ class DocumentServiceTest {
     }
 
     @Test
+    void 진정서_칸_키도_받는다() {
+        String answer = """
+                {"fields":[{"key":"jobTitle","value":"주방 보조","confidence":0.9},
+                  {"key":"workplaceAddress","value":"서울 마포구 1","confidence":0.9},
+                  {"key":"workplacePhone","value":"02-000-0000","confidence":0.9},
+                  {"key":"workerName","value":"김가나","confidence":0.9},
+                  {"key":"workerPhone","value":"010-0000-0000","confidence":0.9},
+                  {"key":"workerAddress","value":"서울 은평구 2","confidence":0.9},
+                  {"key":"ownerName","value":"박다라","confidence":0.9}],"unreadable":[]}
+                """;
+        var r = service(answer).extract("CONTRACT", "image/png", new byte[] { 1 });
+        assertEquals(List.of("jobTitle", "workplaceAddress", "workplacePhone", "workerName", "workerPhone", "workerAddress", "ownerName"),
+                r.fields().stream().map(DocumentService.Field::key).toList());
+    }
+
+    @Test
     void LLM_실패나_못_읽으면_422() {
         LlmClient down = (s, p, f) -> {
             throw new LlmException("키 없음");

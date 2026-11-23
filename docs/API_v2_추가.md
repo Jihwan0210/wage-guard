@@ -64,6 +64,49 @@
 
 시험: `DocumentServiceTest`(합치기 · 충돌 · 일부 실패 · 모두 실패, 가짜 LLM), `ApiErrorTest.여러_장_업로드_오류_코드`, `RateLimitFilterTest`.
 
+### 진정서 칸을 미리 채우는 추출 키 (최종본 1121, 한 장 · 여러 장 경로 공통)
+`API.md` 의 추출 키에 아래 7개를 더했다. 값은 서류에 적힌 글자 그대로(문자열)이고, 없으면 `unreadable` 또는 빠진다.
+
+| 키 | 화면 진정서 칸 | 뜻 |
+|---|---|---|
+| `jobTitle` | 하는 일 (`job`) | 근로계약서 · 명세서의 업무 · 직종 |
+| `workplaceAddress` | 사업장 주소 (`waddr`) | 회사(일한 곳) 주소 |
+| `workplacePhone` | 사업장 전화 (`wphone`) | 회사 전화 |
+| `ownerName` | 대표자 이름 (`owner`) | 사업주 · 대표 |
+| `workerName` | 내 이름 (`name`) | 근로자 이름 |
+| `workerPhone` | 내 연락처 (`phone`) | 근로자 전화 |
+| `workerAddress` | 내 주소 (`addr`) | 근로자 주소 |
+
+- 화면(`app.js applyExtract`)은 진정서 칸이 비어 있을 때만 넣고, 사용자가 이미 쓴 값은 덮지 않는다. 서류에서 온 칸에는 「서류에서 읽음」 표시가 붙는다.
+- 회사 이름(`companyName`) · 기간(`startDate` · `endDate`) · 체불 금액(계산 결과)은 원래대로 진정서에 자동으로 들어간다.
+- 사람 이름 · 연락처 · 주소(`workerName` · `workerPhone` · `workerAddress`, `ownerName`)를 읽는 것은 **정식 기능**이다(대표 결정 2026-11-21: 사용자가 입력할 일을 최대한 줄인다). 대신 아래 보안 원칙을 지킨다.
+  - 서류 사진 · 읽은 값은 서버에 저장하지 않는다(`DocumentController` 는 메모리에서만 읽고, `DocumentService` 는 응답으로만 돌려준다). 서버 로그에도 남기지 않는다(오류 로그는 예외 종류 이름만).
+  - AI 에 보내는 것은 서류 사진(PDF)과 「서류 종류」 한 줄뿐이다. 주민등록번호처럼 보이는 값은 서버가 한 번 더 가린다(`RRN`).
+  - 화면은 이름 · 연락처 · 주소 · 진정서 · 내용증명 · 계좌를 sessionStorage(탭을 닫으면 지워짐)에만 두고, 「내 정보 지우기」는 localStorage 와 sessionStorage 를 모두 지운다.
+  - 직접 쓴 이름 · 연락처 · 주소 · 계좌는 AI 에 보내지 않는다. 「있었던 일」 문단만 이름 · 연락처 · 주소를 역할 이름으로 바꾼 뒤 문장 다듬기에 보낸다.
+- 시험: `DocumentServiceTest.진정서_칸_키도_받는다`.
+
+## POST /api/v1/calculations/{id}/demand-letter — 회사에 보내는 내용증명 초안 (최종본 1121b)
+
+진정서 초안 다음 단계. 요청은 진정서(`complaint-draft`)와 같은 값에 계좌 · 기한만 더한다. 금액은 계산 id 로만 정해지고(룰 엔진 결과 그대로), AI 는 `extraFacts` 문단만 다듬는다(새 숫자가 생기면 원문을 쓴다, `Words.hasNewNumber`).
+
+```json
+{ "sender": { "name": "홍길동", "phone": "010-0000-0000", "address": "…" },
+  "recipient": { "companyName": "○○식당", "ownerName": "김사장", "address": "…", "phone": "…" },
+  "job": "주방 보조", "employed": false, "extraFacts": "…",
+  "account": "국민은행 123-456-789 홍길동", "payDays": 7, "lang": "vi" }
+```
+| 필드 | 뜻 |
+|---|---|
+| `account` | 선택, 80자까지. 비우면 「발신인이 급여를 받던 발신인 명의 계좌」 |
+| `payDays` | 선택, 3~30. 비우면 7(내용증명을 받은 날부터) |
+| `lang` | ko 이외면 `translation` 에 같은 순서의 참고 번역(en · vi) |
+
+응답은 진정서와 같은 모양(`draftKo.title` = 「내용증명」, 문단 8개: 발신인 · 수신인 · 제목 · 1. 사실관계 · 2. 청구 금액(합계는 「금 ○○원(₩0,000)」) · 3. 법적 근거 · 4. 요청 사항 · 5. 기한을 넘기면, `disclaimer`). 날짜 · 서명 줄은 화면이 붙인다.
+법적 근거는 law.go.kr 현행 원문과 대조했다(2026-11-21): 근로기준법 제36조 · 제37조 제1항 제1호(퇴직) · 제2호(재직) · 제43조, 같은 법 시행령 제17조(연 100분의 20), 근로자퇴직급여 보장법 제9조 제1항(퇴직금이 있을 때). 형사처벌 문구는 넣지 않는다.
+요청 제한은 해설 · 진정서와 같은 묶음(분당 10, 하루 전체 600). 오류는 진정서와 같다(404 `CALCULATION_EXPIRED`, 400 `INVALID_INPUT`).
+시험: `ComplaintServiceTest.내용증명_*`, `한글_금액`.
+
 ## POST /api/v1/calculations — `workDays` (하루 기록) 더함
 
 기존 요청 · 응답은 그대로다. 요청에 **선택** 필드 `workDays` 를, 응답에 `workWeeks` 를 더했다 (`engineVersion` 1.1.0).
