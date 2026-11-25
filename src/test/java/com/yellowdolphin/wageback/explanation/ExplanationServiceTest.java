@@ -70,6 +70,17 @@ class ExplanationServiceTest {
     }
 
     @Test
+    void 자리표시자_뒤_조사를_값에_맞춘다() {
+        var ko = Map.of("{{A.amount}}", "924,000원", "{{A.month}}", "2026년 9월");
+        assertEquals("{{A.amount}}이 {{A.month}}에 해당해요.", ExplanationService.fixParticles("{{A.amount}}가 {{A.month}}에 해당해요.", ko));
+        assertEquals("{{A.amount}}을 받아요. {{A.amount}}은 {{A.month}}로", ExplanationService.fixParticles("{{A.amount}}를 받아요. {{A.amount}}는 {{A.month}}로", ko));
+        assertEquals("{{A.amount}}으로 계산해요", ExplanationService.fixParticles("{{A.amount}}로 계산해요", ko));
+        // 조사가 아닌 글자(가는 · 가장)와 다른 언어 값은 그대로
+        assertEquals("{{A.amount}}가장 큰", ExplanationService.fixParticles("{{A.amount}}가장 큰", ko));
+        assertEquals("{{A.amount}}가 ", ExplanationService.fixParticles("{{A.amount}}가 ", Map.of("{{A.amount}}", "924,000 KRW")));
+    }
+
+    @Test
     void 한국어_답에_한자가_섞이면_재생성한다() {
         // 작은 모델이 「일한工的 금액」 처럼 중국어 글자를 섞어 쓴다
         String han = GOOD.replace("더 일한 시간은", "더 일한工的 시간은");
