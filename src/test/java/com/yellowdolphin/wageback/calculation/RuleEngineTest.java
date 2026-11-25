@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -170,7 +173,7 @@ class RuleEngineTest {
         Item ot = item(r, "OVERTIME", "2026-09");
         assertThat(ot.amount()).isEqualTo(132_000L); // 11,000 × 8 × 1.5
         assertThat(ot.formula()).contains("하루 기록 4일");
-        assertThat(item(r, "NIGHT", "2026-09").status()).isEqualTo("NO_DATA");
+        assertThat(item(r, "NIGHT", "2026-09").amount()).isZero(); // 하루 기록이 있는 달은 0시간이면 '정보 없음'이 아니라 0원
         assertThat(r.workWeeks()).hasSize(1);
         assertThat(r.workWeeks().get(0).weekStart()).isEqualTo("2026-09-07");
         assertThat(r.workWeeks().get(0).workedHours()).isEqualTo("40");
@@ -198,7 +201,7 @@ class RuleEngineTest {
         CalculationResult r = calc(withDays(monthly("FIVE_OR_MORE", "2025-01-01", null, MONTHLY_11000, 0, null,
                 month("2026-09", MONTHLY_11000, 0, 0, 0, 0)), day("2026-09-07", "18:00", "03:00", 60, false)));
         assertThat(item(r, "NIGHT", "2026-09").amount()).isEqualTo(27_500L); // 11,000 × 5 × 0.5
-        assertThat(item(r, "OVERTIME", "2026-09").status()).isEqualTo("NO_DATA");
+        assertThat(item(r, "OVERTIME", "2026-09").amount()).isZero();
     }
 
     @Test
@@ -209,7 +212,7 @@ class RuleEngineTest {
                 day("2026-09-07", "09:00", "18:00", 60, false), day("2026-09-08", "09:00", "18:00", 60, false),
                 day("2026-09-09", "09:00", "18:00", 60, false), day("2026-09-10", "09:00", "18:00", 60, false),
                 day("2026-09-11", "09:00", "18:00", 60, false), day("2026-09-13", "09:00", "20:00", 60, true)));
-        assertThat(item(r, "OVERTIME", "2026-09").status()).isEqualTo("NO_DATA");
+        assertThat(item(r, "OVERTIME", "2026-09").amount()).isZero();
         assertThat(item(r, "HOLIDAY", "2026-09").amount()).isEqualTo(176_000L);
         assertThat(r.workWeeks().get(0).holidayHoursOver8()).isEqualTo("2");
     }
@@ -413,5 +416,56 @@ class RuleEngineTest {
     static Month month(String month, long paid, double overtime, double night, double holiday8, double holidayOver8) {
         return new Month(month, paid, BigDecimal.valueOf(overtime), BigDecimal.valueOf(night),
                 BigDecimal.valueOf(holiday8), BigDecimal.valueOf(holidayOver8), 0);
+    }
+
+    @Test
+    void 오늘_날짜는_서버_시간대와_상관없이_한국_기준() {
+        // UTC 로 12월 31일 15시 = 한국 1월 1일 0시. 서버가 UTC 여도 새해 최저임금 · 지연이자 날수를 쓴다
+        Clock utc = Clock.fixed(Instant.parse("2026-12-31T15:00:00Z"), ZoneOffset.UTC);
+        assertThat(RuleEngine.today(utc)).isEqualTo(LocalDate.of(2027, 1, 1));
+        assertThat(RuleEngine.today(Clock.fixed(Instant.parse("2026-12-31T14:59:59Z"), ZoneOffset.UTC))).isEqualTo(LocalDate.of(2026, 12, 31));
+    }
+
+    @Test
+    void 소멸시효_3년_안의_2023년도_최저임금과_비교한다() {
+        // 2023년 최저임금 시간급 9,620원. 월급 1,881,000 ÷ 209 = 9,000 → (9,620 − 9,000) × 209 = 129,580
+        CalculationResult r = calc(monthly("FIVE_OR_MORE", "2023-06-01", "2023-12-31", 1_881_000, 0, null,
+                month("2023-12", 1_881_000, 0, 0, 0, 0)));
+        assertThat(item(r, "MIN_WAGE_SHORTFALL", "2023-12").amount()).isEqualTo(129_580L);
+        assertThat(r.warnings()).extracting("code").contains("BELOW_MINIMUM_WAGE").doesNotContain("MIN_WAGE_UNKNOWN");
+    }
+
+    @Test
+    void 주40시간_넘게_약속해도_소정근로는_40시간까지() {
+        // 하루 8.5시간 × 5일 = 42.5시간 약속, 월급 260만 원 → 월 기준시간 209시간 (넘는 2.5시간은 연장근로로 따로)
+        CalculationResult r = calc(request("FIVE_OR_MORE", "2025-01-01", null, schedule(42.5, 8.5, 5),
+                new Wage("MONTHLY", 2_600_000L, List.of(), List.of(), 0L), null, month("2026-09", 2_600_000, 0, 0, 0, 0)));
+        assertThat(r.hourlyOrdinaryWage().value()).isEqualTo("12440.19"); // 2,600,000 ÷ 209
+        assertThat(r.warnings()).extracting("code").contains("OVER_FORTY_HOURS").doesNotContain("MONTHLY_HOURS_CHECK");
+    }
+
+    @Test
+    void 최저임금보다_적은_월급은_최저임금으로_통상임금을_보고_차액은_원단위까지() {
+        // 월 200만 원(2026년 최저 10,320 × 209 = 2,156,880원보다 적음), 2025. 3. 1. ~ 2026. 10. 31., 10월에 150만 원만 받음
+        CalculationResult r = calc(monthly("FIVE_OR_MORE", "2025-03-01", "2026-10-31", 2_000_000, 0, null,
+                month("2026-10", 1_500_000, 0, 0, 0, 0)));
+        assertThat(r.hourlyOrdinaryWage().value()).isEqualTo("10320.00");
+        assertThat(item(r, "MIN_WAGE_SHORTFALL", "2026-10").amount()).isEqualTo(156_880L); // 10,320 × 209 − 2,000,000 (1원 어긋남 없음)
+        // 퇴직금: 1일 통상임금 10,320 × 8 = 82,560원 × 30일 × 610일 ÷ 365
+        assertThat(item(r, "SEVERANCE", null).amount()).isEqualTo(4_139_309L);
+        // 적지 않은 달도 최저임금보다 적었으면 어림 금액을 알려 주되 합계에는 넣지 않는다
+        assertThat(r.warnings()).extracting("code").contains("MIN_WAGE_OTHER_MONTHS");
+        assertThat(r.summary().totalUnpaid()).isEqualTo(500_000L + 156_880L + 4_139_309L);
+    }
+
+    @Test
+    void 받은_돈은_실제로_받은_금액으로_보여_주고_더_받았으면_알린다() {
+        // 월 260만 원, 10월 15일까지 일함(15일치 1,258,064원) · 10월에 130만 원 받음
+        CalculationResult r = calc(monthly("FIVE_OR_MORE", "2023-04-03", "2026-10-15", 2_600_000, 0, null,
+                month("2026-10", 1_300_000, 0, 0, 0, 0)));
+        Item base = item(r, "BASE_WAGE", "2026-10");
+        assertThat(base.amount()).isZero();
+        assertThat(base.formula()).contains("받은 1,300,000원 중 1,258,064원");
+        assertThat(r.warnings()).extracting("code").contains("PAID_MORE");
     }
 }

@@ -3,8 +3,10 @@ package com.yellowdolphin.wageback.common;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,7 +16,8 @@ import tools.jackson.databind.ObjectMapper;
 // 해설 · 진정서가 같이 쓰는 금액 · 날짜 표기, 항목 이름, LLM 답 읽기
 public final class Words {
 
-    private static final Pattern NUMBER = Pattern.compile("\\d+");
+    // 숫자 한 덩어리: 1,400,000 · 1.400.000 처럼 세 자리씩 끊은 것은 한 수로, 뒤에 억 · 만 · 천이 붙으면 그만큼 곱한 값도 같은 수로 본다
+    private static final Pattern NUMBER = Pattern.compile("(\\d{1,3}(?:[,.]\\d{3})+|\\d+)(?:\\s*(억|만|천))?");
 
     private static final Map<String, String[]> LABELS = Map.ofEntries( // ko, en, vi
             Map.entry("BASE_WAGE", new String[] { "미지급 임금", "Unpaid wages", "Tiền lương chưa trả" }),
@@ -49,6 +52,25 @@ public final class Words {
         return String.format(Locale.ROOT, "ko".equals(lang) ? "%,d원" : "%,d KRW", amount);
     }
 
+    // 내용증명 금액 표기: 6815561 → 금 육백팔십일만오천오백육십일원(₩6,815,561)
+    public static String wonHangul(long amount) {
+        String digits = "영일이삼사오육칠팔구";
+        String[] small = { "", "십", "백", "천" }, big = { "", "만", "억", "조" };
+        StringBuilder out = new StringBuilder();
+        String s = Long.toString(amount);
+        for (int i = 0; i < s.length(); i++) {
+            int d = s.charAt(i) - '0', pos = s.length() - 1 - i;
+            if (d > 0) {
+                out.append(d == 1 && pos % 4 > 0 ? "" : digits.charAt(d)).append(small[pos % 4]);
+            }
+            // 만 · 억 자리: 그 네 자리 중 하나라도 0 이 아니면 단위를 붙인다
+            if (pos % 4 == 0 && pos > 0 && Long.parseLong(s.substring(Math.max(0, i - 3), i + 1)) > 0) {
+                out.append(big[pos / 4]);
+            }
+        }
+        return "금 " + (amount == 0 ? "영" : out) + "원(₩" + String.format(Locale.ROOT, "%,d", amount) + ")";
+    }
+
     // "2026-09" → 2026년 9월 / September 2026 / tháng 9/2026
     public static String month(String yearMonth, String lang) {
         YearMonth ym = YearMonth.parse(yearMonth);
@@ -79,14 +101,36 @@ public final class Words {
         }
     }
 
-    // 원문에 없던 숫자가 생겼는지 (LLM 이 숫자를 만들지 못하게)
+    // 원문에 없던 숫자가 생겼는지 (LLM 이 숫자를 만들지 못하게).
+    // 같은 값을 다르게 적은 것은 새 숫자가 아니다: 140만 = 1,400,000 = 1.400.000, 01 = 1
     public static boolean hasNewNumber(String result, String source) {
-        Matcher m = NUMBER.matcher(result);
-        while (m.find()) {
-            if (!source.contains(m.group())) {
+        Set<Long> known = values(source);
+        for (long v : values(result)) {
+            if (!known.contains(v) && !source.contains(Long.toString(v))) {
                 return true;
             }
         }
         return false;
+    }
+
+    static Set<Long> values(String text) {
+        Set<Long> out = new HashSet<>();
+        Matcher m = NUMBER.matcher(text);
+        while (m.find()) {
+            String digits = m.group(1).replaceAll("[,.]", "");
+            if (digits.length() > 15) {
+                continue;
+            }
+            long v = Long.parseLong(digits);
+            out.add(v);
+            if (m.group(2) != null) {
+                out.add(v * switch (m.group(2)) {
+                    case "억" -> 100_000_000L;
+                    case "만" -> 10_000L;
+                    default -> 1_000L;
+                });
+            }
+        }
+        return out;
     }
 }

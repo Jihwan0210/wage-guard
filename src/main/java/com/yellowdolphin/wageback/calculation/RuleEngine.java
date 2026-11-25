@@ -5,10 +5,12 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -39,10 +41,12 @@ import com.yellowdolphin.wageback.calculation.CalculationResult.WorkWeek;
 // 룰 엔진: 항목별 체불액을 계산한다. 금액은 여기서만 만든다
 final class RuleEngine {
 
-    static final String VERSION = "1.2.0";
+    static final String VERSION = "1.3.0";
     static final Map<Integer, BigDecimal> MIN_WAGES = loadMinWages();
     // 재직 중 지연이자 시행일 (근로기준법 제37조 개정, 2024. 10. 22. 공포)
     static final LocalDate EMPLOYED_INTEREST_FROM = LocalDate.of(2025, 10, 23);
+
+    static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final BigDecimal SEVEN = dec(7), EIGHT = dec(8), FIFTEEN = dec(15), FORTY = dec(40), SIXTY = dec(60);
 
@@ -90,8 +94,10 @@ final class RuleEngine {
     private final String type;
     private final boolean underFive;
     private final long base, allowances;
-    private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly, dailyHours;
-    // 1일 통상임금 = 시간급 × 하루 소정시간. 전(소수 둘째 자리)까지 두고 마지막 금액에서만 원 미만을 버린다 (고용노동부 계산 예시와 같게)
+    // hourly: 약속한 임금으로 나눈 시간급 (기본급 · 주휴 · 최저임금 비교에 쓴다)
+    // ordinaryHourly: 통상임금 시간급. 약속한 시간급이 최저임금보다 적으면 최저임금으로 본다 (최저임금법 제6조 제3항)
+    private final BigDecimal weekly, weeklyHolidayHours, monthlyHours, hourly, ordinaryHourly, dailyHours;
+    // 1일 통상임금 = 통상임금 시간급 × 하루 소정시간. 전(소수 둘째 자리)까지 두고 마지막 금액에서만 원 미만을 버린다 (고용노동부 계산 예시와 같게)
     private final BigDecimal ordinaryDaily;
     private final String hourlyFormula;
     private final Map<String, Notice> warnings = new LinkedHashMap<>();
@@ -107,7 +113,13 @@ final class RuleEngine {
         underFive = req.workplace().size().equals("UNDER_FIVE");
         base = req.wage().baseAmount();
         allowances = sum(req.wage().ordinaryAllowances());
-        weekly = req.schedule().weeklyContractHours();
+        // 소정근로시간은 법정근로시간(주 40시간 · 하루 8시간)을 넘을 수 없다. 넘는 시간은 연장근로로 따로 센다 (근로기준법 제50조 · 제53조)
+        BigDecimal agreed = req.schedule().weeklyContractHours();
+        weekly = agreed.min(FORTY);
+        if (agreed.compareTo(FORTY) > 0) {
+            warn("OVER_FORTY_HOURS", "약속한 주 " + hours(agreed) + "시간 중 40시간까지만 소정근로시간으로 보고, 넘는 시간은 연장근로로 따로 계산해요. "
+                    + "연장 시간을 적거나 근무 달력에 넣어야 연장근로수당이 나와요. (근로기준법 제50조)");
+        }
         weeklyHolidayHours = weeklyHolidayHours(weekly);
         monthlyHours = monthlyHours(weekly);
 
@@ -126,7 +138,9 @@ final class RuleEngine {
             hourlyFormula = f;
         }
         hourly = perHour.setScale(2, RoundingMode.DOWN);
-        BigDecimal perDay = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours()
+        BigDecimal floor = MIN_WAGES.get(end != null ? end.getYear() : today(Clock.systemUTC()).getYear());
+        ordinaryHourly = floor != null && hourly.compareTo(floor) < 0 ? floor.setScale(2, RoundingMode.DOWN) : hourly;
+        BigDecimal perDay = req.schedule().dailyContractHours() != null ? req.schedule().dailyContractHours().min(EIGHT)
                 : div(weekly, dec(req.schedule().workDaysPerWeek() == null ? 5 : req.schedule().workDaysPerWeek())).min(EIGHT);
         if (weekly.compareTo(FORTY) < 0) {
             // 단시간: 4주 소정근로시간 ÷ 통상근로자 4주 소정근로일수(20일) (근로기준법 시행령 제9조 별표2)
@@ -138,7 +152,7 @@ final class RuleEngine {
             perDay = legal;
         }
         dailyHours = perDay;
-        ordinaryDaily = hourly.multiply(dailyHours).setScale(2, RoundingMode.DOWN);
+        ordinaryDaily = ordinaryHourly.multiply(dailyHours).setScale(2, RoundingMode.DOWN);
         months = withWorkDays();
     }
 
@@ -163,7 +177,12 @@ final class RuleEngine {
             long p = nz(m.paidAmount());
             paid += p;
             items.addAll(subtractPaid(monthItems, p));
+            long over = p - total(monthItems);
+            if (over > 0) {
+                warn("PAID_MORE_" + m.month().replace("-", ""), YearMonth.parse(m.month()).getMonthValue() + "월은 받을 돈보다 " + won(over) + " 더 받아서 그 달 못 받은 돈은 0원이에요. 받은 돈이 그 달 일한 것에 대한 돈이 맞는지 확인해 주세요.");
+            }
         }
+        otherMonthsShortfall();
         Value dailyAverage = null;
         if (end == null) {
             notApplied.add(new NotApplied("SEVERANCE", "재직 중이라 퇴직금은 계산하지 않아요."));
@@ -184,7 +203,8 @@ final class RuleEngine {
         return new CalculationResult(id, VERSION, minimumWageYear(),
                 new Period(start.toString(), end == null ? null : end.toString()),
                 new Summary(due, paid, unpaid),
-                new Value(hourly.toPlainString(), hourlyFormula),
+                new Value(ordinaryHourly.toPlainString(), hourlyFormula + (ordinaryHourly.equals(hourly) ? ""
+                        : " = " + won2(hourly) + " → 최저임금보다 적어 최저임금 " + won2(ordinaryHourly) + "으로 봄 (최저임금법 제6조 제3항)")),
                 dailyAverage, items, List.copyOf(warnings.values()), notApplied, List.copyOf(workWeeks));
     }
 
@@ -221,16 +241,18 @@ final class RuleEngine {
 
         String rateNote = (underFive ? " (5인 미만: 가산 없음)" : "")
                 + (recordedDays.containsKey(mo) ? " (하루 기록 " + recordedDays.get(mo) + "일에서 나눈 시간)" : "");
-        items.add(rateItem("OVERTIME", mo, m.overtimeHours(), underFive ? "1.0" : "1.5", rateNote, "입력한 연장 근무시간이 없어요"));
-        items.add(rateItem("NIGHT", mo, m.nightHours(), underFive ? "0" : "0.5", rateNote, "입력한 야간 근무시간이 없어요"));
+        items.add(rateItem("OVERTIME", ym, m.overtimeHours(), underFive ? "1.0" : "1.5", rateNote, "입력한 연장 근무시간이 없어요"));
+        items.add(rateItem("NIGHT", ym, m.nightHours(), underFive ? "0" : "0.5", rateNote, "입력한 야간 근무시간이 없어요"));
 
         BigDecimal within8 = nz(m.holidayHoursWithin8()), over8 = nz(m.holidayHoursOver8());
         if (within8.signum() == 0 && over8.signum() == 0) {
-            items.add(noData("HOLIDAY", mo, "입력한 휴일 근무시간이 없어요"));
+            items.add(recordedDays.containsKey(mo) ? item("HOLIDAY", mo, false, 0L, "하루 기록에 휴일 근무가 없어요")
+                    : noData("HOLIDAY", mo, "입력한 휴일 근무시간이 없어요"));
         } else {
             String r1 = underFive ? "1.0" : "1.5", r2 = underFive ? "1.0" : "2.0";
-            long amount = trunc(hourly.multiply(within8).multiply(new BigDecimal(r1)).add(hourly.multiply(over8).multiply(new BigDecimal(r2))));
-            String f = won2(hourly) + " × " + hours(within8) + "시간 × " + r1 + " + " + won2(hourly) + " × " + hours(over8) + "시간 × " + r2;
+            BigDecimal h = ordinary(ym);
+            long amount = trunc(h.multiply(within8).multiply(new BigDecimal(r1)).add(h.multiply(over8).multiply(new BigDecimal(r2))));
+            String f = won2(h) + " × " + hours(within8) + "시간 × " + r1 + " + " + won2(h) + " × " + hours(over8) + "시간 × " + r2;
             items.add(item("HOLIDAY", mo, false, amount, f + rateNote));
         }
 
@@ -249,23 +271,76 @@ final class RuleEngine {
             paidHours = paidHours.add(holidayHours);
         }
 
-        BigDecimal min = MIN_WAGES.get(ym.getYear());
+        BigDecimal full = MIN_WAGES.get(ym.getYear()), min = full;
         int probation = probationDays(ym);
         String minText = min == null ? "" : won(min.longValue());
         if (min != null && probation > 0) {
-            // 수습 날은 90%: 최저임금 × (1 − 0.1 × 수습 날 ÷ 그 달 일한 날)
+            // 월급은 한 달 치로 견준다. 수습 날은 90%: 최저임금 × (1 − 0.1 × 수습 날 ÷ 그 달 일한 날)
             min = min.multiply(dec(days * 10L - probation)).divide(dec(days * 10L), 2, RoundingMode.DOWN);
             minText = won2(min) + "(수습 " + probation + "일은 90%)";
             warn("PROBATION_MIN_WAGE", "수습 3개월 동안은 최저임금의 90%까지만 줘도 돼서, 그 날들은 90%로 비교했어요. (최저임금법 제5조 제2항)");
         }
         if (min == null) {
             warn("MIN_WAGE_UNKNOWN_" + ym.getYear(), ym.getYear() + "년 최저임금 기준이 없어 그 해는 최저임금 비교를 하지 않았어요.");
+        } else if (probation > 0 && !type.equals("MONTHLY")) {
+            // 시급 · 일급은 날마다 견준다: 수습 날은 90%, 수습이 끝난 날부터 100%.
+            // 수습 날에 90%보다 더 받은 몫으로 수습 뒤의 부족분을 깎지 않는다 (최저임금법 제6조 제3항: 못 미치는 부분만 무효)
+            BigDecimal low = full.multiply(dec(9)).divide(dec(10), 2, RoundingMode.DOWN);
+            BigDecimal lowHours = div(paidHours.multiply(dec(probation)), dec(days)), fullHours = paidHours.subtract(lowHours);
+            BigDecimal gapLow = low.subtract(hourly).max(BigDecimal.ZERO), gapFull = full.subtract(hourly).max(BigDecimal.ZERO);
+            long amount = trunc(gapLow.multiply(lowHours).add(gapFull.multiply(fullHours)));
+            if (amount > 0) {
+                String f = "(" + won(full.longValue()) + " − " + won2(hourly) + ") × 수습 뒤 " + hours(fullHours.setScale(2, RoundingMode.DOWN)) + "시간"
+                        + (gapLow.signum() > 0 ? " + (" + won2(low) + " − " + won2(hourly) + ") × 수습 " + probation + "일 " + hours(lowHours.setScale(2, RoundingMode.DOWN)) + "시간"
+                                : " (수습 " + probation + "일은 90%인 " + won2(low) + " 이상이라 차액 없음)");
+                items.add(item("MIN_WAGE_SHORTFALL", mo, false, amount, f));
+                warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(full.longValue()) + ")보다 적게 받은 달이 있어요.");
+            }
         } else if (hourly.compareTo(min) < 0) {
-            String f = "(" + minText + " − " + won2(hourly) + ") × " + hours(paidHours.setScale(2, RoundingMode.DOWN)) + "시간";
-            items.add(item("MIN_WAGE_SHORTFALL", mo, false, trunc(min.subtract(hourly).multiply(paidHours)), f));
-            warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(min.longValue()) + ")보다 적게 받은 달이 있어요.");
+            long amount;
+            String f;
+            if (type.equals("MONTHLY") && probation == 0) {
+                // 월급은 (최저임금 × 월 소정시간 − 월급)을 그 달 일한 날만큼. 나눈 시간급의 끝자리 때문에 1원씩 어긋나지 않게
+                long monthly = base + allowances;
+                amount = trunc(div(min.multiply(monthlyHours).subtract(dec(monthly)).multiply(dec(days)), dec(dim)));
+                f = "(" + minText + " × " + hours(monthlyHours) + "시간 − " + won(monthly) + ")" + (days < dim ? " × " + days + "일 ÷ " + dim + "일" : "");
+            } else {
+                amount = trunc(min.subtract(hourly).multiply(paidHours));
+                f = "(" + minText + " − " + won2(hourly) + ") × " + hours(paidHours.setScale(2, RoundingMode.DOWN)) + "시간";
+            }
+            items.add(item("MIN_WAGE_SHORTFALL", mo, false, amount, f));
+            warn("BELOW_MINIMUM_WAGE_" + ym.getYear(), ym.getYear() + "년 최저임금(시간급 " + won(full.longValue()) + ")보다 적게 받은 달이 있어요.");
         }
         return items;
+    }
+
+    // 못 받은 달로 적지 않은 달도 약속한 임금이 최저임금보다 적었으면 그 차액도 못 받은 임금이다 (최저임금법 제6조 제3항).
+    // 합계에는 넣지 않고(그 달에 실제로 얼마 받았는지 모르므로) 어림 금액과 함께 알려 준다. 임금은 3년이 지나면 받을 권리가 없어져 마지막 3년만 (근로기준법 제49조)
+    private void otherMonthsShortfall() {
+        Set<String> given = new HashSet<>();
+        months().forEach(m -> given.add(m.month()));
+        LocalDate last = end != null ? end : today(Clock.systemUTC());
+        YearMonth from = YearMonth.from(max(start, last.minusYears(3))), to = YearMonth.from(last).minusMonths(end == null ? 1 : 0);
+        long sum = 0;
+        int n = 0;
+        Map<String, Notice> keep = new LinkedHashMap<>(warnings); // 다른 달을 세어 보는 동안 생긴 경고는 남기지 않는다
+        for (YearMonth ym = from; !ym.isAfter(to); ym = ym.plusMonths(1)) {
+            if (given.contains(ym.toString())) {
+                continue;
+            }
+            long gap = monthItems(ym, new Month(ym.toString(), 0L, null, null, null, null, 0)).stream()
+                    .filter(i -> i.code().equals("MIN_WAGE_SHORTFALL")).mapToLong(i -> nz(i.amount())).sum();
+            if (gap > 0) {
+                sum += gap;
+                n++;
+            }
+        }
+        warnings.clear();
+        warnings.putAll(keep);
+        if (sum > 0) {
+            warn("MIN_WAGE_OTHER_MONTHS", "못 받은 달로 적지 않은 " + n + "개월도 약속한 임금이 최저임금보다 적어요. 그 달들에 약속한 임금만 받았다면 최저임금과의 차이 약 "
+                    + won(sum) + "을 더 받을 수 있어요. 그 달들도 '못 받은 달'로 더하면 금액에 들어가요.");
+        }
     }
 
     private record Severance(Item item, Value dailyAverage) {
@@ -311,7 +386,7 @@ final class RuleEngine {
         String note = "";
         if (average.compareTo(ordinaryDaily) < 0) {
             daily = ordinaryDaily;
-            note = " (평균임금 " + won2(average) + "이 1일 통상임금보다 적어 " + won2(hourly) + " × " + hours(dailyHours)
+            note = " (평균임금 " + won2(average) + "이 1일 통상임금보다 적어 " + won2(ordinaryHourly) + " × " + hours(dailyHours)
                     + "시간으로 계산)";
             warn("SEVERANCE_ORDINARY_WAGE", "평균임금이 통상임금보다 적어 퇴직금을 1일 통상임금으로 계산했어요 (근로기준법 제2조 제2항).");
         }
@@ -343,7 +418,7 @@ final class RuleEngine {
             return item("DISMISSAL_NOTICE", null, false, 0L, notice + "일 전에 알려서 해고예고수당이 없어요");
         }
         warn("DISMISSAL_CHECK", "천재지변 같은 일이나, 일하는 사람이 일부러 회사에 큰 손해를 끼쳐 해고된 경우에는 해고예고수당을 못 받을 수 있어요. 확인이 필요해요.");
-        String f = won2(ordinaryDaily) + " × 30일 (1일 통상임금 " + won2(hourly) + " × " + hours(dailyHours) + "시간)"
+        String f = won2(ordinaryDaily) + " × 30일 (1일 통상임금 " + won2(ordinaryHourly) + " × " + hours(dailyHours) + "시간)"
                 + (notice > 0 ? " (" + notice + "일 전에 알림 — 30일보다 짧아 30일분 전부로 계산, 확인 필요)" : " (미리 알리지 않음)");
         return item("DISMISSAL_NOTICE", null, notice > 0, trunc(ordinaryDaily.multiply(dec(30))), f);
     }
@@ -403,7 +478,7 @@ final class RuleEngine {
         if (req.delayInterest() == null) {
             return null;
         }
-        LocalDate baseDate = req.delayInterest().baseDate() == null ? LocalDate.now() : req.delayInterest().baseDate();
+        LocalDate baseDate = req.delayInterest().baseDate() == null ? today(Clock.systemUTC()) : req.delayInterest().baseDate();
         if (end == null) {
             return employedInterest(items, baseDate, notApplied);
         }
@@ -466,55 +541,79 @@ final class RuleEngine {
         if (days.isEmpty()) {
             return given;
         }
+        List<WorkDay> sorted = days.stream().sorted(Comparator.comparing(WorkDay::date)).toList();
         List<Month> out = new ArrayList<>();
         for (Month m : given) {
-            List<WorkDay> mine = days.stream().filter(d -> YearMonth.from(d.date()).toString().equals(m.month()))
-                    .sorted(Comparator.comparing(WorkDay::date)).toList();
-            out.add(mine.isEmpty() ? m : fromDays(m, mine));
+            boolean recorded = sorted.stream().anyMatch(d -> YearMonth.from(d.date()).toString().equals(m.month()));
+            out.add(recorded ? fromDays(m, sorted) : m);
         }
-        warn("DAILY_RECORDS", "하루 기록이 있는 달은 기록에서 연장·야간·휴일 시간을 나눠 계산했어요. 쉬는 시간은 밤 10시~아침 6시가 아닌 때에 쉬었다고 보고, 달이 바뀌는 주는 그 달 날짜만으로 셌어요.");
+        warn("DAILY_RECORDS", "하루 기록이 있는 달은 기록에서 연장·야간·휴일 시간을 나눠 계산했어요. 쉬는 시간은 밤 10시~아침 6시가 아닌 때에 쉬었다고 보고, 달이 바뀌는 주는 한 주로 이어서 세어 주 40시간을 넘겨 일한 날이 든 달에 연장 시간을 넣었어요.");
         return out;
     }
 
     // 주(월요일 시작)마다: 평일 연장 = max(하루 8시간 넘은 합, 주 40시간 넘은 시간).
     // 휴일에 일한 시간은 연장 가산과 겹쳐 세지 않고 휴일근로(8시간까지 · 넘은 시간)로만 센다
     // (근로기준법 제56조 제2항, 대법원 2018. 6. 21. 선고 2011다112391 전원합의체 판결 — 가산 중복 없음)
-    private Month fromDays(Month m, List<WorkDay> days) {
+    // 1주는 달이 바뀌어도 7일이다(제2조 제1항 제7호). 두 달에 걸친 주는 다른 달 날짜까지 이어서 쌓고,
+    // 주 40시간을 넘겨 일한 날이 이 달이면 이 달 연장으로 센다 (날짜순으로 쌓으면 한 달 안의 주는 위 max 식과 값이 같다)
+    private Month fromDays(Month m, List<WorkDay> all) {
         Map<LocalDate, List<WorkDay>> weeks = new TreeMap<>();
-        for (WorkDay d : days) {
+        for (WorkDay d : all) {
             weeks.computeIfAbsent(d.date().with(DayOfWeek.MONDAY), k -> new ArrayList<>()).add(d);
         }
         BigDecimal ot = BigDecimal.ZERO, night = BigDecimal.ZERO, within8 = BigDecimal.ZERO, over8 = BigDecimal.ZERO;
+        int recorded = 0;
         for (Map.Entry<LocalDate, List<WorkDay>> w : weeks.entrySet()) {
-            List<BigDecimal> weekdays = new ArrayList<>();
-            BigDecimal worked = BigDecimal.ZERO, wNight = BigDecimal.ZERO, w8 = BigDecimal.ZERO, wOver = BigDecimal.ZERO, dailyOver = BigDecimal.ZERO;
+            BigDecimal regular = BigDecimal.ZERO; // 이 주에 하루 8시간까지 일한 시간을 날짜순으로 쌓은 값 (다른 달 날짜 포함)
+            BigDecimal worked = BigDecimal.ZERO, wNight = BigDecimal.ZERO, w8 = BigDecimal.ZERO, wOver = BigDecimal.ZERO;
+            BigDecimal dailyOver = BigDecimal.ZERO, weekOver = BigDecimal.ZERO, weekdayTotal = BigDecimal.ZERO;
+            int mine = 0, weekdays = 0;
+            boolean split = false;
             for (WorkDay d : w.getValue()) {
+                boolean in = YearMonth.from(d.date()).toString().equals(m.month());
+                split |= !in;
                 int[] t = minutes(d);
                 BigDecimal h = div(dec(t[0]), SIXTY);
-                worked = worked.add(h);
-                wNight = wNight.add(div(dec(t[1]), SIXTY));
                 if (Boolean.TRUE.equals(d.holiday())) {
-                    w8 = w8.add(h.min(EIGHT));
-                    wOver = wOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                    if (in) {
+                        w8 = w8.add(h.min(EIGHT));
+                        wOver = wOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                    }
                 } else {
-                    weekdays.add(h);
-                    dailyOver = dailyOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                    BigDecimal before = regular.subtract(FORTY).max(BigDecimal.ZERO);
+                    regular = regular.add(h.min(EIGHT));
+                    if (in) {
+                        weekdays++;
+                        weekdayTotal = weekdayTotal.add(h);
+                        dailyOver = dailyOver.add(h.subtract(EIGHT).max(BigDecimal.ZERO));
+                        weekOver = weekOver.add(regular.subtract(FORTY).max(BigDecimal.ZERO).subtract(before));
+                    }
+                }
+                if (in) {
+                    mine++;
+                    worked = worked.add(h);
+                    wNight = wNight.add(div(dec(t[1]), SIXTY));
                 }
             }
-            BigDecimal weekdayTotal = weekdays.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal wOt = weeklyOvertimeHours(weekdays.toArray(BigDecimal[]::new));
-            String f = "평일 " + weekdays.size() + "일 " + plain(weekdayTotal) + "시간: 하루 8시간 넘은 합 " + plain(dailyOver)
-                    + "시간과 주 40시간 넘은 " + plain(weekdayTotal.subtract(FORTY).max(BigDecimal.ZERO)) + "시간 중 큰 값 → 연장 " + plain(wOt) + "시간"
+            if (mine == 0) {
+                continue;
+            }
+            BigDecimal wOt = dailyOver.add(weekOver);
+            String f = "평일 " + weekdays + "일 " + plain(weekdayTotal) + "시간: "
+                    + (split ? "다른 달로 이어지는 주라 한 주로 세었어요. 하루 8시간 넘은 " + plain(dailyOver) + "시간 + 이 달 날짜에 주 40시간을 넘긴 " + plain(weekOver) + "시간"
+                            : "하루 8시간 넘은 합 " + plain(dailyOver) + "시간과 주 40시간 넘은 " + plain(weekdayTotal.subtract(FORTY).max(BigDecimal.ZERO)) + "시간 중 큰 값")
+                    + " → 연장 " + plain(wOt) + "시간"
                     + (w8.signum() > 0 ? " · 휴일 " + plain(w8.add(wOver)) + "시간 (8시간까지 " + plain(w8) + " · 넘은 " + plain(wOver) + ")" : "")
                     + " · 밤 10시~아침 6시 " + plain(wNight) + "시간";
-            workWeeks.add(new WorkWeek(m.month(), w.getKey().toString(), w.getValue().size(), plain(worked), plain(wOt), plain(wNight),
+            workWeeks.add(new WorkWeek(m.month(), w.getKey().toString(), mine, plain(worked), plain(wOt), plain(wNight),
                     plain(w8), plain(wOver), f));
             ot = ot.add(wOt);
             night = night.add(wNight);
             within8 = within8.add(w8);
             over8 = over8.add(wOver);
+            recorded += mine;
         }
-        recordedDays.put(m.month(), days.size());
+        recordedDays.put(m.month(), recorded);
         return new Month(m.month(), m.paidAmount(), h2(ot), h2(night), h2(within8), h2(over8), m.absentWeeks());
     }
 
@@ -555,22 +654,34 @@ final class RuleEngine {
         return daily.max(week.subtract(FORTY).max(BigDecimal.ZERO));
     }
 
-    private Item rateItem(String code, String mo, BigDecimal hours, String rate, String note, String noData) {
+    private Item rateItem(String code, YearMonth ym, BigDecimal hours, String rate, String note, String noData) {
+        String mo = ym.toString();
         if (hours == null || hours.signum() == 0) {
-            return noData(code, mo, noData);
+            // 하루 기록에서 나눴는데 0시간이면 '정보 없음'이 아니라 0원
+            return recordedDays.containsKey(mo) ? item(code, mo, false, 0L, "하루 기록에서 0시간" + note) : noData(code, mo, noData);
         }
-        long amount = trunc(hourly.multiply(hours).multiply(new BigDecimal(rate)));
-        return item(code, mo, false, amount, won2(hourly) + " × " + hours(hours) + "시간 × " + rate + note);
+        BigDecimal h = ordinary(ym);
+        long amount = trunc(h.multiply(hours).multiply(new BigDecimal(rate)));
+        return item(code, mo, false, amount, won2(h) + " × " + hours(hours) + "시간 × " + rate + note);
+    }
+
+    // 그 달의 통상임금 시간급: 약속한 시간급이 그해 최저임금보다 적으면 최저임금 (수습 감액이 걸린 달은 약속한 시간급 그대로)
+    private BigDecimal ordinary(YearMonth ym) {
+        BigDecimal min = MIN_WAGES.get(ym.getYear());
+        return min != null && probationDays(ym) == 0 && hourly.compareTo(min) < 0 ? min.setScale(2, RoundingMode.DOWN) : hourly;
     }
 
     // 받은 돈은 기본급부터 차례로 뺀다
     private static List<Item> subtractPaid(List<Item> items, long paid) {
         List<Item> out = new ArrayList<>();
+        long got = paid;
         for (Item it : items) {
             long take = it.amount() == null ? 0 : Math.min(it.amount(), paid);
             paid -= take;
+            // 받은 돈은 실제 받은 금액으로 적고, 이 항목에서 뺀 몫이 그보다 적으면 그 몫도 적는다 (예: 받은 1,300,000원 중 1,258,064원)
+            String minus = take == got ? " − 받은 " + won(take) : " − 받은 " + won(got) + " 중 " + won(take);
             out.add(take == 0 ? it : new Item(it.code(), it.label(), it.month(), it.status(), it.estimated(),
-                    it.amount() - take, it.formula() + " − 받은 " + won(take), it.legalBasis()));
+                    it.amount() - take, it.formula() + minus, it.legalBasis()));
         }
         return out;
     }
@@ -582,7 +693,12 @@ final class RuleEngine {
 
     private int minimumWageYear() {
         return months().stream().map(m -> YearMonth.parse(m.month()).getYear()).max(Integer::compare)
-                .orElse(end != null ? end.getYear() : LocalDate.now().getYear());
+                .orElse(end != null ? end.getYear() : today(Clock.systemUTC()).getYear());
+    }
+
+    // 오늘 날짜는 서버가 어느 시간대에서 돌든 한국 기준 (해외 서버는 보통 UTC 라 아침 9시 전에는 어제로 나온다)
+    static LocalDate today(Clock clock) {
+        return LocalDate.now(clock.withZone(KST));
     }
 
     private List<Month> months() {

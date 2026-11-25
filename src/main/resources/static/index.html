@@ -2,11 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>체불임금 계산 도우미 · 노란돌고래</title>
 <meta name="description" content="받지 못한 월급을 근로기준법 기준으로 계산하고, 노동청 진정서 초안을 만들어요. 법률 자문이 아닌 참고용이에요.">
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1420" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -17,6 +16,10 @@
 <body>
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 <div id="app"></div>
+<noscript>
+  <p style="max-width:32em;margin:48px auto;padding:0 16px;font-size:17px;line-height:1.6">이 화면은 자바스크립트가 켜져 있어야 열려요. 바로 상담하려면 고용노동부 <a href="tel:1350">1350</a>으로 전화해 주세요.<br>
+  This page needs JavaScript. For help right now, call the Ministry of Employment and Labor at <a href="tel:1350">1350</a>.</p>
+</noscript>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

@@ -1,0 +1,106 @@
+{
+  "name": "5인 미만 사업장 시급제: 가산수당 없음, 주휴 · 해고예고수당은 있음, 1년 미만이라 퇴직금 없음",
+  "source": "팀 손계산 (가상 인물). 근거 조문은 basis",
+  "basis": [
+    "근로기준법 제11조 제2항 · 시행령 제7조 [별표 1]: 4명 이하 사업장에 제56조(가산) · 제46조(휴업수당) · 제60조(연차) 미적용, 제55조 제1항(주휴) · 제26조(해고예고) 적용 — https://www.law.go.kr/법령/근로기준법시행령 (2026-11-20 확인)",
+    "근로기준법 제26조: 30일 전에 예고하지 않으면 30일분 이상의 통상임금 (3개월 이상 일한 경우)",
+    "근로자퇴직급여 보장법 제4조 제1항 단서: 계속근로 1년 미만은 퇴직금 없음",
+    "2026년 최저임금 시간급 10,320원: 고용노동부고시 제2025-47호 — https://www.moel.go.kr/info/lawinfo/instruction/view.do?bbs_seq=20250800121 (2026-11-20 확인)"
+  ],
+  "request": {
+    "workplace": {
+      "size": "UNDER_FIVE"
+    },
+    "employment": {
+      "startDate": "2025-08-01",
+      "endDate": "2026-02-28"
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "HOURLY",
+      "baseAmount": 10320,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-02",
+        "paidAmount": 1000000,
+        "overtimeHours": 10,
+        "nightHours": 6,
+        "holidayHoursWithin8": 8,
+        "holidayHoursOver8": 0,
+        "absentWeeks": 0
+      }
+    ],
+    "lastThreeMonthsWages": null,
+    "dismissal": {
+      "dismissed": true,
+      "noticeDaysBefore": 0
+    },
+    "annualLeave": {
+      "usedDays": 0
+    },
+    "shutdown": {
+      "days": 5,
+      "paidAmount": 0
+    }
+  },
+  "expected": {
+    "totalUnpaid": 3644000,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2026-02",
+        "amount": 651200
+      },
+      {
+        "code": "OVERTIME",
+        "month": "2026-02",
+        "amount": 103200
+      },
+      {
+        "code": "NIGHT",
+        "month": "2026-02",
+        "amount": 0
+      },
+      {
+        "code": "HOLIDAY",
+        "month": "2026-02",
+        "amount": 82560
+      },
+      {
+        "code": "WEEKLY_HOLIDAY",
+        "month": "2026-02",
+        "amount": 330240
+      },
+      {
+        "code": "SEVERANCE",
+        "month": null,
+        "amount": 0
+      },
+      {
+        "code": "DISMISSAL_NOTICE",
+        "month": null,
+        "amount": 2476800
+      }
+    ]
+  },
+  "handCalculation": [
+    "2026년 2월은 28일 = 정확히 4주",
+    "BASE_WAGE = 10,320 × 주 40시간 × 4주 = 1,651,200 − 받은 1,000,000 = 651,200",
+    "OVERTIME = 10,320 × 10시간 × 1.0 = 103,200 (5인 미만: 일한 시간의 임금만, 가산 없음)",
+    "NIGHT = 0 (5인 미만: 야간 가산 없음)",
+    "HOLIDAY = 10,320 × 8시간 × 1.0 = 82,560 (가산 없음)",
+    "WEEKLY_HOLIDAY = 10,320 × 8시간 × 4주 = 330,240 (주휴는 5인 미만에도 적용)",
+    "SEVERANCE = 0 (2025-08-01 ~ 2026-02-28, 1년 미만)",
+    "DISMISSAL_NOTICE = 1일 통상임금 10,320 × 8시간 = 82,560 × 30일 = 2,476,800 (예고 없이 해고, 3개월 넘게 일함)",
+    "연차수당 · 휴업수당은 5인 미만이라 계산하지 않음 (항목 없음)",
+    "totalUnpaid = 651,200 + 103,200 + 0 + 82,560 + 330,240 + 0 + 2,476,800 = 3,644,000"
+  ]
+}

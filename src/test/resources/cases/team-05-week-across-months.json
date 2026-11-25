@@ -1,0 +1,128 @@
+{
+  "name": "달이 바뀌는 주: 3월 30일(월) ~ 4월 4일(토) 하루 8시간씩 6일 → 주 40시간을 넘긴 8시간은 4월 연장근로 (공휴일이 없는 주)",
+  "source": "팀 손계산 (가상 인물). 근거 조문은 basis",
+  "basis": [
+    "근로기준법 제2조 제1항 제7호: 1주란 휴일을 포함한 7일 (달이 바뀌어도 한 주) — https://www.law.go.kr/법령/근로기준법 (2026-11-20 확인)",
+    "근로기준법 제50조 · 제53조 · 제56조 제1항: 1주 40시간을 넘는 근로는 연장근로, 통상임금의 50% 이상 가산",
+    "주의: 달에 걸친 주의 연장수당을 어느 달 임금으로 볼지 정한 공식 기준은 찾지 못했다. 40시간을 넘겨 일한 날이 든 달(4월)에 넣었다"
+  ],
+  "request": {
+    "workplace": {
+      "size": "FIVE_OR_MORE"
+    },
+    "employment": {
+      "startDate": "2025-01-02",
+      "endDate": null
+    },
+    "schedule": {
+      "weeklyContractHours": 40,
+      "dailyContractHours": 8,
+      "workDaysPerWeek": 5
+    },
+    "wage": {
+      "type": "MONTHLY",
+      "baseAmount": 2299000,
+      "ordinaryAllowances": [],
+      "otherAllowances": [],
+      "annualBonus": 0
+    },
+    "months": [
+      {
+        "month": "2026-03",
+        "paidAmount": 2299000,
+        "overtimeHours": null,
+        "nightHours": null,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      },
+      {
+        "month": "2026-04",
+        "paidAmount": 2299000,
+        "overtimeHours": null,
+        "nightHours": null,
+        "holidayHoursWithin8": null,
+        "holidayHoursOver8": null,
+        "absentWeeks": 0
+      }
+    ],
+    "lastThreeMonthsWages": null,
+    "workDays": [
+      {
+        "date": "2026-03-30",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      },
+      {
+        "date": "2026-03-31",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      },
+      {
+        "date": "2026-04-01",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      },
+      {
+        "date": "2026-04-02",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      },
+      {
+        "date": "2026-04-03",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      },
+      {
+        "date": "2026-04-04",
+        "start": "09:00",
+        "end": "18:00",
+        "breakMinutes": 60,
+        "holiday": false
+      }
+    ]
+  },
+  "expected": {
+    "totalUnpaid": 132000,
+    "items": [
+      {
+        "code": "BASE_WAGE",
+        "month": "2026-03",
+        "amount": 0
+      },
+      {
+        "code": "OVERTIME",
+        "month": "2026-03",
+        "amount": 0
+      },
+      {
+        "code": "BASE_WAGE",
+        "month": "2026-04",
+        "amount": 0
+      },
+      {
+        "code": "OVERTIME",
+        "month": "2026-04",
+        "amount": 132000
+      }
+    ]
+  },
+  "handCalculation": [
+    "시간급 통상임금 = 2,299,000 ÷ 209 = 11,000",
+    "3월 30일(월) ~ 4월 4일(토): 09:00~18:00 쉬는 시간 1시간 = 하루 8시간 × 6일 = 주 48시간",
+    "하루 8시간을 넘긴 날은 없음. 주 40시간을 넘긴 시간 = 48 − 40 = 8시간 (금요일까지 40시간, 토요일 8시간이 초과)",
+    "초과한 토요일이 4월 4일이므로 4월 OVERTIME = 11,000 × 8 × 1.5 = 132,000. 3월 OVERTIME 은 0원 (하루 기록이 있는 달이라 정보 없음이 아니라 0원)",
+    "월급은 두 달 다 받음 → BASE_WAGE 0",
+    "totalUnpaid = 132,000"
+  ]
+}
