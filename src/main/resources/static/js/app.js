@@ -184,16 +184,27 @@
     if (lang === 'ko') return Number(ym.slice(5)) + '월';
     return new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5) - 1, 1)).toLocaleDateString(lang, { year: 'numeric', month: 'short', timeZone: 'UTC' });
   }
+  // 출근 · 퇴근 시각은 시간 단위 소수('9.5' = 09:30), 쉬는 시간도 시간 단위('0.75' = 45분)로 둔다. 퇴근이 출근보다 이르면 다음 날 퇴근
   function hours() {
     var f = S.f;
     if (f.tStart === '' || f.tEnd === '' || f.brk === '') return Number(f.dayHours) || 0;
-    return (Number(f.tEnd) - Number(f.tStart)) - Number(f.brk);
+    var span = Number(f.tEnd) - Number(f.tStart);
+    if (span <= 0) span += 24;
+    return Math.round((span - Number(f.brk)) * 100) / 100;
   }
   function dayText() {
     var d = DAYS.filter(function (_, i) { return S.f.days[i]; });
     return d.join(' ');
   }
-  function hh(v) { return (Number(v) < 10 ? '0' : '') + Number(v) + ':00'; }
+  // 9.5 → '09:30' · 24 → '24:00'
+  function hh(v) { var m = Math.round(Number(v) * 60); return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+  // '09:30' → '9.5' (빈 값이면 '')
+  function hDec(hm) {
+    if (!/^\d{1,2}:\d{2}$/.test(hm || '')) return '';
+    var p = hm.split(':'), h = Number(p[0]), m = Number(p[1]);
+    if (h > 24 || m > 59 || (h === 24 && m)) return '';
+    return String(Math.round((h + m / 60) * 10000) / 10000);
+  }
   function toast(msg) {
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -497,8 +508,8 @@
     var f = S.f;
     switch (r) {
       case 'q1': return !!f.size;
-      case 'q2': return !!f.start;
-      case 'q3': return f.employed === 'yes' || (f.employed === 'no' && !!f.end && f.end >= f.start);
+      case 'q2': return !!f.start && f.start <= today();
+      case 'q3': return f.employed === 'yes' || (f.employed === 'no' && !!f.end && f.end >= f.start && f.end <= today());
       case 'q4': return f.days.some(Boolean) && hours() > 0;
       case 'q5': return !!f.wageType && Number(f.wage) > 0;
       case 'q6': return f.paid !== '' && f.more.every(function (m) { return m.month && m.paid !== ''; }) && monthList().length === f.more.length + 1;
@@ -557,7 +568,7 @@
     var r = S.route;
     var step = STEP[r] || 0;
     var steps = [1, 2, 3, 4].map(function (i) {
-      return '<li' + (step === i ? ' aria-current="step"' : step > i ? ' class="done"' : '') + '><b>' + (step > i ? icon('check') : i) + '</b>' + t('step.' + i) + '</li>';
+      return '<li' + (step === i ? ' aria-current="step"' : step > i ? ' class="done"' : '') + '><b>' + (step > i ? icon('check') : i) + '</b>' + stepName(i) + '</li>';
     }).join('');
     // 상표(돌고래 + 이름)는 어느 화면에서나 시작 화면으로 가는 링크. 쓰던 값은 그대로 두고, 시작 화면에 '이어서 하기'가 뜬다
     var brand = '<a class="brand" href="#start" data-act="home">' + dolphin('') + '<span class="brand-t">' + t('brand') + '</span><span class="sr">, ' + t('brand.home') + '</span></a>';
@@ -593,6 +604,10 @@
     return (link ? '<a class="nav-row" ' : '<button type="button" class="nav-row" ') + attrs + '>' + icon(ico) + '<span>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</span>' +
       icon(out ? 'out' : 'chev', 'chev') + (link ? '</a>' : '</button>');
   }
+  // 결과 화면 '더 할 수 있는 일' 칸: 동그라미 아이콘 · 제목 · 한 줄 설명
+  function tile(attrs, ico, label, sub) {
+    return '<button type="button" class="act" ' + attrs + '><span class="act-ico">' + icon(ico) + '</span><span class="act-t"><b>' + label + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + icon('chev', 'chev') + '</button>';
+  }
   // 번역이 직접 번역(검수 전)이면 알림
   function langBanner() {
     var note = S.lang !== 'ko' && t('langNote');
@@ -605,8 +620,10 @@
   }
   function progress(step) {
     var bars = [1, 2, 3, 4].map(function (i) { return '<span' + (i < step ? ' class="on"' : i === step ? ' class="now"' : '') + '></span>'; }).join('');
-    return '<div class="progress only-m"><div class="bar" aria-hidden="true">' + bars + '</div><span class="hint">' + t('progress', { n: step, label: t('step.' + step) }) + '</span></div>';
+    return '<div class="progress only-m"><div class="bar" aria-hidden="true">' + bars + '</div><span class="hint">' + t('progress', { n: step, label: stepName(step) }) + '</span></div>';
   }
+  // 1단계 이름: 서류 없이 직접 입력하면 '서류' 대신 '입력'
+  function stepName(i) { return t(i === 1 && S.path === 'manual' ? 'step.1m' : 'step.' + i); }
   function cta(inner, extraClass) {
     return '<div class="cta ' + (extraClass || 'col') + '">' + inner + '</div>';
   }
@@ -773,7 +790,10 @@
   }
   function nextCta(r) {
     var next = { q1: 'q2', q2: 'q3', q3: 'q4', q4: 'q5', q5: 'q6', q6: needX() ? 'qx' : 'review', qx: 'review' }[r];
-    return cta(primary(t(next === 'review' ? 'q.toReview' : 'q.next'), 'data-go="' + next + '" data-next', valid(r)) +
+    // 이전: 앞 질문으로. 첫 질문이면 서류 화면(서류로 시작한 경우)이나 시작 화면으로
+    var qs = qList(), prev = qs[qs.indexOf(r) - 1] || (S.path === 'doc' ? 'upload' : 'start');
+    return cta('<div class="btn-row q-nav"><button type="button" class="btn btn-line" data-go="' + prev + '">' + icon('arrow-l') + '<span>' + t('q.prev') + '</span></button>' +
+      primary(t(next === 'review' ? 'q.toReview' : 'q.next'), 'data-go="' + next + '" data-next', valid(r)) + '</div>' +
       '<p class="hint" data-next-hint' + (valid(r) ? ' hidden' : '') + '>' + t('q.nextHint') + '</p>', ' ');
   }
   function radios(name, key, list) {
@@ -789,39 +809,50 @@
   }
   function vQ2() {
     return qShell(2, t('q2.title'), t('q2.help'),
-      '<div class="field"><label for="start">' + t('q2.label') + '</label><input id="start" class="input" type="date" data-f="start" value="' + esc(S.f.start) + '" max="2026-12-31"></div>');
+      '<div class="field"><label for="start">' + t('q2.label') + '</label><input id="start" class="input" type="date" data-f="start" value="' + esc(S.f.start) + '" max="' + today() + '"></div>');
   }
   function vQ3() {
     var f = S.f;
-    var bad = f.employed === 'no' && f.end && f.start && f.end < f.start;
+    var early = f.employed === 'no' && f.end && f.start && f.end < f.start;
+    var future = f.employed === 'no' && f.end > today();
+    var bad = early || future;
     return qShell(3, t('q3.title'), t('q3.help'),
       radios('employed', 'employed', [['yes', t('q3.yes')], ['no', t('q3.no')]]) +
-      (f.employed === 'no' ? '<div class="field"><label for="end">' + t('q3.end') + '</label><input id="end" class="input" type="date" data-f="end" value="' + esc(f.end) + '"' + (bad ? ' aria-invalid="true" aria-describedby="end-err"' : '') + '>' +
-        (bad ? '<p id="end-err" class="err">' + t('q3.endErr') + '</p>' : '') + '</div>' : ''));
+      (f.employed === 'no' ? '<div class="field"><label for="end">' + t('q3.end') + '</label><input id="end" class="input" type="date" data-f="end" value="' + esc(f.end) + '" max="' + today() + '"' + (bad ? ' aria-invalid="true" aria-describedby="end-err"' : '') + '>' +
+        (bad ? '<p id="end-err" class="err">' + t(early ? 'q3.endErr' : 'q3.endFuture') + '</p>' : '') + '</div>' : ''));
   }
-  function brkName(v) { return t('brk.' + v); }
+  // 쉬는 시간(시간 단위 소수) → '1시간 30분' · '45분'
+  function brkName(v) {
+    var m = Math.round(Number(v) * 60);
+    if (!m) return t('brk.0');
+    var h = Math.floor(m / 60), r = m % 60;
+    return [h ? t('cal.hoursShort', { h: h }) : '', r ? t('cal.min', { n: r }) : ''].filter(Boolean).join(' ');
+  }
+  // 하루 · 일주일 시간 안내 (입력할 때마다 바로 바뀐다)
+  function q4Sum() {
+    var f = S.f, h = hours(), cnt = f.days.filter(Boolean).length;
+    if (f.tStart !== '' && f.tEnd !== '' && f.brk !== '' && h <= 0) return '<p class="err" role="alert">' + t('q4.timeErr') + '</p>';
+    if (h > 0 && cnt) return '<p class="sumline" role="status">' + t('q4.sum', { h: h, w: Math.round(h * cnt * 100) / 100 }) + '</p>';
+    return '';
+  }
   function vQ4() {
     var f = S.f;
     var days = DAYS.map(function (_, i) {
       return '<button type="button" class="day" data-act="day" data-i="' + i + '" aria-pressed="' + f.days[i] + '">' + t('day.' + i) + '</button>';
     }).join('');
-    function sel(id, key, from, to, label) {
-      var o = '<option value="">' + t('q.pick') + '</option>';
-      for (var h = from; h <= to; h++) o += '<option value="' + h + '"' + (String(h) === f[key] ? ' selected' : '') + '>' + hh(h) + '</option>';
-      return '<div class="field"><label for="' + id + '">' + label + '</label><select id="' + id + '" class="input" data-f="' + key + '">' + o + '</select></div>';
+    // 출근 · 퇴근: 시 · 분을 직접 넣는다 (30분 · 45분도). 쉬는 시간은 분으로
+    function time(id, key, label) {
+      // 브라우저 시간 칸은 '오전/오후'부터 골라야 해서 숫자를 바로 칠 수 없다 → 숫자만 치면 '0830' → '08:30' 으로 맞춰 주는 글자 칸 (24시간제)
+      return '<div class="field"><label for="' + id + '">' + label + '</label><input id="' + id + '" class="input input-time" type="text" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="' + (key === 'tStart' ? '09:00' : '18:00') + '" data-f="' + key + '" data-live data-conv="time" value="' + (f[key] === '' ? '' : hh(f[key])) + '"></div>';
     }
-    var brk = ['0', '0.5', '1', '1.5'].map(function (b) {
-      return '<option value="' + b + '"' + (f.brk === b ? ' selected' : '') + '>' + brkName(b) + '</option>';
-    }).join('');
-    var h = hours(), cnt = f.days.filter(Boolean).length;
-    var sum = '';
-    if (f.tStart !== '' && f.tEnd !== '' && f.brk !== '' && h <= 0) sum = '<p class="err" role="alert">' + t('q4.timeErr') + '</p>';
-    else if (h > 0 && cnt) sum = '<p class="sumline" role="status">' + t('q4.sum', { h: h, w: h * cnt }) + '</p>';
+    var brkMin = f.brk === '' ? '' : String(Math.round(Number(f.brk) * 60));
     return qShell(4, t('q4.title'), '',
       '<div class="stack"><span class="label" id="days-label">' + t('q4.days') + ' <span class="opt">' + t('q4.multi') + '</span></span><div class="days" role="group" aria-labelledby="days-label">' + days + '</div></div>' +
-      '<div class="grid2">' + sel('tstart', 'tStart', 5, 14, t('q4.start')) + sel('tend', 'tEnd', 12, 24, t('q4.end')) + '</div>' +
-      '<div class="field"><label for="brk">' + t('q4.break') + '</label><select id="brk" class="input" data-f="brk"><option value="">' + t('q.pick') + '</option>' + brk + '</select></div>' +
-      sum +
+      '<div class="grid2">' + time('tstart', 'tStart', t('q4.start')) + time('tend', 'tEnd', t('q4.end')) + '</div>' +
+      '<p class="hint">' + t('q4.timeHint') + '</p>' +
+      '<div class="field"><label for="brk">' + t('q4.break') + ' <span class="opt">(' + t('cal.minUnit') + ')</span></label>' +
+      '<input id="brk" class="input input-short" type="text" inputmode="numeric" autocomplete="off" maxlength="3" data-f="brk" data-live data-conv="min" value="' + brkMin + '" placeholder="' + esc(t('q4.breakPh')) + '"></div>' +
+      '<div data-q4sum>' + q4Sum() + '</div>' +
       '<details class="more"><summary>' + t('q4.diff') + '</summary><div class="stack" style="padding-bottom:12px"><p class="lead">' + t('q4.diffBody') + '</p>' +
       '<button type="button" class="btn btn-line" data-go="cal">' + icon('cal') + '<span>' + t('cal.open') + '</span></button></div></details>');
   }
@@ -847,19 +878,29 @@
         '<div class="field"><label for="mp' + i + '">' + t('q6.extraPaid') + '</label><input id="mp' + i + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-m="' + i + '" data-k="paid" value="' + esc(m.paid) + '"><p class="readable" data-readable-m="' + i + '" aria-live="polite">' + readable(m.paid) + '</p></div>' +
         '<button type="button" class="pg-btn" data-act="month-del" data-i="' + i + '">' + icon('x') + '<span>' + t('q6.removeMonth') + '</span></button></li>';
     }).join('');
+    var extraN = [f.ot, f.night, f.holiday, f.allowance].filter(function (v) { return v !== ''; }).length;
+    // 고르는 줄: 왼쪽 아이콘 · 제목 · 한 줄 설명 · 오른쪽 상태(몇 개 적음). 달력은 다른 화면, 나머지 둘은 그 자리에서 펼친다
+    function optHead(ico, title, sub, badge) {
+      return icon(ico) + '<span class="opt-t"><b>' + title + '</b><small>' + sub + '</small></span>' + (badge ? '<span class="tag self">' + badge + '</span>' : '') + icon('chev', 'chev');
+    }
     return qShell(6, t('q6.title'), t('q6.help'),
-      '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
-      '<section class="calcard stack">' + icon('cal', 'ico-lg') + '<h2>' + t('q6.calTitle') + '</h2><p>' + (recorded ? t('q6.calHas', { n: recorded }) : t('q6.calBody')) + '</p>' +
-      '<button type="button" class="btn btn-line" data-go="cal"><span>' + t(recorded ? 'cal.edit' : 'cal.open') + '</span></button></section>' +
-      '<details class="more"' + (has('extra') || f.ot || f.night || f.holiday || f.allowance || f.month ? ' open' : '') + '><summary>' + t('q6.more') + ' <span class="opt" style="margin-left:4px">' + t('opt') + '</span></summary><div class="stack" style="padding-bottom:8px">' +
-      '<p class="hint">' + t('q6.noData') + (recorded ? ' ' + t('q6.calWins') : '') + '</p>' +
-      '<div class="field"><label for="month">' + t('q6.month') + ' <span class="opt">' + t('q6.monthHint') + '</span></label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month) + '"></div>' +
-      num('ot', 'ot', t('q6.ot'), t('unit.hours')) + num('night', 'night', t('q6.night'), t('unit.hours')) + num('holiday', 'holiday', t('q6.holiday'), t('unit.hours')) + num('allow', 'allowance', t('q6.allow'), t('unit.won')) +
-      '</div></details>' +
-      '<details class="more"' + (f.more.length ? ' open' : '') + '><summary>' + t('q6.extra') + ' <span class="opt" style="margin-left:4px">' + t('opt') + '</span></summary><div class="stack" style="padding-bottom:12px">' +
-      '<p class="hint">' + t('q6.extraHelp') + '</p>' + (more ? '<ol class="months">' + more + '</ol>' : '') +
+      // 1) 꼭 적을 것: 못 받은 달 · 그 달에 받은 돈
+      '<div class="paid-box stack"><div class="grid2 paid-grid">' +
+      '<div class="field"><label for="month">' + t('q6.month') + '</label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month || lastMonth()) + '" max="' + today().slice(0, 7) + '"><p class="hint">' + t('q6.monthHint') + '</p></div>' +
+      '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input input-money" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '" placeholder="0"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
+      '</div></div>' +
+      // 2) 더 정확하게 (선택)
+      '<section class="stack opt-sec" aria-labelledby="opt-t"><div class="stack" style="gap:2px"><h2 id="opt-t" class="label">' + t('q6.moreTitle') + ' <span class="opt">' + t('opt') + '</span></h2><p class="hint">' + t('q6.moreHelp') + '</p></div>' +
+      '<div class="opt-list">' +
+      '<button type="button" class="opt-row" data-go="cal">' + optHead('cal', t('q6.calShort'), recorded ? t('q6.calHas', { n: recorded }) : t('q6.calSub'), recorded ? t('review.workN', { n: recorded }) : '') + '</button>' +
+      '<details class="opt-row-d"' + (has('extra') || extraN ? ' open' : '') + '><summary class="opt-row">' + optHead('moon', t('q6.otTitle'), t('q6.otSub'), extraN ? t('q6.filled', { n: extraN }) : '') + '</summary>' +
+      '<div class="opt-body stack"><p class="hint">' + t('q6.noData') + (recorded ? ' ' + t('q6.calWins') : '') + '</p>' +
+      '<div class="grid2">' + num('ot', 'ot', t('q6.ot'), t('unit.hours')) + num('night', 'night', t('q6.night'), t('unit.hours')) + num('holiday', 'holiday', t('q6.holiday'), t('unit.hours')) + num('allow', 'allowance', t('q6.allow'), t('unit.won')) + '</div></div></details>' +
+      '<details class="opt-row-d"' + (f.more.length ? ' open' : '') + '><summary class="opt-row">' + optHead('plus', t('q6.extra'), t('q6.extraSub'), f.more.length ? t('q6.filled', { n: f.more.length }) : '') + '</summary>' +
+      '<div class="opt-body stack"><p class="hint">' + t('q6.extraHelp') + '</p>' + (more ? '<ol class="months">' + more + '</ol>' : '') +
       (dup && f.more.every(function (m) { return m.month; }) ? '<p class="err" role="alert">' + t('q6.dup') + '</p>' : '') +
-      '<button type="button" class="btn btn-line" data-act="month-add">' + icon('plus') + '<span>' + t('q6.addMonth') + '</span></button></div></details>');
+      '<button type="button" class="btn btn-line" data-act="month-add">' + icon('plus') + '<span>' + t('q6.addMonth') + '</span></button></div></details>' +
+      '</div></section>');
   }
 
   // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금 · 휴업)에 맞춰 필요한 것만
@@ -1019,7 +1060,7 @@
       missQ.map(function (q) { return navRow('data-go="' + q + '"', 'pen', t('q.name' + (qs.indexOf(q) + 1))); }).join('') + '</div></section>' : '';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(2) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('review.title') + '</h1><p class="lead">' + t('review.lead') + '</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t(Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; }) ? 'review.title' : 'review.titleSelf') + '</h1><p class="lead">' + t('review.lead') + '</p></div>' +
       missBox + groups + '</div>' +
       '<aside class="side"><div class="note stack"><h2>' + t('review.legend') + '</h2><div class="legend-row" style="flex-direction:column"><span><span class="tag">' + t('review.doc') + '</span> ' + t('review.legDoc') + '</span><span><span class="tag self">' + t('review.self') + '</span> ' + t('review.legSelf') + '</span><span><span class="tag warn">' + t('review.legWarnTag') + '</span> ' + t('review.legWarn') + '</span></div></div>' +
       '<p class="hint">' + t('review.rule') + '</p>' +
@@ -1098,19 +1139,23 @@
       '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
     var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul lang="ko">' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
     var weeks = R.weeks.length ? '<dt>' + t('result.weeks') + '</dt><dd><ul class="weeks" lang="ko">' + R.weeks.map(function (w) { return '<li><b>' + esc(krOrLocal(w.weekStart)) + '~</b> ' + esc(w.formula) + '</li>'; }).join('') + '</ul></dd>' : '';
-    var more = '<section class="stack" aria-labelledby="more-t"><h2 id="more-t">' + t('result.next') + '</h2><div class="nav-list">' +
-      navRow('data-act="print"', 'print', t('result.pdf'), t('result.expire')) +
-      navRow('data-go="counselor"', 'chat', t('result.counselor')) +
-      navRow('data-go="letter"', 'file', t('cp.letter'), t('cp.letterSub')) +
-      navRow('data-go="daeji"', 'coin', t('title.daeji')) + infoRow() + extraRows() +
-      navRow('data-go="review"', 'pen', t('result.review')) +
-      navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div></section>';
+    // 더 할 수 있는 일: 무엇을 하려는지에 따라 세 묶음 (저장 · 다음 할 일 · 알아 두기). 다시 보기 · 지우기는 맨 아래 작은 글자 단추
+    loadGuides();
+    function group(title, tiles) {
+      return '<section class="act-group stack" aria-label="' + esc(title) + '"><h3 class="label">' + title + '</h3><div class="act-grid">' + tiles + '</div></section>';
+    }
+    var more = '<section class="next-sec stack-lg" aria-labelledby="more-t"><h2 id="more-t">' + t('result.next') + '</h2>' +
+      group(t('result.gSave'), tile('data-act="print"', 'print', t('result.pdf'), t('result.expire')) + tile('data-go="counselor"', 'chat', t('result.counselor'), t('guide.calloutSub'))) +
+      group(t('result.gNext'), tile('data-go="letter"', 'file', t('cp.letter'), t('cp.letterSub')) + tile('data-go="daeji"', 'coin', t('title.daeji'), t('dj.sub')) + tile('data-go="guide"', 'list', t('guide.title'), t('guide.sub'))) +
+      group(t('result.gInfo'), (GUIDES.length ? tile('data-go="info"', 'info', t('title.info'), t('info.sub')) : '') +
+        tile('data-go="contract"', 'contract', t('title.contract'), t('ct.sub')) + tile('data-go="deadline"', 'clock', t('title.deadline'), t('dl.sub')) + tile('data-go="after"', 'door', t('title.after'), t('after.sub'))) +
+      '<div class="act-foot"><button type="button" class="btn-text" data-go="review">' + icon('pen') + t('result.review') + '</button><button type="button" class="btn-text" data-act="wipe">' + icon('trash') + t('wipe.btn') + '</button></div></section>';
     return '<div class="wide col">' + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
       '<div class="result-grid"><div class="stack r-sum">' + summary + speakBtn('result') + chart(R) + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
       '<div class="stack-lg r-items">' + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul></section>' +
       '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details>' +
-      more + '</div></div></div>';
+      '</div></div>' + more + '</div>';
   }
   // 항목 상세 시트: 금액(서버 값 그대로) · 쉬운 설명(자동 생성 고지 한 번) · 단계 풀이 · 쉬운 말
   function itemSheet(i) {
@@ -1314,11 +1359,87 @@
       '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(plainText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
-      cta(primary(t('cp.pdf'), 'data-act="print"') +
-        '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>' +
-        '<p class="hint">' + t('cp.copyHint') + '</p>' +
-        '<button type="button" class="btn-text" data-go="guide">' + t('cp.where') + '</button>', ' ') +
+      cta(saveBtns(), ' ') +
+      '<p class="hint">' + t('cp.docxHint') + '<br>' + t('cp.copyHint') + '</p>' +
+      '<button type="button" class="btn-text" style="align-self:flex-start" data-go="guide">' + t('cp.where') + '</button>' +
       '<div class="nav-list">' + navRow('data-go="letter"', 'file', t('cp.letter'), t('cp.letterSub')) + '</div></aside></div>';
+  }
+
+  // 저장 단추: PDF(인쇄 창) · 한글/Word 파일(.docx) · 인쇄 · 전체 복사
+  function saveBtns() {
+    return primary(t('cp.pdf'), 'data-act="print"') +
+      '<button type="button" class="btn btn-line" data-act="docx">' + icon('file') + '<span>' + t('cp.docx') + '</span></button>' +
+      '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>';
+  }
+
+  // ---------- 한글 · Word 파일(.docx) ----------
+  // 압축하지 않은 zip 에 Word 문서 XML 세 개만 담는다. 한글(한컴오피스)과 Word 둘 다 연다. 서버로 보내지 않고 이 기기에서 만든다
+  var CRC = null;
+  function crc32(b) {
+    if (!CRC) { CRC = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC[n] = c >>> 0; } }
+    var x = -1;
+    for (var i = 0; i < b.length; i++) x = CRC[(x ^ b[i]) & 255] ^ (x >>> 8);
+    return (x ^ -1) >>> 0;
+  }
+  function zipStore(files, type) {
+    var enc = new TextEncoder(), parts = [], dir = [], off = 0;
+    files.forEach(function (f) {
+      var name = enc.encode(f[0]), d = enc.encode(f[1]), crc = crc32(d);
+      var h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x21, true);
+      h.setUint32(14, crc, true); h.setUint32(18, d.length, true); h.setUint32(22, d.length, true); h.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(h.buffer), name, d);
+      var c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x21, true);
+      c.setUint32(16, crc, true); c.setUint32(20, d.length, true); c.setUint32(24, d.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      dir.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + d.length;
+    });
+    var size = dir.reduce(function (s, a) { return s + a.length; }, 0);
+    var e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, off, true);
+    return new Blob(parts.concat(dir, [new Uint8Array(e.buffer)]), { type: type });
+  }
+  function xmlEsc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // 문단 하나: opts.b 굵게 · opts.sz 글자 크기(반 포인트) · opts.c 가운데 · opts.r 오른쪽 · opts.after 아래 띄움
+  function wPara(text, opts) {
+    opts = opts || {};
+    var rpr = '<w:rPr><w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="맑은 고딕"/>' + (opts.b ? '<w:b/>' : '') + '<w:sz w:val="' + (opts.sz || 22) + '"/></w:rPr>';
+    return '<w:p><w:pPr>' + (opts.c ? '<w:jc w:val="center"/>' : opts.r ? '<w:jc w:val="right"/>' : '') + '<w:spacing w:after="' + (opts.after == null ? 120 : opts.after) + '" w:line="360" w:lineRule="auto"/></w:pPr>' +
+      (text ? '<w:r>' + rpr + '<w:t xml:space="preserve">' + xmlEsc(text) + '</w:t></w:r>' : '') + '</w:p>';
+  }
+  function docx(title, sections, tail) {
+    var body = wPara(title, { b: true, sz: 36, c: true, after: 360 });
+    sections.forEach(function (s) {
+      body += wPara(s.heading, { b: true, sz: 24, after: 80 });
+      String(s.body).split('\n').forEach(function (line) { body += wPara(line); });
+      body += wPara('', { after: 120 });
+    });
+    tail.forEach(function (line, i) { body += wPara(line, { r: i < tail.length - 1, sz: i < tail.length - 1 ? 22 : 18, after: i === tail.length - 2 ? 360 : 120 }); });
+    var W = 'http://schemas.openxmlformats.org/';
+    return zipStore([
+      ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="' + W + 'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+      ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="' + W + 'package/2006/relationships"><Relationship Id="rId1" Type="' + W + 'officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
+      ['word/document.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="' + W + 'wordprocessingml/2006/main"><w:body>' + body +
+        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1701" w:right="1440" w:bottom="1440" w:left="1440" w:header="851" w:footer="992" w:gutter="0"/></w:sectPr></w:body></w:document>']
+    ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  }
+  function saveDocx() {
+    var name = S.p.name || '[이름]', blob, file;
+    if (S.route === 'letter' && S.lt) {
+      blob = docx(S.lt.draftKo.title, S.lt.draftKo.sections, [todayDot(), '발신인 ' + name + ' (서명 또는 날인)', S.lt.disclaimer + ' 보내기 전 내용이 사실과 같은지 확인하세요.']);
+      file = '내용증명_초안.docx';
+    } else {
+      blob = docx(S.draft.draftKo.title, draftSections(), [signMonth() + ' [  ]일', '진정인 ' + name + ' (서명)', S.draft.disclaimer + ' 제출 전 내용이 사실과 같은지 확인하세요.']);
+      file = '임금체불_진정서_초안.docx';
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = file;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toastT('cp.docxDone');
   }
 
   // ---------- 화면: 회사에 보내는 내용증명 초안 (demand-letter 응답) ----------
@@ -1366,9 +1487,8 @@
       (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(langOf(trLang).name) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') + '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(letterText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
-      cta(primary(t('cp.pdf'), 'data-act="print"') +
-        '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>', ' ') +
-      '<p class="hint">' + t('lt.post') + '</p>' + (sev ? '<p class="hint">' + t('lt.sev') + '</p>' : '') +
+      cta(saveBtns(), ' ') +
+      '<p class="hint">' + t('cp.docxHint') + '</p><p class="hint">' + t('lt.post') + '</p>' + (sev ? '<p class="hint">' + t('lt.sev') + '</p>' : '') +
       '<button type="button" class="btn-text" style="align-self:flex-start" data-act="letter-reset">' + t('lt.again') + '</button></aside></div>';
   }
 
@@ -1646,6 +1766,7 @@
     return d;
   }
   function ymdOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return ymdOf(new Date()); }
   function vDeadline() {
     loadDeadlines();
     var dl = S.dl, today = new Date(ymdOf(new Date()) + 'T00:00:00');
@@ -1971,7 +2092,20 @@
   function setField(el) {
     var key = el.dataset.f;
     var v = el.value;
-    if (el.hasAttribute('data-live')) {
+    if (el.dataset.conv === 'time') {
+      // 숫자만 남기고 세 자리부터 ':' 를 넣는다 (9 → 9시, 930 → 9:30, 0830 → 08:30, 2230 → 22:30)
+      var dg = v.replace(/[^0-9]/g, '').slice(0, 4);
+      var cut = dg.length === 4 || Number(dg.slice(0, 2)) <= 24 ? 2 : 1;
+      var shown = dg.length > 2 ? dg.slice(0, cut) + ':' + dg.slice(cut) : dg;
+      if (el.value !== shown && !(v.indexOf(':') > 0 && v.replace(':', '') === dg)) el.value = shown;
+      v = hDec(dg.length > 2 ? shown : dg ? dg + ':00' : '');
+    }
+    else if (el.dataset.conv === 'min') {
+      var m = v.replace(/[^0-9]/g, '').slice(0, 3);
+      if (el.value !== m) el.value = m;
+      v = m === '' ? '' : String(Math.round(Number(m) / 60 * 10000) / 10000);
+    }
+    else if (el.hasAttribute('data-live')) {
       v = v.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
       if (el.value !== v) el.value = v;
     }
@@ -1990,6 +2124,8 @@
     var hint = app.querySelector('[data-next-hint]');
     if (hint) hint.hidden = ok;
     app.querySelectorAll('[data-readable]').forEach(function (el) { el.textContent = readable(S.f[el.dataset.readable]); });
+    var sum = app.querySelector('[data-q4sum]');
+    if (sum) sum.innerHTML = q4Sum();
   }
   function doPrint() {
     if (!inFrame && typeof window.print === 'function') { window.print(); return; }
@@ -2093,7 +2229,7 @@
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
     else if (a === 'month-add') { S.f.more.push({ month: '', paid: '' }); render(); focusId('mm' + (S.f.more.length - 1)); }
     else if (a === 'month-del') { S.f.more.splice(Number(t.dataset.i), 1); render(); }
-    else if (a === 'cal-day') { S.calSel = t.dataset.d; render(); focusId('ce-title'); }
+    else if (a === 'cal-day') { S.calSel = t.dataset.d; render(); var ce = document.getElementById('ce-title'); if (ce) { ce.focus({ preventScroll: true }); ce.closest('.cal-edit').scrollIntoView({ block: 'center', behavior: 'smooth' }); } }
     else if (a === 'cal-save') calSave();
     else if (a === 'cal-del') { var dd = S.calSel; delete S.f.work[dd]; S.calSel = ''; render(); focusId('cd' + dd); }
     else if (a === 'cal-close') { var dc = S.calSel; S.calSel = ''; render(); focusId('cd' + dc); }
@@ -2108,6 +2244,7 @@
     else if (a === 'pg-remove') { var gone = pageOf(t.dataset.id); setUrl(gone, null); PAGES.splice(PAGES.indexOf(gone), 1); rerender(); }
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
+    else if (a === 'docx') saveDocx();
     else if (a === 'listen') listen();
     else if (a === 'to-agree') toAgree();
     else if (a === 'q-sheet') qSheet(Number(t.dataset.n));
