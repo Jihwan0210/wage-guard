@@ -406,7 +406,7 @@
   // POST /calculations 응답 → 화면에서 쓰는 값
   function viewResult() {
     var c = S.calc;
-    var explain = S.explain || {};
+    var explain = S.explain || {}, nth = {};
     var pending = S.explainState === 'loading' ? t('explain.loading') : S.explainState === 'fail' ? t('explain.fail') : S.explainState === '503' ? t('err.503') : '';
     var names = S.lang === 'ko' ? {} : L[S.lang] || {};
     return {
@@ -428,6 +428,7 @@
       }),
       weeks: c.workWeeks || [],
       items: c.items.map(function (it) {
+        nth[it.code] = (nth[it.code] || 0) + 1;
         var b = (it.legalBasis || [])[0] || {};
         var name = names['item.' + it.code] || it.label;
         // 서류 · 입력에 0시간이라고 적혀 있어 계산할 것이 없는 수당은 '정보 없음 · 입력하기' 대신 '해당 없음 (0시간)' (금액은 서버 그대로)
@@ -443,7 +444,7 @@
           status: it.status === 'CALCULATED' ? '' : zero ? t('status.ZERO_HOURS') : t('status.' + it.status),
           missing: it.status === 'NO_DATA' && !zero,
           estimated: !!it.estimated,
-          explain: explain[it.code] || pending,
+          explain: explain[it.code + '#' + nth[it.code]] || explain[it.code] || pending, // explain[it.code]: 예전 형식으로 저장된 해설
           article: [b.law, b.article].filter(Boolean).join(' '),
           gist: b.summary || '',
           formula: it.formula || ''
@@ -475,7 +476,8 @@
     S.explainState = 'loading';
     api(calcUrl('/explanation'), { lang: S.lang }).then(function (res) {
       var m = {};
-      (res.items || []).forEach(function (i) { m[i.code] = i.text; });
+      var seen = {};
+      (res.items || []).forEach(function (i) { seen[i.code] = (seen[i.code] || 0) + 1; m[i.code + '#' + seen[i.code]] = i.text; });
       S.explain = m;
       S.explainState = 'done';
     }, function (e) {
@@ -1603,7 +1605,11 @@
     var by = {};
     R.items.forEach(function (it) { if (it.month && it.amount) by[it.month] = (by[it.month] || 0) + it.amount; });
     var ms = monthList().slice().sort();
-    var rows = R.items.filter(function (it) { return it.amount != null || it.missing; }).map(function (it) {
+    var recorded = workDays().map(function (d) { return d.date.slice(0, 7); });
+    var rows = R.items.filter(function (it) {
+      if (it.amount === 0 && /^(OVERTIME|NIGHT|HOLIDAY)$/.test(it.code) && recorded.indexOf(it.month) < 0) return false;
+      return it.amount != null || it.missing;
+    }).map(function (it) {
       var name = it.ko;
       return '<tr><th scope="row">' + esc(name + (it.month ? ' (' + Number(it.month.slice(5)) + '월)' : '') + (it.estimated ? ' (추정)' : '')) + '</th><td class="n">' + (it.amount != null ? won(it.amount) : '정보 없음') + '</td></tr>';
     }).join('');
