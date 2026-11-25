@@ -307,10 +307,14 @@
     var ag = document.getElementById('agree');
     if (ag) { ag.scrollIntoView({ block: 'center' }); ag.focus({ preventScroll: true }); }
   }
+  // 못 받은 달 기본값: 그만뒀으면 마지막으로 일한 달, 다니는 중이면 지난달 (이번 달은 아직 끝나지 않아 월급날 전이다. 이번 달에 입사했으면 이번 달)
   function lastMonth() {
     var f = S.f;
-    return (f.employed === 'no' && f.end ? f.end : ymdOf(new Date())).slice(0, 7);
+    if (f.employed === 'no' && f.end) return f.end.slice(0, 7);
+    var now = new Date(), prev = ymdOf(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7);
+    return f.start && f.start.slice(0, 7) > prev ? f.start.slice(0, 7) : prev;
   }
+  function prevMonth(ym) { var d = new Date(+ym.slice(0, 4), +ym.slice(5) - 2, 1); return ymdOf(d).slice(0, 7); }
   // 못 받은 달 목록: 첫 달(질문 6) + 더한 달
   function monthList() {
     var out = [S.f.month || lastMonth()];
@@ -417,6 +421,8 @@
       // 서버 경고는 한국어 문장이라, 쉬운 한국어 · 다른 언어로 볼 때는 경고 코드에 맞춘 화면 문구(warn.<코드>)를 쓴다 (없으면 서버 문장)
       warnings: (c.warnings || []).map(function (n) {
         if (n.code === 'DAILY_RECORDS' && !workDays().length) return t('result.autoDays');
+        // 평소 근무로 날마다 채워 보냈으면 연장 시간은 이미 계산됐다 ('적어야 나와요'가 아니라). 월급제면 월급에 그 수당이 들어 있었는지 확인하라고
+        if (n.code === 'OVER_FORTY_HOURS' && autoDays().length) return t(S.f.wageType === 'month' ? 'result.over40Month' : 'result.over40');
         var k = 'warn.' + n.code, own = (S.lang !== 'ko' || S.easy) ? t(k) : k;
         return own !== k ? own : n.message;
       }),
@@ -945,7 +951,11 @@
     var note = '<p class="hint">' + t('q6.which') + '</p>';
     if (f.employed !== 'no' || !f.end || f.end.slice(0, 7) !== ym) return note;
     var last = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5), 0)).getUTCDate(), d = Number(f.end.slice(8));
-    return d < last ? note + '<p class="note">' + icon('info') + ' ' + t('q6.partial', { m: ymName(ym), d: d, last: last }) + '</p>' : note;
+    if (d >= last) return note;
+    // 그만둔 달에 며칠만 일했으면 앞달도 못 받았을 수 있다: 앞달을 '못 받은 달'에 바로 더하는 단추 (이미 더했으면 안 보임)
+    var prev = prevMonth(ym), added = f.more.some(function (m) { return m.month === prev; });
+    return note + '<div class="note stack" style="gap:var(--s2)"><p>' + icon('info') + ' ' + t('q6.partial', { m: ymName(ym), d: d, last: last }) + '</p>' +
+      (d <= 10 && !added && (!f.start || f.start.slice(0, 7) <= prev) ? '<p>' + t('q6.prevAsk', { m: ymName(prev) }) + '</p><button type="button" class="btn btn-line" style="align-self:flex-start" data-act="month-add-prev" data-v="' + prev + '">' + icon('plus') + '<span>' + t('q6.prevAdd', { m: ymName(prev) }) + '</span></button>' : '') + '</div>';
   }
   // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금 · 휴업)에 맞춰 필요한 것만
   function vQx() {
@@ -1168,9 +1178,18 @@
     var R = viewResult();
     // 항목은 한 줄씩: 이름 · 금액 · 꺾쇠. 누르면 아래 시트에 쉬운 설명 · 계산식 · 근거
     // 금액이 있는 항목 · '월급에 포함' 같은 상태만 한 줄씩. 적지 않아 계산하지 않은 것은 한 줄로 묶고, 0원인 것은 아래에 작게 (눌러서 이유 보기)
-    var missing = [], zero = [];
+    var missing = [], zero = [], cardZero = [];
+    // 직접 적은 달력 기록이 있는 달 (평소 근무로 자동으로 채운 달의 '연장 · 야간 · 휴일 0원'은 보여 주지 않는다)
+    var recorded = workDays().map(function (d) { return d.date.slice(0, 7); });
+    // 고른 상황 카드와 관련된 항목이 0원이면 이유를 결과 위에 바로
+    var CARD_ITEM = { SEVERANCE: 'sev', ANNUAL_LEAVE: 'leave', DISMISSAL_NOTICE: 'fired' };
     var items = R.items.map(function (it, i) {
       if (it.missing) { if (missing.indexOf(it.name) < 0) missing.push(it.name); return ''; }
+      if (it.amount === 0 && /^(OVERTIME|NIGHT|HOLIDAY)$/.test(it.code) && recorded.indexOf(it.month) < 0) return '';
+      if (it.amount === 0 && CARD_ITEM[it.code] && has(CARD_ITEM[it.code])) {
+        cardZero.push('<li><b>' + esc(it.label) + ' · ' + money(0) + '</b> <button type="button" class="btn-text" data-act="item" data-i="' + i + '">' + t('result.zeroWhyBtn') + '</button></li>');
+        return '';
+      }
       if (it.amount === 0) { zero.push('<button type="button" class="chip" data-act="item" data-i="' + i + '">' + esc(it.label) + '</button>'); return ''; }
       var right = it.amount != null ? '<span class="item-amt">' + money(it.amount) + '</span>' : '<span class="item-status">' + esc(it.status) + '</span>';
       var sub = it.amount ? readable(it.amount) : '';
@@ -1191,6 +1210,10 @@
       '<p class="disclaim">' + t('result.disclaim') + ' <button type="button" class="btn-text" data-act="disclaim">' + t('result.more') + '</button></p></div></div>' +
       '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
     var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul>' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
+    // 고른 상황과 관련된 0원 · 계산하지 않는 상황(방값 · 밥값 공제, 명세서)은 안내 화면으로
+    var notes = (cardZero.length ? '<section class="note stack card-note" aria-labelledby="cz-t"><h2 id="cz-t">' + t('result.cardZeroTitle') + '</h2><ul class="plain">' + cardZero.join('') + '</ul></section>' : '') +
+      (has('deduct') || has('payslip') ? '<section class="note stack card-note"><p>' + t(has('deduct') ? 'result.deductNote' : 'result.payslipNote') + '</p>' +
+        '<button type="button" class="btn btn-line" style="align-self:flex-start" data-go="info">' + icon('info') + '<span>' + t('title.info') + '</span></button></section>' : '');
     var weeks = R.weeks.length ? '<dt>' + t('result.weeks') + '</dt><dd><ul class="weeks" lang="ko">' + R.weeks.map(function (w) { return '<li><b>' + esc(krOrLocal(w.weekStart)) + '~</b> ' + esc(w.formula) + '</li>'; }).join('') + '</ul></dd>' : '';
     // 더 할 수 있는 일: 무엇을 하려는지에 따라 세 묶음 (저장 · 다음 할 일 · 알아 두기). 다시 보기 · 지우기는 맨 아래 작은 글자 단추
     loadGuides();
@@ -1206,7 +1229,7 @@
     return '<div class="wide col">' + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
       '<div class="result-grid"><div class="stack r-sum">' + summary + speakBtn('result') + chart(R) + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
-      '<div class="stack-lg r-items">' + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' +
+      '<div class="stack-lg r-items">' + notes + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' +
       '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details>' +
       '</div></div>' + more + '</div>';
   }
@@ -2294,6 +2317,8 @@
     else if (a === 'speak') speak(t.dataset.v);
     else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
     else if (a === 'month-add') { S.f.more.push({ month: '', paid: '' }); render(); focusId('mm' + (S.f.more.length - 1)); }
+    // 그만둔 달이 며칠뿐일 때: 앞달을 못 받은 달로 더하고 그 달 받은 돈 칸으로
+    else if (a === 'month-add-prev') { S.f.more.push({ month: t.dataset.v, paid: '' }); S.src.more = 'self'; render(); var rows = app.querySelectorAll('.opt-row-d'); if (rows[1]) rows[1].open = true; focusId('mp' + (S.f.more.length - 1)); }
     else if (a === 'month-del') { S.f.more.splice(Number(t.dataset.i), 1); render(); }
     else if (a === 'cal-day') { S.calSel = t.dataset.d; render(); var ce = document.getElementById('ce-title'); if (ce) { ce.focus({ preventScroll: true }); ce.closest('.cal-edit').scrollIntoView({ block: 'center', behavior: 'smooth' }); } }
     else if (a === 'cal-save') calSave();

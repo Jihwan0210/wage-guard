@@ -713,5 +713,13 @@
   "warn.DELAY_INTEREST_CHECK": "Late-payment interest is an estimate. It changes with the actual dates.",
   "warn.PROBATION_FULL_MIN_WAGE": "If the contract is shorter than 1 year or the job is simple labor, the full minimum wage must be paid even on probation.",
   "warn.DAILY_RECORDS": "For months with daily records, overtime, night and holiday hours were split from those records.",
-  "warn.PAID_MORE": "In some months you got more than the amount due. Check that the money was for the work in that month."
+  "warn.PAID_MORE": "In some months you got more than the amount due. Check that the money was for the work in that month.",
+  "q6.prevAsk": "If you worked only a few days in the month you left, you may not have been paid for {m} either.",
+  "q6.prevAdd": "Add {m} as an unpaid month",
+  "result.over40": "Your agreed hours are over 40 a week, so the hours above 40 were calculated separately as overtime.",
+  "result.over40Month": "Your agreed hours are over 40 a week, so the hours above 40 were calculated as overtime on top of the monthly wage. If your contract says the monthly wage already includes that overtime pay, the amount may be lower. Please check your contract.",
+  "result.zeroWhyBtn": "See why",
+  "result.cardZeroTitle": "Calculated as 0 won for what you chose",
+  "result.deductNote": "Money taken from your wages for housing or meals is not included in this calculation. If too much was taken without your agreement, find out whether you can get it back.",
+  "result.payslipNote": "Not getting a pay slip is not part of the amount. Find out what the employer must do and where to ask."
 }
