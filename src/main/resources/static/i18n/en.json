@@ -338,7 +338,7 @@
   "form.kCompany": "Workplace",
   "form.kPeriod": "Work period",
   "form.kUnpaid": "Unpaid wages",
-  "form.noCompany": "[company name]",
+  "form.noCompany": "(enter it below)",
   "form.me": "Me (complainant)",
   "form.name": "Name",
   "form.nameReq": "Please enter your name",
@@ -721,5 +721,6 @@
   "result.zeroWhyBtn": "See why",
   "result.cardZeroTitle": "Calculated as 0 won for what you chose",
   "result.deductNote": "Money taken from your wages for housing or meals is not included in this calculation. If too much was taken without your agreement, find out whether you can get it back.",
-  "result.payslipNote": "Not getting a pay slip is not part of the amount. Find out what the employer must do and where to ask."
+  "result.payslipNote": "Not getting a pay slip is not part of the amount. Find out what the employer must do and where to ask.",
+  "words.hard": "Word help"
 }

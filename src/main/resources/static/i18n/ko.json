@@ -335,7 +335,7 @@
   "form.kCompany": "사업장",
   "form.kPeriod": "일한 기간",
   "form.kUnpaid": "못 받은 돈",
-  "form.noCompany": "[사업장 이름]",
+  "form.noCompany": "(아래 칸에 적어 주세요)",
   "form.me": "나 (진정인)",
   "form.name": "이름",
   "form.nameReq": "이름을 적어 주세요",
@@ -953,5 +953,7 @@
   "result.deductNote": "방값 · 밥값처럼 월급에서 뗀 돈은 이 계산에 넣지 않았어요. 동의 없이 너무 많이 뗐다면 돌려받을 수 있는지 알아보세요.",
   "easy.result.deductNote": "방값 · 밥값으로 뗀 돈은 계산에 없어요. 너무 많이 뗐으면 알아봐요.",
   "result.payslipNote": "월급명세서를 주지 않는 것은 금액 계산에 들어가지 않아요. 회사가 해야 할 일과 물어볼 곳을 알아보세요.",
-  "easy.result.payslipNote": "월급 종이(명세서)를 안 주는 것은 돈 계산에 없어요. 어떻게 하는지 알아봐요."
+  "easy.result.payslipNote": "월급 종이(명세서)를 안 주는 것은 돈 계산에 없어요. 어떻게 하는지 알아봐요.",
+  "words.hard": "어려운 말 풀이",
+  "easy.words.hard": "어려운 말"
 }

@@ -815,3 +815,20 @@ dialog h3.label { margin: 0; }
 }
 .card-note ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s1); }
 .card-note .btn-text { font-size: var(--fs-sm); min-height: 36px; }
+
+/* 절차 화면 '어려운 말' 줄: 무엇인지 알 수 있게 앞에 이름 */
+.terms { align-items: center; }
+.terms-label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-weight: 600; }
+.terms-label .ico { width: 18px; height: 18px; }
+/* 결과의 0원 단추 · '이유 보기'도 누르는 높이 44px */
+.chip, .card-note .btn-text { min-height: 44px; }
+/* 노동청 화면의 전화 목록: 넓은 화면은 두 줄로 나란히 */
+@media (min-width: 960px) {
+  .phones.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s4); }
+}
+/* 결과: 접어 둔 '계산할 때 알아 둘 점' */
+.warn-d > summary { display: flex; gap: var(--s2); align-items: center; font-weight: 700; min-height: 44px; }
+.warn-d > summary .ico { color: var(--warn-fg); }
+.warn-d[open] > summary { margin-bottom: var(--s2); }
+.warn-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--warn-line); color: var(--warn-fg); font-size: var(--fs-sm); }
+.warn-d ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--s1); }
