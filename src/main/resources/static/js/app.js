@@ -14,7 +14,7 @@
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor', 'letter'];
   // 결과 뒤 둘러보는 화면: 휴대폰은 아래 탭 막대, 넓은 화면은 위 탭으로 오간다 (입력 흐름 중에는 숨김)
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
-  var TAB_OF = { result: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide', contract: 'guide', deadline: 'guide', after: 'guide' };
+  var TAB_OF = { result: 'result', counselor: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide', contract: 'guide', deadline: 'guide', after: 'guide' };
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
   var SITS = [['less', 'coin'], ['late', 'clock'], ['sev', 'door'], ['fired', 'exit'], ['extra', 'moon'], ['minw', 'down'], ['deduct', 'home'], ['leave', 'sun'], ['payslip', 'payslip'], ['shut', 'pause'], ['over14', 'cal']];
   var mobile = window.matchMedia('(max-width: 959px)');
@@ -1209,7 +1209,9 @@
       '<span class="total-read">' + esc(readable(R.total)) + '</span>' +
       '<p class="disclaim">' + t('result.disclaim') + ' <button type="button" class="btn-text" data-act="disclaim">' + t('result.more') + '</button></p></div></div>' +
       '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
-    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul>' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
+    // 계산할 때 알아 둘 점: 항목별 금액 아래에 접어 둔다 (제목에 몇 개인지. 펼치면 전부)
+    var warns = R.warnings.length ? '<details class="warnbox warn-d"><summary>' + icon('info') + '<span>' + t('result.warn') + ' <span class="warn-n">' + R.warnings.length + '</span></span></summary><ul>' +
+      R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></details>' : '';
     // 고른 상황과 관련된 0원 · 계산하지 않는 상황(방값 · 밥값 공제, 명세서)은 안내 화면으로
     var notes = (cardZero.length ? '<section class="note stack card-note" aria-labelledby="cz-t"><h2 id="cz-t">' + t('result.cardZeroTitle') + '</h2><ul class="plain">' + cardZero.join('') + '</ul></section>' : '') +
       (has('deduct') || has('payslip') ? '<section class="note stack card-note"><p>' + t(has('deduct') ? 'result.deductNote' : 'result.payslipNote') + '</p>' +
@@ -1229,7 +1231,8 @@
     return '<div class="wide col">' + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
       '<div class="result-grid"><div class="stack r-sum">' + summary + speakBtn('result') + chart(R) + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
-      '<div class="stack-lg r-items">' + notes + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' +
+      // 항목별 금액이 먼저, 그 아래 고른 상황 안내 · 알아 둘 점
+      '<div class="stack-lg r-items"><section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' + notes + warns +
       '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details>' +
       '</div></div>' + more + '</div>';
   }
@@ -1348,7 +1351,7 @@
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
     function docTag(k) { return S.src[k] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : ''; }
-    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd>' + esc(S.f.company || t('form.noCompany')) + ' · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + docTag('company') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + docTag('start') + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
+    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd><span data-auto-company>' + esc(S.f.company || S.p.company || t('form.noCompany')) + '</span> · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + docTag('company') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + docTag('start') + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
     var nDoc = Object.keys(S.psrc || {}).filter(function (k) { return S.psrc[k] === 'doc' && p[k]; }).length;
     var docNote = nDoc ? '<p class="note" role="status">' + icon('check') + ' ' + t('form.docNote', { n: nDoc }) + '</p>' : '';
     var got = READY.filter(function (k) { return S.ready[k]; }).length;
@@ -1577,12 +1580,9 @@
     var steps = [1, 2, 3, 4, 5, 6].map(function (n) {
       return '<li><div class="tl-mark" aria-hidden="true"><span class="tl-num">' + n + '</span>' + (n < 6 ? '<span class="tl-line"></span>' : '') + '</div>' +
         '<div class="tl-body"><strong>' + t('guide.s' + n) + '</strong><p>' + t('guide.s' + n + 'b') + '</p>' +
-        (n === 1 ? '<div class="nav-list">' + navRow('href="https://labor.moel.go.kr" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('data-go="help"', 'pin', t('guide.link2')) + '</div>' + '<p class="hint terms">' + term('complaint') + ' ' + term('laborOffice') + '</p>' : '') +
+        (n === 1 ? '<div class="nav-list">' + navRow('href="https://labor.moel.go.kr" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('data-go="help"', 'pin', t('guide.link2')) + '</div>' + '<p class="hint terms"><span class="terms-label">' + icon('book') + t('words.hard') + '</span>' + term('complaint') + ' ' + term('laborOffice') + '</p>' : '') +
         (n === 6 ? '<div class="nav-list">' + navRow('data-go="daeji"', 'coin', t('title.daeji')) + '</div>' : '') + '</div></li>';
     }).join('');
-    function phone(name, sub, num, tel) {
-      return '<a class="phone" href="tel:' + tel + '">' + icon('phone') + '<span><strong>' + name + '</strong><small>' + sub + '</small></span><b>' + num + '</b></a>';
-    }
     var bring = [1, 2, 3, 4].map(function (n) { return '<li>' + icon('dot') + t('guide.bring' + n) + '</li>'; }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
@@ -1591,11 +1591,7 @@
       '<section class="stack"><h2>' + t('guide.bring') + '</h2><ul class="bring">' + bring + '</ul><div class="nav-list">' + navRow('data-go="ready"', 'list', t('guide.readyGo')) + navRow('data-go="words"', 'book', t('title.words')) + infoRow() + '</div></section></div>' +
       '<aside class="side">' +
       '<button type="button" class="callout" data-go="counselor">' + icon('chat', 'ico-lg') + '<span><strong>' + t('guide.callout') + '</strong><small>' + t('guide.calloutSub') + '</small></span>' + icon('arrow-r') + '</button>' +
-      '<section class="note stack"><h2>' + t('guide.help') + '</h2><div class="phones">' +
-      phone(t('guide.p1'), t('guide.p1s'), '1350', '1350') +
-      phone(t('guide.p2'), t('guide.p2s'), '1577-0071', '15770071') +
-      phone(t('guide.p3'), t('guide.p3s'), '132', '132') +
-      '</div><p class="hint">' + t('guide.phoneHint') + '</p></section>' +
+      '<section class="note stack"><h2>' + t('guide.help') + '</h2>' + helpPhones() + '<p class="hint">' + t('guide.phoneHint') + '</p></section>' +
       cta(primary(t('guide.cta'), 'data-go="form"'), ' ') + '</aside></div>';
   }
 
@@ -1622,7 +1618,7 @@
       '<div class="big-sum"><span class="total-label">받지 못한 돈 합계 (참고 계산)</span><span class="total">' + won(R.total) + '</span><span>' + korRead(R.total) + '</span></div>' +
       '<dl class="kv"><dt>체불 기간</dt><dd>' + (ms.length ? ms[0].slice(0, 4) + '년 ' + Number(ms[0].slice(5)) + '월' + (ms.length > 1 ? ' ~ ' + ms[ms.length - 1].slice(0, 4) + '년 ' + Number(ms[ms.length - 1].slice(5)) + '월' : '') + ' (' + ms.length + '개월)' : '') + '</dd>' +
       '<dt>받은 돈</dt><dd>' + won(R.paid) + '</dd>' +
-      '<dt>사업장</dt><dd>' + esc(f.company || p.company || '[사업장 이름]') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
+      '<dt>사업장</dt><dd>' + esc(f.company || p.company || '(적지 않음)') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
       '<dt>일한 기간</dt><dd>' + esc(dotDate(f.start)) + ' ~ ' + esc(f.employed === 'yes' ? '재직 중' : dotDate(f.end) + ' (퇴직)') + '</dd>' +
       '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ' · ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + (workDays().length ? ' · 달력 기록 ' + workDays().length + '일' : '') + '</dd>' +
       '<dt>약속한 급여</dt><dd>' + ({ hour: '시급 ', day: '일급 ', month: '월 ' }[f.wageType] || '') + (f.wage ? won(f.wage) : '') + (f.allowance ? ' + 수당 ' + won(f.allowance) : '') + '</dd>' +
@@ -1642,7 +1638,7 @@
     if (loadOffices.on) return;
     loadOffices.on = true;
     fetch('data/offices.json').then(function (r) { return r.json(); }).then(function (d) { OFF = d; }, function () { OFF = { regions: [], offices: [], help: [], failed: true }; })
-      .then(function () { if (S.route === 'help' || S.route === 'counselor') rerender(); });
+      .then(function () { if (S.route === 'help' || S.route === 'counselor' || S.route === 'guide') rerender(); });
   }
   function addrActions(address) {
     var q = encodeURIComponent(address.split('(')[0].trim());
@@ -1681,18 +1677,15 @@
       (off.phone ? '<a class="phone" href="tel:' + off.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong>' + t('help.call') + '</strong>' + (off.phoneNote ? '<small lang="ko">' + esc(off.phoneNote) + '</small>' : '') + '</span><b>' + esc(off.phone) + '</b></a>' : '<p class="hint">' + t('help.noPhone') + '</p>') +
       '<p class="hint">' + t('help.src', { d: esc(OFF.checkedAt || '') }) + ' <a href="' + esc(off.source) + '" target="_blank" rel="noopener">' + t('help.srcLink') + icon('out') + '</a></p></section>'
       : (o.sido && (!r || r.sigungu.length) && o.sgg ? '<p class="warnbox">' + t('help.notFound') + '</p>' : '');
-    var helps = (OFF.help || []).map(function (h) {
-      var what = (L[S.lang] && L[S.lang]['helpw.' + h.id]) || h.what;
-      return '<li><a class="phone" href="tel:' + h.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong' + (S.lang === 'ko' || (L[S.lang] || {})['helpn.' + h.id] ? '' : ' lang="ko"') + '>' + esc((L[S.lang] && L[S.lang]['helpn.' + h.id]) || h.name) + '</strong><small>' + esc(what) + '</small></span><b>' + esc(h.phone) + '</b></a></li>';
-    }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('help.title') + '</h1><p class="lead">' + t('help.lead') + ' ' + term('laborOffice') + '</p></div>' +
       '<div class="stack"><div class="field"><label for="sido">' + t('help.sido') + '</label><select id="sido" class="input" data-act="sido" lang="ko">' + sidos + '</select></div>' + sgg +
       (o.auto ? '<p class="note">' + icon('check') + ' ' + t('help.fromAddr') + '</p>' : '') +
       '<p class="hint">' + t('help.oldName') + '</p></div>' + card +
-      '<div class="nav-list">' + navRow('href="' + esc(OFF.complaintUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('href="' + esc(OFF.findUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener"', 'pin', t('help.find')) + '</div></div>' +
-      '<aside class="side"><section class="note stack"><h2>' + t('help.phones') + '</h2><ul class="plain phones">' + helps + '</ul><p class="hint">' + t('guide.phoneHint') + '</p></section>' +
+      '<div class="nav-list">' + navRow('href="' + esc(OFF.complaintUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener"', 'file', t('guide.link1')) + navRow('href="' + esc(OFF.findUrl || 'https://labor.moel.go.kr') + '" target="_blank" rel="noopener"', 'pin', t('help.find')) + '</div>' +
+      '<section class="stack"><h2>' + t('help.phones') + '</h2>' + helpPhones('grid') + '<p class="hint">' + t('guide.phoneHint') + '</p></section></div>' +
+      '<aside class="side">' +
       cta(primary(t('guide.callout'), 'data-go="counselor"', !!S.calc) + (S.calc ? '' : '<p class="hint">' + t('help.needCalc') + '</p>'), ' ') + '</aside></div>';
   }
 
@@ -1705,7 +1698,7 @@
     }).join('');
     return '<div class="split">' +
       '<div class="stack-lg">' + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('ready.title') + '</h1><p class="lead">' + t('ready.lead') + '</p></div>' +
+      '<div class="stack"><h1 tabindex="-1">' + t('title.ready') + '</h1><p class="lead">' + t('ready.lead') + '</p></div>' +
       '<div class="progress"><div class="bar" style="--n:' + READY.length + '" aria-hidden="true">' + READY.map(function (_, i) { return '<span' + (i < got ? ' class="on"' : '') + '></span>'; }).join('') + '</div><span class="hint" role="status">' + t('form.ready', { n: got, m: READY.length }) + '</span></div>' +
       '<ul class="plain ready">' + list + '</ul></div>' +
       '<aside class="side"><p class="note">' + t('ready.note') + '</p>' +
@@ -1905,6 +1898,15 @@
       if (!S.dj.left && S.f.employed) { S.dj.left = S.f.employed === 'yes' ? 'no' : 'yes'; S.dj.fromF = true; }
     }
   };
+  // 도움받을 곳 전화 목록 (절차 · 노동청 화면 공통, data/offices.json 의 help). 못 불러왔으면 고용노동부 1350 하나
+  function helpPhones(cls) {
+    loadOffices();
+    var list = OFF && OFF.help && OFF.help.length ? OFF.help : [{ id: 'moel', name: t('guide.p1'), what: t('guide.p1s'), phone: '1350' }];
+    return '<ul class="plain phones' + (cls ? ' ' + cls : '') + '">' + list.map(function (h) {
+      var what = (L[S.lang] && L[S.lang]['helpw.' + h.id]) || h.what;
+      return '<li><a class="phone" href="tel:' + h.phone.replace(/[^0-9]/g, '') + '">' + icon('phone') + '<span><strong' + (S.lang === 'ko' || (L[S.lang] || {})['helpn.' + h.id] ? '' : ' lang="ko"') + '>' + esc((L[S.lang] && L[S.lang]['helpn.' + h.id]) || h.name) + '</strong><small>' + esc(what) + '</small></span><b>' + esc(h.phone) + '</b></a></li>';
+    }).join('') + '</ul>';
+  }
   // 관할 노동청: 진정서 칸의 사업장 주소 첫 낱말(시 · 도)과 시군구 이름으로 고른다. 못 찾으면 그대로 둔다 (사업장 주소가 바뀌면 다시 해 본다)
   var SIDO_ABBR = { '서울': '서울특별시', '경기': '경기도', '인천': '인천광역시', '강원': '강원특별자치도', '부산': '부산광역시', '울산': '울산광역시', '경남': '경상남도', '경상남도': '경상남도',
     '대구': '대구광역시', '경북': '경상북도', '경상북도': '경상북도', '광주': '전남광주통합특별시', '전남': '전남광주통합특별시', '전라남도': '전남광주통합특별시', '전북': '전북특별자치도', '전라북도': '전북특별자치도',
@@ -2245,6 +2247,7 @@
     });
   }
   function toastT(k) { toast(t(k)); }
+  function noCompany() { return t('form.noCompany'); }
   // 상황 카드를 안 고르고 시작하면: 고르러 가기 · 그냥 시작
   function sitAsk(path) {
     openSheet(t('sit.askTitle'), '<p>' + t('sit.askBody') + '</p>' +
@@ -2395,7 +2398,11 @@
     }
     else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
     else if (t.dataset.lt !== undefined) { S.ltIn[t.dataset.lt] = t.value; save(); }
-    else if (t.dataset.p !== undefined) { S.lt = null; S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save(); }
+    else if (t.dataset.p !== undefined) {
+      S.lt = null; S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
+      // 진정서 칸: 사업장 이름을 적는 대로 오른쪽 '자동으로 들어가는 내용'도 바뀐다
+      if (t.dataset.p === 'company' && !S.f.company) { var nm = t.value.trim() || noCompany(); app.querySelectorAll('[data-auto-company]').forEach(function (el) { el.textContent = nm; }); }
+    }
   });
 
   // 시트: 바깥(어두운 곳)을 누르면 닫힘. 안쪽은 .sheet-in 이 덮고 있어 dialog 자체를 누른 것은 바깥뿐

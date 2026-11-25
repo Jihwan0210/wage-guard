@@ -338,7 +338,7 @@
   "form.kCompany": "Nơi làm",
   "form.kPeriod": "Thời gian làm",
   "form.kUnpaid": "Tiền chưa nhận",
-  "form.noCompany": "[tên nơi làm]",
+  "form.noCompany": "(hãy nhập ở ô bên dưới)",
   "form.me": "Tôi (người khiếu nại)",
   "form.name": "Họ tên",
   "form.nameReq": "Hãy nhập họ tên",
@@ -721,5 +721,6 @@
   "result.zeroWhyBtn": "Xem lý do",
   "result.cardZeroTitle": "Khoản được tính là 0 won theo lựa chọn của bạn",
   "result.deductNote": "Tiền bị trừ vào lương như tiền nhà, tiền ăn không có trong phép tính này. Nếu bị trừ quá nhiều mà không có sự đồng ý của bạn, hãy tìm hiểu xem có thể lấy lại không.",
-  "result.payslipNote": "Việc không đưa phiếu lương không nằm trong số tiền. Hãy tìm hiểu chủ phải làm gì và hỏi ở đâu."
+  "result.payslipNote": "Việc không đưa phiếu lương không nằm trong số tiền. Hãy tìm hiểu chủ phải làm gì và hỏi ở đâu.",
+  "words.hard": "Giải thích từ khó"
 }
