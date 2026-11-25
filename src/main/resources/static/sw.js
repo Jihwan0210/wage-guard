@@ -1,6 +1,6 @@
 // 설치형 웹앱 서비스워커: 화면 파일만 캐시해 인터넷이 끊겨도 화면이 열리게 한다.
 // API 응답(/api/) · 업로드 · 입력값은 절대 캐시하지 않는다 (개인정보 최소). 화면 파일을 바꾸면 VERSION 을 올린다
-var VERSION = 'wageback-v2-25';
+var VERSION = 'wageback-v2-26';
 var FILES = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/vendor/qrcode.js', 'fonts/noran-sans.woff2', 'favicon.svg',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
   'i18n/languages.json', 'i18n/ko.json', 'i18n/en.json', 'i18n/vi.json', 'data/offices.json', 'data/guides.json', 'data/deadlines.json'];

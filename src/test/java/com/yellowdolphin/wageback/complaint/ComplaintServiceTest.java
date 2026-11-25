@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.yellowdolphin.wageback.common.Words;
 import com.yellowdolphin.wageback.common.llm.LlmException;
 import com.yellowdolphin.wageback.complaint.ComplaintController.Company;
 import com.yellowdolphin.wageback.complaint.ComplaintController.Person;
@@ -52,7 +53,7 @@ class ComplaintServiceTest {
     }
 
     @Test
-    void 새_항목도_체불_내역_표에_빠짐없이_나온다() {
+    void 새_항목도_체불_내역_표에_빠짐없이_나오고_0원_항목은_뺀다() {
         String result = """
                 {"period":{"start":"2025-01-02","end":"2026-10-31"},"summary":{"totalUnpaid":3929081},
                  "items":[{"code":"DISMISSAL_NOTICE","label":"해고예고수당","month":null,"amount":2640000},
@@ -62,7 +63,7 @@ class ComplaintServiceTest {
                   {"code":"MIN_WAGE_SHORTFALL","label":"최저임금 차액","month":"2026-10","amount":0}]}
                 """;
         var service = new ComplaintService((s, p, f) -> "다듬은 문단입니다.", new JsonMapper());
-        assertEquals("해고예고수당 2,640,000원\n못 쓴 연차수당 704,000원\n휴업수당 529,081원\n지연이자(연 20%) 56,000원\n2026년 10월분 최저임금 차액 0원\n합계 3,929,081원",
+        assertEquals("해고예고수당 2,640,000원\n못 쓴 연차수당 704,000원\n휴업수당 529,081원\n지연이자(연 20%) 56,000원\n합계 3,929,081원",
                 service.draft(result, request("ko")).draftKo().sections().get(3).body());
         String en = service.draft(result, request("en")).translation().sections().get(3).body();
         assertTrue(en.contains("Dismissal notice pay 2,640,000 KRW") && en.contains("Unused paid leave pay") && en.contains("Pay for days the company stopped work")
@@ -76,6 +77,7 @@ class ComplaintServiceTest {
         }, new JsonMapper());
         var d = service.draft(RESULT, request("ko"));
         assertTrue(d.draftKo().sections().get(4).body().endsWith(request("ko").extraFacts()));
+        assertTrue(d.factsAsWritten());
         assertNull(d.translation());
     }
 
@@ -130,6 +132,38 @@ class ComplaintServiceTest {
         assertEquals("금 일억일만원(₩100,010,000)", com.yellowdolphin.wageback.common.Words.wonHangul(100010000));
         assertEquals("금 십만원(₩100,000)", com.yellowdolphin.wageback.common.Words.wonHangul(100000));
         assertEquals("금 영원(₩0)", com.yellowdolphin.wageback.common.Words.wonHangul(0));
+    }
+
+    @Test
+    void 숫자를_만들면_한_번_더_묻고_되면_다듬은_글() {
+        List<String> sent = new ArrayList<>();
+        var service = new ComplaintService((s, p, f) -> {
+            sent.add(p);
+            return sent.size() == 1 ? "진정인은 500000원을 받지 못하였습니다." : "진정인은 9월부터 급여 일부만 받았습니다.";
+        }, new JsonMapper());
+        var d = service.draft(RESULT, request("ko"));
+        assertTrue(d.draftKo().sections().get(4).body().endsWith("\n진정인은 9월부터 급여 일부만 받았습니다."));
+        assertFalse(d.factsAsWritten());
+        assertTrue(sent.get(1).contains("직전 답에 원문에 없는 숫자"));
+    }
+
+    @Test
+    void 비운_선택_칸은_빈칸_표시를_남기지_않는다() {
+        var service = new ComplaintService((s, p, f) -> "다듬은 문단입니다.", new JsonMapper());
+        Request r = new Request(new Person("홍길동", "010-1111-2222", " "), new Company("○○식당", "김사장", "서울시 가게", null),
+                "주방 보조", false, null, "ko");
+        var ko = service.draft(RESULT, r).draftKo().sections();
+        assertEquals("홍길동 · 010-1111-2222", ko.get(0).body());
+        assertEquals("○○식당 (대표 김사장)\n서울시 가게", ko.get(1).body());
+    }
+
+    @Test
+    void 같은_값을_다르게_적은_숫자는_새_숫자가_아니다() {
+        assertFalse(Words.hasNewNumber("1.400.000 KRW", "140만 원"));
+        assertFalse(Words.hasNewNumber("1,400,000 won", "140만 원"));
+        assertFalse(Words.hasNewNumber("ngày 01. 3. 2025", "2025. 3. 1."));
+        assertTrue(Words.hasNewNumber("2,000,000 won", "140만 원"));
+        assertTrue(Words.hasNewNumber("2026년 10월 15일", "10월 15일"));
     }
 
     @Test

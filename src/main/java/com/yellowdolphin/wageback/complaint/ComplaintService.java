@@ -25,9 +25,12 @@ public class ComplaintService {
 
     static final String DISCLAIMER = "이 문서는 법률 자문이 아닌 서식 작성 보조 자료입니다.";
 
-    private static final String POLISH = "다음 글을 노동청 임금체불 진정서의 '진정 내용' 문단에 맞게 공손한 문어체 한국어로 다듬어라. "
-            + "사실을 더하거나 빼지 말고, 숫자는 원문 그대로 둔다. 다듬은 문단만 답한다.";
-    private static final String TRANSLATE = "다음 한국어 진정서 문단을 %s(으)로 번역해라. 숫자는 그대로 둔다. 번역문만 답한다.";
+    private static final String POLISH = "다음 글을 노동청 임금체불 진정서의 '진정 내용' 문단에 맞게 공손한 문어체 한국어(~습니다)로 다듬어라. "
+            + "사실을 더하거나 빼지 말고, 원문에 없는 요청 · 결론 문장도 덧붙이지 마라. 숫자와 날짜는 원문 표기 그대로 두고 연도를 붙이지 마라. 다듬은 문단만 답한다.";
+    private static final String AGAIN = "\n\n(직전 답에 원문에 없는 숫자가 있었다. 숫자는 원문 그대로만 쓴다.)";
+    // 금액은 같은 값이면 그 나라 표기로 바꿔도 된다 (140만 원 → 1.400.000 won). hasNewNumber 는 같은 값을 새 숫자로 보지 않는다
+    private static final String TRANSLATE = "다음 한국어 진정서 문단을 %s(으)로 번역해라. 금액은 같은 값으로 쓰되 읽는 사람 나라의 숫자 표기로 바꿔도 된다(예: 140만 원 → 1.400.000 won). "
+            + "날짜(2025. 3. 1.)는 원문 그대로 둔다. 새 숫자를 만들지 마라. 번역문만 답한다.";
 
     private static final Map<String, String> LANG_NAMES = Map.of("en", "English", "vi", "Tiếng Việt");
 
@@ -66,13 +69,13 @@ public class ComplaintService {
         String opening = "진정인은 " + (start.isEmpty() ? "[입사일]" : Words.dateKo(start)) + "부터 "
                 + (employed || end.isEmpty() ? "현재" : Words.dateKo(end)) + "까지 피진정인 사업장에서 "
                 + (blank(req.job()) ? "" : req.job() + " 업무로 ") + "근무하였으며, 아래 체불 내역의 금품을 지급받지 못하였습니다.";
-        String facts = blank(req.extraFacts()) ? "" : "\n" + polish(req.extraFacts(), me, co);
-        String content = opening + facts;
+        Polished p = blank(req.extraFacts()) ? new Polished("", true) : polish(POLISH, req.extraFacts(), me, co);
+        String content = opening + (p.text().isEmpty() ? "" : "\n" + p.text());
 
         List<Section> ko = List.of(
-                new Section("진정인", or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + "\n" + or(me.address(), "[사는 곳 주소]")),
+                new Section("진정인", or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
                 new Section("피진정인", or(co.companyName(), "[회사 이름]") + " (대표 " + or(co.ownerName(), "[사장님 이름]") + ")\n"
-                        + or(co.address(), "[사업장 주소]") + " · " + or(co.phone(), "[사업장 전화번호]")),
+                        + or(co.address(), "[사업장 주소]") + opt(" · ", co.phone())),
                 new Section("근로 내용", work(start, end, employed, req.job(), "ko")),
                 new Section("체불 내역", unpaid(result, "ko")),
                 new Section("진정 내용", content),
@@ -94,7 +97,7 @@ public class ComplaintService {
             }
             translation = new Translation(lang, tr);
         }
-        return new Draft(new DraftKo("임금체불 진정서", ko), translation, DISCLAIMER);
+        return new Draft(new DraftKo("임금체불 진정서", ko), translation, DISCLAIMER, !p.ok());
     }
 
     // ---------- 회사에 보내는 내용증명 초안 ----------
@@ -102,7 +105,7 @@ public class ComplaintService {
     // 법 조문은 law.go.kr 현행 원문과 대조 (2026-11-21): 근로기준법 제36조 · 제37조 제1항 · 제43조, 시행령 제17조(연 100분의 20),
     // 근로자퇴직급여 보장법 제9조 제1항
     private static final String LETTER_POLISH = "다음 글을 회사에 보내는 임금 지급 청구 내용증명의 '사실관계' 문단에 맞게 감정 표현 없이 공손한 문어체 한국어(~습니다)로 다듬어라. "
-            + "사실을 더하거나 빼지 말고, 숫자는 원문 그대로 둔다. 다듬은 문단만 답한다.";
+            + "사실을 더하거나 빼지 말고, 원문에 없는 요청 · 결론 문장도 덧붙이지 마라. 숫자와 날짜는 원문 표기 그대로 두고 연도를 붙이지 마라. 다듬은 문단만 답한다.";
     static final int PAY_DAYS = 7;
 
     public Draft letter(String resultJson, LetterRequest req) {
@@ -112,7 +115,8 @@ public class ComplaintService {
         Company co = req.recipient() == null ? new Company(null, null, null, null) : req.recipient();
         String end = result.path("period").path("end").asString("");
         boolean employed = req.employed() != null ? req.employed() : end.isEmpty();
-        String facts = blank(req.extraFacts()) ? "" : polish(LETTER_POLISH, req.extraFacts(), me, co);
+        Polished p = blank(req.extraFacts()) ? new Polished("", true) : polish(LETTER_POLISH, req.extraFacts(), me, co);
+        String facts = p.text();
         String today = LocalDate.now(ZoneId.of("Asia/Seoul")).toString();
         List<Section> ko = letterSections(result, req, me, co, employed, facts, today, 0);
         Translation translation = null;
@@ -120,7 +124,7 @@ public class ComplaintService {
             String trFacts = facts.isEmpty() ? "" : translate(mask(facts, me, co), lang);
             translation = new Translation(lang, letterSections(result, req, me, co, employed, trFacts, today, Words.langIndex(lang)));
         }
-        return new Draft(new DraftKo("내용증명", ko), translation, DISCLAIMER);
+        return new Draft(new DraftKo("내용증명", ko), translation, DISCLAIMER, !p.ok());
     }
 
     // li: 0 한국어(우체국에 내는 원문) · 1 영어 · 2 베트남어(읽기용 번역)
@@ -137,7 +141,7 @@ public class ComplaintService {
         boolean severance = false, interest = false;
         List<String> other = new ArrayList<>();
         for (JsonNode item : result.path("items")) {
-            if (!item.path("amount").isNumber()) {
+            if (!item.path("amount").isNumber() || item.path("amount").asLong() == 0) {
                 continue;
             }
             severance |= "SEVERANCE".equals(item.path("code").asString());
@@ -212,7 +216,7 @@ public class ComplaintService {
                 { "3. 법적 근거", "3. Legal basis", "3. Căn cứ pháp lý" }, { "4. 요청 사항", "4. Request", "4. Yêu cầu" },
                 { "5. 기한을 넘기면", "5. If not paid", "5. Nếu không trả" } };
         return List.of(
-                new Section(h[0][li], or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + "\n" + or(me.address(), "[사는 곳 주소]")),
+                new Section(h[0][li], or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
                 new Section(h[1][li], or(co.companyName(), "[회사 이름]") + new String[] { " (대표 ", " (CEO ", " (Đại diện " }[li] + or(co.ownerName(), "[사장님 이름]") + ")\n" + or(co.address(), "[사업장 주소]")),
                 new Section(h[2][li], new String[] { "미지급 임금 등 지급 청구", "Demand for payment of unpaid wages", "Yêu cầu trả tiền lương chưa trả" }[li]),
                 new Section(h[3][li], opening + (facts.isEmpty() ? "" : "\n" + facts)),
@@ -222,19 +226,23 @@ public class ComplaintService {
                 new Section(h[7][li], warn));
     }
 
-    // LLM 실패 · 새 숫자가 생기면 사용자가 쓴 원문 그대로
-    private String polish(String facts, Person me, Company co) {
-        return polish(POLISH, facts, me, co);
+    // 다듬은 글 · 다듬기에 성공했는지. 새 숫자가 생기면 한 번 더 묻고, 그래도 안 되거나 LLM 이 실패하면 사용자가 쓴 원문 그대로 (화면에 '적은 그대로' 표시)
+    record Polished(String text, boolean ok) {
     }
 
-    private String polish(String prompt, String facts, Person me, Company co) {
+    private Polished polish(String prompt, String facts, Person me, Company co) {
         String masked = mask(facts, me, co);
-        try {
-            String answer = llm.ask(prompt, masked, null).strip();
-            return answer.isEmpty() || Words.hasNewNumber(answer, masked) ? facts : answer;
-        } catch (LlmException e) {
-            return facts;
+        for (int i = 0; i < 2; i++) {
+            try {
+                String answer = llm.ask(prompt, i == 0 ? masked : masked + AGAIN, null).strip();
+                if (!answer.isEmpty() && !Words.hasNewNumber(answer, masked)) {
+                    return new Polished(answer, true);
+                }
+            } catch (LlmException e) {
+                break;
+            }
         }
+        return new Polished(facts.strip(), false);
     }
 
     // 번역 실패 시 한국어 문단 그대로
@@ -274,7 +282,7 @@ public class ComplaintService {
     private static String unpaidLines(JsonNode result, String lang) {
         StringBuilder sb = new StringBuilder();
         for (JsonNode item : result.path("items")) {
-            if (!item.path("amount").isNumber()) {
+            if (!item.path("amount").isNumber() || item.path("amount").asLong() == 0) {
                 continue;
             }
             if (item.path("month").isString()) {
@@ -295,7 +303,13 @@ public class ComplaintService {
         return blank(s) ? otherwise : s.strip();
     }
 
-    public record Draft(DraftKo draftKo, Translation translation, String disclaimer) {
+    // 선택 칸: 적었으면 앞에 구분자를 붙여 넣고, 비었으면 아무것도 넣지 않는다 ('[사는 곳 주소]' 같은 빈 칸 표시를 남기지 않게)
+    private static String opt(String sep, String s) {
+        return blank(s) ? "" : sep + s.strip();
+    }
+
+    // factsAsWritten: '있었던 일'을 다듬지 못해 사용자가 쓴 그대로 넣었으면 true (화면에서 직접 고치라고 알린다)
+    public record Draft(DraftKo draftKo, Translation translation, String disclaimer, boolean factsAsWritten) {
     }
 
     public record DraftKo(String title, List<Section> sections) {
