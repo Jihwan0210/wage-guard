@@ -7,8 +7,8 @@
   var MIN_WAGE = 10320;
   var MAX_SIZE = 10 * 1024 * 1024;
   var ALL = ['start', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'qx', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words', 'info', 'contract', 'deadline', 'after', 'letter'];
-  // 동의 없이 바로 볼 수 있는 안내 화면 (시작 화면의 '더 확인할 수 있는 것')
-  var FREE = ['contract', 'deadline', 'after'];
+  // 동의 없이 바로 볼 수 있는 안내 화면 (시작 화면의 '더 확인할 수 있는 것' · 쉬운 말 사전)
+  var FREE = ['contract', 'deadline', 'after', 'words'];
   var STEP = { upload: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, qx: 1, cal: 1, review: 2, result: 3, form: 4, complaint: 4, letter: 4 };
   var TITLE = { upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', qx: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', letter: 'title.letter', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words', info: 'title.info', contract: 'title.contract', deadline: 'title.deadline', after: 'title.after' };
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor', 'letter'];
@@ -683,9 +683,10 @@
       '<p>' + t('start.noteBody') + '</p>' +
       '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></section>' +
       // 단추는 흐리게 꺼 두지 않는다. 확인에 체크하지 않고 누르면 체크 칸으로 데려간다
-      cta(primary(t('start.docBtn'), 'data-act="path" data-v="doc"') +
-        '<button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('start.manualBtn') + '</button>' +
-        (S.agreed ? '' : '<button type="button" class="btn-text hint" data-act="to-agree">' + t('start.agreeHint') + '</button>'), ' ') +
+      // 확인 안내는 시작 단추 위에 (체크 칸 바로 아래라 '위 칸'이 가리키는 곳이 가깝다)
+      cta((S.agreed ? '' : '<button type="button" class="btn-text hint agree-hint" data-act="to-agree">' + t('start.agreeHint') + '</button>') +
+        primary(t('start.docBtn'), 'data-act="path" data-v="doc"') +
+        '<button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('start.manualBtn') + '</button>', ' ') +
       '</div><div class="start-side">' +
       // 고른 개수는 안내 글 자리에 바꿔 쓴다 (줄이 늘어 아래가 밀려 내려가지 않게). 문구의 | 는 줄을 바꿔도 되는 자리(덩어리째 넘어감)
       '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint" role="status">' + (S.sit.length ? t('sit.chosen', { n: S.sit.length }) : t('sit.help')) + '</p><div class="sit-grid">' +
