@@ -414,7 +414,12 @@
       dailyFormula: c.dailyAverageWage ? c.dailyAverageWage.formula : '',
       notApplied: (c.notApplied || []).map(function (n) { return n.reason; }),
       // 달력에 직접 적지 않았는데 평소 근무로 날마다 채운 경우(autoDays): '하루 기록이 있는 달은…' 대신 그렇게 계산했다는 화면 문구
-      warnings: (c.warnings || []).map(function (n) { return n.code === 'DAILY_RECORDS' && !workDays().length ? t('result.autoDays') : n.message; }),
+      // 서버 경고는 한국어 문장이라, 쉬운 한국어 · 다른 언어로 볼 때는 경고 코드에 맞춘 화면 문구(warn.<코드>)를 쓴다 (없으면 서버 문장)
+      warnings: (c.warnings || []).map(function (n) {
+        if (n.code === 'DAILY_RECORDS' && !workDays().length) return t('result.autoDays');
+        var k = 'warn.' + n.code, own = (S.lang !== 'ko' || S.easy) ? t(k) : k;
+        return own !== k ? own : n.message;
+      }),
       weeks: c.workWeeks || [],
       items: c.items.map(function (it) {
         var b = (it.legalBasis || [])[0] || {};
@@ -1184,7 +1189,7 @@
       '<span class="total-read">' + esc(readable(R.total)) + '</span>' +
       '<p class="disclaim">' + t('result.disclaim') + ' <button type="button" class="btn-text" data-act="disclaim">' + t('result.more') + '</button></p></div></div>' +
       '<p class="hint">' + esc(t('result.meta', { period: period, size: size, paid: money(R.paid) })) + '</p>';
-    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul lang="ko">' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
+    var warns = R.warnings.length ? '<section class="warnbox stack" aria-labelledby="warn-t"><h2 id="warn-t">' + t('result.warn') + '</h2><ul>' + R.warnings.map(function (w) { return '<li>' + nobr(esc(w)) + '</li>'; }).join('') + '</ul></section>' : '';
     var weeks = R.weeks.length ? '<dt>' + t('result.weeks') + '</dt><dd><ul class="weeks" lang="ko">' + R.weeks.map(function (w) { return '<li><b>' + esc(krOrLocal(w.weekStart)) + '~</b> ' + esc(w.formula) + '</li>'; }).join('') + '</ul></dd>' : '';
     // 더 할 수 있는 일: 무엇을 하려는지에 따라 세 묶음 (저장 · 다음 할 일 · 알아 두기). 다시 보기 · 지우기는 맨 아래 작은 글자 단추
     loadGuides();
@@ -1384,7 +1389,10 @@
       } else {
         body = '<p>' + esc(s.body) + '</p>' + (editable ? '<button type="button" class="small-btn no-print" data-act="facts-edit">' + icon('pen') + t('cp.editBtn') + '</button>' : '');
       }
-      var head = '<h3>' + esc(s.heading) + (editable ? '<span class="no-print">' + t('cp.aiTag') + '</span>' : '') + '</h3>';
+      // 다듬기에 실패해 적은 그대로 들어갔으면 표시를 바꾸고 직접 고치라고 알린다 (직접 고친 뒤에는 표시 없음)
+      var raw = d.factsAsWritten && S.factsText == null;
+      var head = '<h3>' + esc(s.heading) + (editable && S.factsText == null ? '<span class="no-print' + (raw ? ' raw' : '') + '">' + t(raw ? 'cp.rawTag' : 'cp.aiTag') + '</span>' : '') + '</h3>' +
+        (editable && raw && !S.editing ? '<p class="warnbox no-print">' + t('cp.rawNote') + '</p>' : '');
       var inline = showTr && trs[i] ? '<p class="tr-inline" lang="' + trLang + '">' + esc(trs[i].body) + '</p>' : '';
       return '<section>' + head + body + inline + '</section>';
     }).join('');
@@ -1526,7 +1534,8 @@
     var tr = trs.map(function (s) { return '<section><h3>' + esc(s.heading) + '</h3><p>' + esc(s.body) + '</p></section>'; }).join('');
     var seg = trs.length ? '<div class="seg no-print" role="group" aria-label="' + t('cp.view') + '"><button type="button" data-act="tr" data-v="0" aria-pressed="' + !S.tr + '">' + t('cp.ko') + '</button><button type="button" data-act="tr" data-v="1" aria-pressed="' + S.tr + '">' + t('cp.both') + '</button></div>' : '';
     return '<div class="split' + (showTr ? ' cp-both' : '') + '"><div class="stack-lg">' + progress(4) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('title.letter') + '</h1><p class="note">' + t('lt.note') + '</p></div>' + seg +
+      '<div class="stack"><h1 tabindex="-1">' + t('title.letter') + '</h1><p class="note">' + t('lt.note') + '</p>' +
+      (d.factsAsWritten ? '<p class="warnbox no-print">' + t('lt.rawNote') + '</p>' : '') + '</div>' + seg +
       '<div class="paper-grid' + (showTr ? ' tr-on' : '') + '">' +
       '<article class="paper" lang="ko"><h2 class="doc-title" id="lt-title" tabindex="-1">내 용 증 명</h2>' + ko +
       '<p class="sign">' + todayDot() + '<br>발신인 ' + esc(p.name || '[이름]') + ' (서명 또는 날인)</p>' +
