@@ -138,7 +138,7 @@ public class ExplanationService {
         if (text == null || text.isBlank()) {
             return null;
         }
-        text = dropRepeatedUnits(text, values);
+        text = fixParticles(dropRepeatedUnits(text, values), values);
         Matcher m = PLACEHOLDER.matcher(text);
         StringBuilder out = new StringBuilder();
         int last = 0;
@@ -170,6 +170,36 @@ public class ExplanationService {
             if (!tail.isEmpty()) {
                 text = text.replaceAll("(?iu)(" + ph + ")\\s?" + Pattern.quote(tail) + AFTER_UNIT, "$1");
             }
+        }
+        return text;
+    }
+
+    // 자리표시자 뒤 조사를 채울 값의 끝 글자에 맞춘다. LLM 은 숫자를 모르고 쓰니 "{{X.amount}}가" → 924,000원가 가 된다.
+    // 값이 받침 있는 한글로 끝나면(원 · 월) 가→이, 는→은, 를→을, 와→과, 로→으로(ㄹ 받침은 로 그대로). 한국어 값에만
+    private static final Pattern PARTICLE = Pattern.compile("(가|는|를|와|로)(?=$|[\\s.,!?)·:;])");
+
+    static String fixParticles(String text, Map<String, String> values) {
+        for (Map.Entry<String, String> v : values.entrySet()) {
+            String value = v.getValue();
+            char last = value.isEmpty() ? ' ' : value.charAt(value.length() - 1);
+            if (last < '가' || last > '힣' || (last - '가') % 28 == 0) {
+                continue; // 한글이 아니거나 받침이 없다
+            }
+            boolean rieul = (last - '가') % 28 == 8;
+            Matcher m = Pattern.compile(Pattern.quote(v.getKey()) + PARTICLE.pattern()).matcher(text);
+            StringBuilder out = new StringBuilder();
+            while (m.find()) {
+                String to = switch (m.group(1)) {
+                    case "가" -> "이";
+                    case "는" -> "은";
+                    case "를" -> "을";
+                    case "와" -> "과";
+                    default -> rieul ? "로" : "으로";
+                };
+                m.appendReplacement(out, Matcher.quoteReplacement(v.getKey() + to));
+            }
+            m.appendTail(out);
+            text = out.toString();
         }
         return text;
     }
