@@ -813,3 +813,5 @@ dialog h3.label { margin: 0; }
 @media (min-width: 960px) {
   .wrap:has(.wide-side) { min-height: calc(100dvh - 61px); display: flex; flex-direction: column; justify-content: center; padding-block: var(--s5); }
 }
+.card-note ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s1); }
+.card-note .btn-text { font-size: var(--fs-sm); min-height: 36px; }

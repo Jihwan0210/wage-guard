@@ -713,5 +713,13 @@
   "warn.DELAY_INTEREST_CHECK": "Tiền lãi trả chậm là ước tính. Số tiền thay đổi theo ngày thực tế.",
   "warn.PROBATION_FULL_MIN_WAGE": "Nếu hợp đồng dưới 1 năm hoặc là việc lao động đơn giản, phải trả đủ lương tối thiểu kể cả khi thử việc.",
   "warn.DAILY_RECORDS": "Với những tháng có ghi chép từng ngày, giờ làm thêm, làm đêm và ngày nghỉ được tính từ ghi chép đó.",
-  "warn.PAID_MORE": "Có tháng bạn nhận nhiều hơn số phải trả. Hãy kiểm tra số tiền đó có phải cho công việc của tháng đó không."
+  "warn.PAID_MORE": "Có tháng bạn nhận nhiều hơn số phải trả. Hãy kiểm tra số tiền đó có phải cho công việc của tháng đó không.",
+  "q6.prevAsk": "Nếu tháng nghỉ việc bạn chỉ làm vài ngày, có thể bạn cũng chưa được trả lương {m}.",
+  "q6.prevAdd": "Thêm {m} là tháng chưa được trả",
+  "result.over40": "Số giờ đã thỏa thuận vượt 40 giờ mỗi tuần, nên phần vượt được tính riêng là làm thêm giờ.",
+  "result.over40Month": "Số giờ đã thỏa thuận vượt 40 giờ mỗi tuần, nên phần vượt được tính là làm thêm giờ ngoài lương tháng. Nếu hợp đồng ghi lương tháng đã bao gồm tiền làm thêm đó, số tiền có thể ít hơn. Hãy kiểm tra hợp đồng.",
+  "result.zeroWhyBtn": "Xem lý do",
+  "result.cardZeroTitle": "Khoản được tính là 0 won theo lựa chọn của bạn",
+  "result.deductNote": "Tiền bị trừ vào lương như tiền nhà, tiền ăn không có trong phép tính này. Nếu bị trừ quá nhiều mà không có sự đồng ý của bạn, hãy tìm hiểu xem có thể lấy lại không.",
+  "result.payslipNote": "Việc không đưa phiếu lương không nằm trong số tiền. Hãy tìm hiểu chủ phải làm gì và hỏi ở đâu."
 }
