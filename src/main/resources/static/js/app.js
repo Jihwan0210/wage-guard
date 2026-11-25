@@ -124,6 +124,7 @@
 
   var S = load();
   var sheetItem = -1;
+  var openOt = false; // 다음에 그릴 질문 6 에서 연장 · 야간 · 휴일 칸을 펼쳐 둘지
   var resumeTo = '';
   var stack = [];
   var app = document.getElementById('app');
@@ -331,6 +332,30 @@
       return { date: d, start: w.s, end: w.e, breakMinutes: Number(w.b || 0), holiday: !!w.h };
     });
   }
+  // 평소 근무(질문 4)에 밤 10시~아침 6시가 들어 있거나 하루 8시간 · 주 40시간을 넘으면,
+  // 달력 기록도 연장 · 야간 · 휴일 시간 입력도 없는 달은 평소 요일 · 시간으로 날마다 채워 보낸다.
+  // 그래야 밤샘 근무자가 '야간 시간'을 따로 적지 않아도 야간 · 연장 가산이 계산된다 (나누기는 서버 룰 엔진)
+  function usualNightMin() {
+    var f = S.f, s = Math.round(Number(f.tStart) * 60), e = Math.round(Number(f.tEnd) * 60), n = 0;
+    if (e <= s) e += 1440;
+    for (var day = -1440; day <= 1440; day += 1440) n += Math.max(0, Math.min(e, day + 1800) - Math.max(s, day + 1320));
+    return n;
+  }
+  function autoDays() {
+    var f = S.f, cnt = f.days.filter(Boolean).length, h = hours();
+    if (f.tStart === '' || f.tEnd === '' || f.brk === '' || !cnt || f.ot !== '' || f.night !== '' || f.holiday !== '') return [];
+    if (!(usualNightMin() > 0 || h > 8 || h * cnt > 40)) return [];
+    var recorded = Object.keys(f.work).map(function (d) { return d.slice(0, 7); }), now = today(), out = [];
+    monthList().forEach(function (ym) {
+      if (recorded.indexOf(ym) >= 0) return;
+      var n = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5), 0)).getUTCDate();
+      for (var d = 1; d <= n; d++) {
+        var date = ym + '-' + pad(d), wd = (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7;
+        if (f.days[wd] && inPeriod(date) && date <= now) out.push({ date: date, start: hh(f.tStart), end: hh(f.tEnd).replace('24:00', '00:00'), breakMinutes: Math.round(Number(f.brk) * 60), holiday: false });
+      }
+    });
+    return out;
+  }
   // 화면 입력값 → POST /api/v1/calculations 요청 (API.md 형식 + v2 workDays)
   function toRequest() {
     var f = S.f;
@@ -360,7 +385,7 @@
         return { month: m.month, paidAmount: Number(m.paid) || 0, overtimeHours: null, nightHours: null, holidayHoursWithin8: null, holidayHoursOver8: null, absentWeeks: 0 };
       })),
       lastThreeMonthsWages: null,
-      workDays: workDays(),
+      workDays: workDays().concat(autoDays()),
       // v2 6단계: 고른 상황에서 물은 것만 보낸다 (API_v2_추가.md)
       dismissal: has('fired') && f.notice ? { dismissed: true, noticeDaysBefore: f.notice === 'none' ? 0 : f.notice === 'full' ? 30 : Number(f.noticeDays) } : undefined,
       annualLeave: has('leave') && f.used !== '' ? { usedDays: Number(f.used) } : undefined,
@@ -388,7 +413,8 @@
       daily: c.dailyAverageWage ? won(c.dailyAverageWage.value) : t('result.none'),
       dailyFormula: c.dailyAverageWage ? c.dailyAverageWage.formula : '',
       notApplied: (c.notApplied || []).map(function (n) { return n.reason; }),
-      warnings: (c.warnings || []).map(function (n) { return n.message; }),
+      // 달력에 직접 적지 않았는데 평소 근무로 날마다 채운 경우(autoDays): '하루 기록이 있는 달은…' 대신 그렇게 계산했다는 화면 문구
+      warnings: (c.warnings || []).map(function (n) { return n.code === 'DAILY_RECORDS' && !workDays().length ? t('result.autoDays') : n.message; }),
       weeks: c.workWeeks || [],
       items: c.items.map(function (it) {
         var b = (it.legalBasis || [])[0] || {};
@@ -786,7 +812,7 @@
       '<button type="button" class="q-jump only-m" data-act="q-sheet" data-n="' + n + '" aria-haspopup="dialog" aria-label="' + where + ', ' + t('q.listNav') + '">' + icon('list') + '<span>' + where + '</span></button></div>' + langBanner() +
       '<fieldset class="stack"><legend class="q-legend"><h1 tabindex="-1">' + legend + '</h1></legend>' +
       (help ? '<p class="lead">' + help + '</p>' : '') + body + '</fieldset></div>' +
-      '<aside class="side"><nav class="qnav only-d" aria-label="' + t('q.listNav') + '"><p class="qlist-title">' + t('q.listTitle') + '</p><ol class="qlist">' + list + '</ol></nav>' + nextCta(qs[n - 1]) + '</aside></div>';
+      '<aside class="side"><nav class="qnav only-d" aria-label="' + t('q.listNav') + '"><p class="qlist-title">' + t('q.listTitle', { n: qs.length }) + '</p><ol class="qlist">' + list + '</ol></nav>' + nextCta(qs[n - 1]) + '</aside></div>';
   }
   function nextCta(r) {
     var next = { q1: 'q2', q2: 'q3', q3: 'q4', q4: 'q5', q5: 'q6', q6: needX() ? 'qx' : 'review', qx: 'review' }[r];
@@ -832,7 +858,11 @@
   function q4Sum() {
     var f = S.f, h = hours(), cnt = f.days.filter(Boolean).length;
     if (f.tStart !== '' && f.tEnd !== '' && f.brk !== '' && h <= 0) return '<p class="err" role="alert">' + t('q4.timeErr') + '</p>';
-    if (h > 0 && cnt) return '<p class="sumline" role="status">' + t('q4.sum', { h: h, w: Math.round(h * cnt * 100) / 100 }) + '</p>';
+    if (h > 0 && cnt) {
+      var nm = f.tStart !== '' && f.tEnd !== '' ? Math.min(usualNightMin(), Math.round(h * 60)) : 0;
+      return '<p class="sumline" role="status">' + t('q4.sum', { h: h, w: Math.round(h * cnt * 100) / 100 }) +
+        (nm > 0 ? '<br>' + t('q4.night', { h: Math.round(nm / 6) / 10 }) : '') + '</p>';
+    }
     return '';
   }
   function vQ4() {
@@ -888,12 +918,12 @@
       '<div class="paid-box stack"><div class="grid2 paid-grid">' +
       '<div class="field"><label for="month">' + t('q6.month') + '</label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month || lastMonth()) + '" max="' + today().slice(0, 7) + '"><p class="hint">' + t('q6.monthHint') + '</p></div>' +
       '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input input-money" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '" placeholder="0"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
-      '</div></div>' +
+      '</div>' + partialNote() + '</div>' +
       // 2) 더 정확하게 (선택)
       '<section class="stack opt-sec" aria-labelledby="opt-t"><div class="stack" style="gap:2px"><h2 id="opt-t" class="label">' + t('q6.moreTitle') + ' <span class="opt">' + t('opt') + '</span></h2><p class="hint">' + t('q6.moreHelp') + '</p></div>' +
       '<div class="opt-list">' +
       '<button type="button" class="opt-row" data-go="cal">' + optHead('cal', t('q6.calShort'), recorded ? t('q6.calHas', { n: recorded }) : t('q6.calSub'), recorded ? t('review.workN', { n: recorded }) : '') + '</button>' +
-      '<details class="opt-row-d"' + (has('extra') || extraN ? ' open' : '') + '><summary class="opt-row">' + optHead('moon', t('q6.otTitle'), t('q6.otSub'), extraN ? t('q6.filled', { n: extraN }) : '') + '</summary>' +
+      '<details class="opt-row-d"' + (has('extra') || extraN || openOt ? ' open' : '') + '><summary class="opt-row">' + optHead('moon', t('q6.otTitle'), t('q6.otSub'), extraN ? t('q6.filled', { n: extraN }) : '') + '</summary>' +
       '<div class="opt-body stack"><p class="hint">' + t('q6.noData') + (recorded ? ' ' + t('q6.calWins') : '') + '</p>' +
       '<div class="grid2">' + num('ot', 'ot', t('q6.ot'), t('unit.hours')) + num('night', 'night', t('q6.night'), t('unit.hours')) + num('holiday', 'holiday', t('q6.holiday'), t('unit.hours')) + num('allow', 'allowance', t('q6.allow'), t('unit.won')) + '</div></div></details>' +
       '<details class="opt-row-d"' + (f.more.length ? ' open' : '') + '><summary class="opt-row">' + optHead('plus', t('q6.extra'), t('q6.extraSub'), f.more.length ? t('q6.filled', { n: f.more.length }) : '') + '</summary>' +
@@ -903,6 +933,14 @@
       '</div></section>');
   }
 
+  // 못 받은 달이 그만둔 달이고 달 중간에 그만뒀으면: 그 달은 일한 날만큼만 계산한다는 것과, 월급날이 아니라 그 달 일한 것에 대해 받은 돈을 묻는다는 것
+  function partialNote() {
+    var f = S.f, ym = f.month || lastMonth();
+    var note = '<p class="hint">' + t('q6.which') + '</p>';
+    if (f.employed !== 'no' || !f.end || f.end.slice(0, 7) !== ym) return note;
+    var last = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5), 0)).getUTCDate(), d = Number(f.end.slice(8));
+    return d < last ? note + '<p class="note">' + icon('info') + ' ' + t('q6.partial', { m: ymName(ym), d: d, last: last }) + '</p>' : note;
+  }
   // 7번째 질문: 고른 상황(해고 · 연차 · 최저임금 · 휴업)에 맞춰 필요한 것만
   function vQx() {
     var f = S.f, body = '';
@@ -1123,13 +1161,22 @@
   function vResult() {
     var R = viewResult();
     // 항목은 한 줄씩: 이름 · 금액 · 꺾쇠. 누르면 아래 시트에 쉬운 설명 · 계산식 · 근거
+    // 금액이 있는 항목 · '월급에 포함' 같은 상태만 한 줄씩. 적지 않아 계산하지 않은 것은 한 줄로 묶고, 0원인 것은 아래에 작게 (눌러서 이유 보기)
+    var missing = [], zero = [];
     var items = R.items.map(function (it, i) {
+      if (it.missing) { if (missing.indexOf(it.name) < 0) missing.push(it.name); return ''; }
+      if (it.amount === 0) { zero.push('<button type="button" class="chip" data-act="item" data-i="' + i + '">' + esc(it.label) + '</button>'); return ''; }
       var right = it.amount != null ? '<span class="item-amt">' + money(it.amount) + '</span>' : '<span class="item-status">' + esc(it.status) + '</span>';
-      var sub = it.amount ? readable(it.amount) : it.missing ? t('result.input') : '';
+      var sub = it.amount ? readable(it.amount) : '';
       return '<li><button type="button" class="item-row" data-act="item" data-i="' + i + '"><span class="item-name">' + esc(it.label) +
         (it.estimated || sub ? '<small>' + (it.estimated ? '<span class="tag">' + t('result.estimated') + '</span> ' : '') + esc(sub) + '</small>' : '') + '</span>' + right + icon('chev', 'chev') + '</button></li>';
     }).join('');
-    var size = t(S.f.size === 'under' ? 'size.under' : 'size.five');
+    if (missing.length) {
+      items += '<li><button type="button" class="item-row miss-row" data-act="miss-go"><span class="item-name">' + t('result.missRow', { n: missing.length }) + '<small>' + esc(missing.join(' · ')) + '</small></span>' +
+        '<span class="item-status">' + t('result.input') + '</span>' + icon('chev', 'chev') + '</button></li>';
+    }
+    var zeroBox = zero.length ? '<div class="zero-box"><span class="hint">' + t('result.zero') + '</span><div class="chips">' + zero.join('') + '</div></div>' : '';
+    var size = t(S.f.size === 'under' ? 'size.under' : 'size.five') + (S.f.size === 'unsure' ? ' (' + t('result.estimated') + ')' : '');
     var period = dotDate(S.f.start) + ' ~ ' + (S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end));
     var summary = '<div class="receipt"><div class="receipt-in">' +
       '<span class="total-label">' + t('result.total') + '</span>' +
@@ -1153,7 +1200,7 @@
     return '<div class="wide col">' + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
       '<div class="result-grid"><div class="stack r-sum">' + summary + speakBtn('result') + chart(R) + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
-      '<div class="stack-lg r-items">' + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul></section>' +
+      '<div class="stack-lg r-items">' + warns + '<section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' +
       '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details>' +
       '</div></div>' + more + '</div>';
   }
@@ -2165,6 +2212,12 @@
     });
   }
   function toastT(k) { toast(t(k)); }
+  // 상황 카드를 안 고르고 시작하면: 고르러 가기 · 그냥 시작
+  function sitAsk(path) {
+    openSheet(t('sit.askTitle'), '<p>' + t('sit.askBody') + '</p>' +
+      '<button type="button" class="btn btn-primary" data-act="to-sit"><span>' + t('sit.askGo') + '</span></button>' +
+      '<button type="button" class="btn btn-line" data-act="path" data-v="' + path + '" data-skip="1">' + t('sit.askSkip') + '</button>');
+  }
   function disclaimSheet() {
     openSheet(t('start.noteTitle'), '<p>' + t('result.disclaimToast') + '</p>', true);
   }
@@ -2211,6 +2264,9 @@
     else if (a === 'item') itemSheet(Number(t.dataset.i));
     else if (a === 'path') {
       if (!S.agreed) { toAgree(); toastT('start.agreeHint'); return; }
+      // 상황 카드를 하나도 안 골랐으면 한 번 묻는다 (안 고르면 연차수당 · 해고예고수당 · 지연이자 같은 항목이 빠진다)
+      if (!S.sit.length && !t.dataset.skip && S.route === 'start') { sitAsk(t.dataset.v); return; }
+      closeSheet();
       S.path = t.dataset.v;
       // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
       if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
@@ -2247,6 +2303,9 @@
     else if (a === 'docx') saveDocx();
     else if (a === 'listen') listen();
     else if (a === 'to-agree') toAgree();
+    // 결과의 '적지 않아 계산하지 않은 것' → 질문 6 의 연장 · 야간 · 휴일 칸을 펼친 채로
+    else if (a === 'miss-go') { openOt = true; go('q6'); openOt = false; var ot = document.getElementById('ot'); if (ot) { ot.scrollIntoView({ block: 'center' }); ot.focus({ preventScroll: true }); } }
+    else if (a === 'to-sit') { closeSheet(); var st = app.querySelector('.sit-title'); if (st) { st.scrollIntoView({ block: 'start', behavior: 'smooth' }); var first = document.getElementById('sit-' + SITS[0][0]); if (first) first.focus({ preventScroll: true }); } }
     else if (a === 'q-sheet') qSheet(Number(t.dataset.n));
     else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
