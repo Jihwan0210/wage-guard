@@ -734,3 +734,68 @@ dialog h3.label { margin: 0; }
 }
 /* 설치형(standalone)으로 열면: 주소창이 없으니 앱바가 상태 표시줄 바로 아래 */
 @media (display-mode: standalone) { .top { -webkit-user-select: none; user-select: none; } }
+
+/* 질문 화면 아래 단추: 이전(좁게) · 다음(넓게) */
+.q-nav { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.q-nav .btn-line { gap: 6px; }
+.input-short { max-width: 10rem; }
+
+/* 질문 6: 꼭 적을 것(못 받은 달 · 받은 돈) → 더 정확하게(선택) 고르는 줄 */
+.paid-box { padding: var(--s4); border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }
+.paid-grid { align-items: start; }
+.paid-grid .hint { margin-top: 4px; }
+.input-money { font-size: var(--fs-lg); font-weight: 700; }
+.opt-sec { gap: var(--s3); }
+.opt-list { display: flex; flex-direction: column; gap: var(--s2); }
+.opt-row { width: 100%; min-height: 64px; padding: var(--s3) var(--s4); display: flex; align-items: center; gap: var(--s3); border: 1.5px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); text-align: left; font: inherit; cursor: pointer; list-style: none; transition: border-color var(--t-fast), background var(--t-fast); }
+.opt-row::-webkit-details-marker { display: none; }
+.opt-row:hover { border-color: var(--input-line); background: var(--surface); }
+.opt-row > .ico:first-child { width: 24px; height: 24px; color: var(--brand-deep); }
+.opt-row .chev { color: var(--muted); transition: transform var(--t-fast); }
+.opt-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.opt-t b { font-size: var(--fs-md); }
+.opt-t small { font-size: var(--fs-sm); color: var(--muted); }
+.opt-row-d[open] > .opt-row { border-color: var(--fg); border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: var(--surface); }
+.opt-row-d[open] > .opt-row .chev { transform: rotate(90deg); }
+.opt-body { padding: var(--s4); border: 1.5px solid var(--fg); border-top: 0; border-radius: 0 0 var(--r) var(--r); }
+
+/* 결과: 더 할 수 있는 일 (저장 · 다음 할 일 · 알아 두기 세 묶음) */
+.next-sec { margin-top: var(--s7); padding-top: var(--s6); border-top: 2px solid var(--strong-line); }
+.act-group { gap: var(--s2); }
+.act-group > .label { color: var(--muted); font-size: var(--fs-sm); letter-spacing: 0.02em; }
+.act-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s2); }
+.act { width: 100%; min-height: 72px; padding: var(--s3) var(--s4); display: flex; align-items: center; gap: var(--s3); border: 1.5px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); text-align: left; font: inherit; cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast); }
+.act:hover { border-color: var(--input-line); background: var(--surface); }
+.act:active { transform: scale(0.98); }
+.act-ico { flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand-deep); }
+.act-ico .ico { width: 22px; height: 22px; }
+.act-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.act-t b { font-size: var(--fs-md); line-height: 1.35; }
+.act-t small { font-size: var(--fs-sm); color: var(--muted); line-height: 1.45; }
+.act .chev { color: var(--muted); }
+.act-foot { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); }
+.act-foot .btn-text { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); align-self: auto; }
+.act-foot .ico { width: 18px; height: 18px; }
+@media (min-width: 640px) {
+  .act-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .paid-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+}
+@media (min-width: 960px) {
+  .act-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .paid-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media print { .next-sec { display: none !important; } }
+
+/* 요일 단추 7개는 한 줄에 (휴대폰에서 '일'만 다음 줄로 떨어지지 않게) */
+.days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+/* 시작 화면 제목은 한 줄: 휴대폰에서는 돌고래를 제목 위로 올리고 글자를 화면 폭에 맞춘다 */
+@media (max-width: 959px) {
+  .hero h1 { padding-right: 0; font-size: clamp(1.375rem, 6.2vw, 2.25rem); }
+  .mascot { position: static; width: 56px; order: -1; margin-bottom: calc(var(--s2) * -1); }
+}
+.input-time { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.opt-row-d > summary.opt-row::after { content: none; }
+.opt-row-d > summary.opt-row { font-weight: inherit; }
