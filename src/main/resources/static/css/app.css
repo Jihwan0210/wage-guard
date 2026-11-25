@@ -799,3 +799,11 @@ dialog h3.label { margin: 0; }
 .input-time { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .opt-row-d > summary.opt-row::after { content: none; }
 .opt-row-d > summary.opt-row { font-weight: inherit; }
+
+/* 결과: 적지 않아 계산하지 않은 것 한 줄 · 0원 항목은 작은 단추로 */
+.miss-row .item-name small { color: var(--muted); }
+.miss-row .item-status { color: var(--accent); font-weight: 700; }
+.zero-box { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chip { min-height: 36px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.chip:hover { border-color: var(--input-line); }
