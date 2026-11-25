@@ -832,3 +832,67 @@ dialog h3.label { margin: 0; }
 .warn-d[open] > summary { margin-bottom: var(--s2); }
 .warn-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--warn-line); color: var(--warn-fg); font-size: var(--fs-sm); }
 .warn-d ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--s1); }
+
+/* ===== 11/26 디자인 손질 ===== */
+
+/* 위쪽 메뉴의 '쉬운 말' 표시 (켜져 있을 때만 보이고, 누르면 끈다) */
+.easy-chip { height: 36px; padding: 0 12px 0 10px; margin-right: 4px; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 999px; background: var(--fg); color: var(--bg); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.easy-chip .ico { width: 16px; height: 16px; stroke-width: 2.25; }
+.easy-chip:hover { background: var(--btn-hover); }
+
+/* 요일: 한 줄 묶음 단추. 고른 요일만 진하게 채우고 다른 강조(밑줄 · 그림자)는 없다 */
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; padding: 0; border: 1.5px solid var(--input-line); border-radius: var(--r); overflow: hidden; background: var(--bg); }
+.day { min-height: 48px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: none; color: var(--fg); font-weight: 600; box-shadow: none; transition: background var(--t-fast), color var(--t-fast); }
+.day:first-child { border-left: 0; }
+.day:hover { background: var(--surface); border-color: var(--line); }
+.day[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; box-shadow: none; border-left-color: var(--fg); }
+.day[aria-pressed="true"] + .day[aria-pressed="true"] { border-left-color: rgba(255, 255, 255, 0.18); }
+.day:active { transform: none; }
+.day:focus-visible { position: relative; z-index: 1; }
+
+/* 언어 고르기도 같은 방식 (노란 밑줄 빼기) */
+.lang-btns button[aria-pressed="true"] { box-shadow: 0 0 0 1.5px var(--fg); }
+
+/* 결과 합계: 형광펜 없이 크기 · 굵기만 */
+.total b { background: none; padding: 0; margin: 0; }
+
+/* 질문 6: 꼭 적을 칸은 바탕 상자 없이, 아래 '해당되면 누르는 목록'과는 구분선 하나로 */
+.paid-box { padding: 0; background: none; border: 0; }
+.opt-sec { padding-top: var(--s4); border-top: 1px solid var(--line); gap: var(--s2); }
+.opt-line { font-size: var(--fs-md); font-weight: 700; }
+.opt-row { min-height: 60px; }
+
+/* 입력하면 나타나는 줄이 아래를 밀어내지 않게 자리를 미리 잡는다 */
+.readable { min-height: 1.5em; }
+[data-q4sum]:empty { min-height: 0; }
+
+/* 진정서 칸: 넓은 화면은 두 칸씩 (주소는 한 줄 전체), 옆 칸은 한 상자 */
+@media (min-width: 960px) {
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3) var(--s4); }
+  .form-grid .wide-f { grid-column: 1 / -1; }
+}
+.form-grid { display: flex; flex-direction: column; gap: var(--s3); }
+@media (min-width: 960px) { .form-grid { display: grid; } }
+.auto-box { gap: var(--s2); }
+.auto-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.auto-head .btn-text { font-size: var(--fs-sm); min-height: 36px; align-self: auto; }
+.auto-box .nav-list { border-top: 1px solid var(--line); margin-top: var(--s1); }
+.auto-box .nav-row { min-height: 52px; border-bottom: 0; padding-inline: 0; }
+.privacy { line-height: 1.55; }
+
+/* 결과 더보기: 휴대폰에서만 접는다 */
+.m-more-btn { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1.5px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer; }
+.m-more-btn .chev { width: 18px; height: 18px; transform: rotate(90deg); transition: transform var(--t-fast); }
+.m-more-btn[aria-expanded="true"] .chev { transform: rotate(-90deg); }
+@media (max-width: 959px) {
+  .wide.col:not(.more-open) .m-more { display: none; }
+}
+@media (min-width: 960px) {
+  .m-more-btn { display: none; }
+}
+
+/* 쉬운 말 + 휴대폰: 덜 중요한 설명을 접어 질문 · 단추에 집중 */
+@media (max-width: 959px) {
+  .easy-m .banner, .easy-m .q-legend ~ details.more, .easy-m .trust, .easy-m [data-next-hint], .easy-m .items-head .hint,
+  .easy-m .start-side > section:last-of-type, .easy-m .foot-bar > .hint { display: none !important; }
+}
