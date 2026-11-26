@@ -621,8 +621,8 @@
     return '<header class="top"><div class="top-in">' + left +
       (hasTabs() ? tabs('tabs-top') : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
       '<div class="top-tools">' +
-      // 쉬운 말이 켜져 있으면 위쪽 메뉴에 늘 보이고, 누르면 바로 끈다
-      (S.lang === 'ko' && S.easy ? '<button type="button" class="easy-chip" data-act="easy-off" aria-pressed="true" aria-label="' + t('top.easyOff') + '">' + icon('check') + '<span>' + t('top.easy') + '</span></button>' : '') +
+      // 쉬운 말: 한국어일 때 위쪽 메뉴에 늘 두고, 누를 때마다 켜고 끈다
+      (S.lang === 'ko' ? '<button type="button" id="easy-top" class="easy-chip" data-act="easy-tg" aria-pressed="' + !!S.easy + '">' + (S.easy ? icon('check') : '') + '<span>' + t('top.easy') + '</span></button>' : '') +
       '<button type="button" class="big-btn" data-act="big" aria-pressed="' + S.big + '" aria-label="' + t('top.big') + '">가<span aria-hidden="true">+</span></button>' +
       '<button type="button" id="lang-top" class="lang-btn" data-act="lang-sheet" aria-haspopup="dialog" aria-label="' + esc(t('top.lang') + ': ' + me.name) + '">' + icon('globe') + '<span lang="' + me.code + '">' + esc(me.name) + '</span></button>' +
       '</div></div></header>';
@@ -2416,7 +2416,7 @@
       S.moreOpen = !S.moreOpen; rerender();
       var mb = document.getElementById('m-more-btn'); if (mb) window.scrollBy(0, mb.getBoundingClientRect().top - before);
     }
-    else if (a === 'easy-off') { S.easy = false; render(); focusId('lang-top'); }
+    else if (a === 'easy-tg') { S.easy = !S.easy; render(); focusId('easy-top'); }
     else if (a === 'lang') { var fromSheet = !!t.closest('dialog'); closeSheet(); setLang(t.dataset.v).then(function () { if (fromSheet) focusId('lang-top'); }); }
     else if (a === 'lang-sheet') langSheet();
     else if (a === 'sheet-close') closeSheet();
