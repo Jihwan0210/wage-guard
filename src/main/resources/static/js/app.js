@@ -243,6 +243,7 @@
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
     map: '<path d="M3.5 6.5L9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4 6.5l1 1 2-2M4 12l1 1 2-2M4 17.5l1 1 2-2"/>',
     coin: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 9l1.8 6.5L12 10.5l1.7 5L15.5 9M7.5 12h9"/>',
     trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
@@ -620,6 +621,8 @@
     return '<header class="top"><div class="top-in">' + left +
       (hasTabs() ? tabs('tabs-top') : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
       '<div class="top-tools">' +
+      // 쉬운 말이 켜져 있으면 위쪽 메뉴에 늘 보이고, 누르면 바로 끈다
+      (S.lang === 'ko' && S.easy ? '<button type="button" class="easy-chip" data-act="easy-off" aria-pressed="true" aria-label="' + t('top.easyOff') + '">' + icon('check') + '<span>' + t('top.easy') + '</span></button>' : '') +
       '<button type="button" class="big-btn" data-act="big" aria-pressed="' + S.big + '" aria-label="' + t('top.big') + '">가<span aria-hidden="true">+</span></button>' +
       '<button type="button" id="lang-top" class="lang-btn" data-act="lang-sheet" aria-haspopup="dialog" aria-label="' + esc(t('top.lang') + ': ' + me.name) + '">' + icon('globe') + '<span lang="' + me.code + '">' + esc(me.name) + '</span></button>' +
       '</div></div></header>';
@@ -927,14 +930,15 @@
     function optHead(ico, title, sub, badge) {
       return icon(ico) + '<span class="opt-t"><b>' + title + '</b><small>' + sub + '</small></span>' + (badge ? '<span class="tag self">' + badge + '</span>' : '') + icon('chev', 'chev');
     }
-    return qShell(6, t('q6.title'), t('q6.help'),
+    // 제목에 고른 달을 넣는다 (달을 바꾸면 제목도 바뀜)
+    return qShell(6, t('q6.titleM', { m: ymName(f.month || lastMonth()) }), t('q6.help'),
       // 1) 꼭 적을 것: 못 받은 달 · 그 달에 받은 돈
       '<div class="paid-box stack"><div class="grid2 paid-grid">' +
       '<div class="field"><label for="month">' + t('q6.month') + '</label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month || lastMonth()) + '" max="' + today().slice(0, 7) + '"><p class="hint">' + t('q6.monthHint') + '</p></div>' +
       '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input input-money" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '" placeholder="0"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
       '</div>' + partialNote() + '</div>' +
-      // 2) 더 정확하게 (선택)
-      '<section class="stack opt-sec" aria-labelledby="opt-t"><div class="stack" style="gap:2px"><h2 id="opt-t" class="label">' + t('q6.moreTitle') + ' <span class="opt">' + t('opt') + '</span></h2><p class="hint">' + t('q6.moreHelp') + '</p></div>' +
+      // 2) 해당되면 누르는 목록 (세 줄 모두 같은 모양. 위 꼭 적을 칸과는 구분선 하나로 나눈다)
+      '<section class="stack opt-sec" aria-labelledby="opt-t"><p id="opt-t" class="opt-line">' + t('q6.moreLine') + '</p>' +
       '<div class="opt-list">' +
       '<button type="button" class="opt-row" data-go="cal">' + optHead('cal', t('q6.calShort'), recorded ? t('q6.calHas', { n: recorded }) : t('q6.calSub'), recorded ? t('review.workN', { n: recorded }) : '') + '</button>' +
       '<details class="opt-row-d"' + (has('extra') || extraN || openOt ? ' open' : '') + '><summary class="opt-row">' + optHead('moon', t('q6.otTitle'), t('q6.otSub'), extraN ? t('q6.filled', { n: extraN }) : '') + '</summary>' +
@@ -1230,13 +1234,17 @@
       group(t('result.gInfo'), (GUIDES.length ? tile('data-go="info"', 'info', t('title.info'), t('info.sub')) : '') +
         tile('data-go="contract"', 'contract', t('title.contract'), t('ct.sub')) + tile('data-go="deadline"', 'clock', t('title.deadline'), t('dl.sub')) + tile('data-go="after"', 'door', t('title.after'), t('after.sub'))) +
       '<div class="act-foot"><button type="button" class="btn-text" data-go="review">' + icon('pen') + t('result.review') + '</button><button type="button" class="btn-text" data-act="wipe">' + icon('trash') + t('wipe.btn') + '</button></div></section>';
-    return '<div class="wide col">' + langBanner() +
+    // 휴대폰: 합계 · 진정서 단추 · 받을 돈만 먼저 보이고, 읽어 주기 · 달별 그래프 · 알아 둘 점 · 계산 기준 · 더 할 수 있는 일은 '더보기' 안 (.m-more)
+    // 넓은 화면은 모두 그대로 보인다
+    var moreBtn = '<button type="button" id="m-more-btn" class="m-more-btn only-m" data-act="m-more" aria-expanded="' + !!S.moreOpen + '">' + t(S.moreOpen ? 'result.moreClose' : 'result.moreOpen') + icon('chev', 'chev') + '</button>';
+    return '<div class="wide col' + (S.moreOpen ? ' more-open' : '') + '">' + langBanner() +
       '<h1 tabindex="-1" class="sr">' + t('title.result') + '</h1>' +
-      '<div class="result-grid"><div class="stack r-sum">' + summary + speakBtn('result') + chart(R) + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
-      // 항목별 금액이 먼저, 그 아래 고른 상황 안내 · 알아 둘 점
-      '<div class="stack-lg r-items"><section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' + notes + warns +
-      '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details>' +
-      '</div></div>' + more + '</div>';
+      '<div class="result-grid"><div class="stack r-sum">' + summary + '<div class="m-more stack">' + speakBtn('result') + chart(R) + '</div>' + cta(primary(t('result.make'), 'data-go="form"'), ' ') + '</div>' +
+      // 받을 돈이 먼저, 그 아래 고른 상황 안내 · 알아 둘 점
+      '<div class="stack-lg r-items"><section><div class="items-head"><h2>' + t('result.items') + '</h2><span class="hint">' + t('result.itemsHint') + '</span></div><ul class="items">' + items + '</ul>' + zeroBox + '</section>' + notes + moreBtn +
+      '<div class="m-more stack-lg">' + warns +
+      '<details class="more"><summary>' + t('result.base') + '</summary><dl class="kv"><dt>' + term('ordinaryWage', t('result.hourly')) + '</dt><dd>' + R.hourly + '</dd><dt>' + term('averageWage', t('result.daily')) + '</dt><dd>' + R.daily + '</dd>' + weeks + '<dt>' + t('result.notApplied') + '</dt><dd lang="ko">' + esc(R.notApplied.join(' ') || t('result.none')) + '</dd></dl></details></div>' +
+      '</div></div><div class="m-more">' + more + '</div></div>';
   }
   // 항목 상세 시트: 금액(서버 값 그대로) · 쉬운 설명(자동 생성 고지 한 번) · 단계 풀이 · 쉬운 말
   function itemSheet(i) {
@@ -1339,17 +1347,111 @@
     focusId('listen');
   }
 
+  // ---------- 진정서 칸 입력 도우미 ----------
+  // 전화번호: 숫자만 받아 적는 대로 하이픈을 넣는다 (010-1234-5678 · 02-123-4567 · 031-123-4567 · 1588-0075)
+  function telFmt(v) {
+    var d = String(v || '').replace(/\D/g, '');
+    if (/^1[5-9]/.test(d)) { d = d.slice(0, 8); return d.length > 4 ? d.slice(0, 4) + '-' + d.slice(4) : d; }
+    var a = d.indexOf('02') === 0 ? 2 : 3;
+    d = d.slice(0, a === 2 ? 10 : 11);
+    var r = d.slice(a);
+    if (!r) return d;
+    if (d.indexOf('01') === 0) return d.slice(0, a) + '-' + (r.length > 4 ? r.slice(0, 4) + '-' + r.slice(4) : r);
+    if (r.length <= 3) return d.slice(0, a) + '-' + r;
+    var m = r.length > 7 ? 4 : 3;
+    return d.slice(0, a) + '-' + r.slice(0, m) + '-' + r.slice(m);
+  }
+  // 하이픈을 넣어도 커서는 방금 적은 숫자 뒤에 둔다
+  function setTel(el) {
+    var n = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length, v = telFmt(el.value), i = 0;
+    if (v === el.value) return v;
+    el.value = v;
+    while (n > 0 && i < v.length) { if (/\d/.test(v[i])) n--; i++; }
+    el.setSelectionRange(i, i);
+    return v;
+  }
+  // 사는 곳 주소 찾기: 카카오 우편번호 서비스(키 없음). 누를 때 처음 한 번만 불러온다
+  // 못 불러왔으면(인터넷 · 차단) 이번 방문 동안만 직접 적게 둔다 (저장하지 않음)
+  var pcLoad = null, addrManual = false;
+  function loadPostcode() {
+    if (window.daum && daum.Postcode) return Promise.resolve();
+    if (!pcLoad) pcLoad = new Promise(function (ok, no) {
+      var sc = document.createElement('script');
+      sc.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      sc.onload = function () { daum.postcode.load(ok); };
+      sc.onerror = function () { pcLoad = null; sc.remove(); no(); };
+      document.head.appendChild(sc);
+    });
+    return pcLoad;
+  }
+  function findAddr(k) {
+    loadPostcode().then(function () {
+      openSheet(t('form.addrFind'), '<div id="pc-box" class="pc-box"></div>', false);
+      new daum.Postcode({
+        width: '100%', height: '100%',
+        oncomplete: function (d) {
+          var a = (d.userSelectedType === 'J' ? d.jibunAddress : d.roadAddress) || d.address;
+          if (d.apartment === 'Y' && d.buildingName) a += ' (' + d.buildingName + ')';
+          S.lt = null; S.p[k] = a; S.pErr[k] = ''; if (S.psrc) S.psrc[k] = ''; save();
+          closeSheet(); render(); focusId('p-' + k);
+        }
+      }).embed(document.getElementById('pc-box'));
+    }, function () {
+      addrManual = true; render(); focusId('p-' + k); toastT('form.addrFail');
+    });
+  }
+  // 가게 찾기: 가게 이름으로 찾아 고르면 주소를 채운다 (가게 이름 · 전화번호 칸이 비어 있으면 그것도)
+  // 카카오 장소 검색은 우리 서버(/api/v1/places)가 대신 부른다. 키는 서버에만 있다
+  var places = [], plSeq = 0;
+  function findPlace() {
+    var q = S.f.company || S.p.company || '';
+    openSheet(t('form.plTitle'), '<div class="pl-form"><input id="pl-q" class="input" type="search" enterkeyhint="search" autocomplete="off" aria-label="' + esc(t('form.plQ')) + '" placeholder="' + esc(t('form.plPh')) + '" value="' + esc(q) + '">' +
+      '<button type="button" class="btn btn-primary" data-act="pl-go"><span>' + t('form.plGo') + '</span></button></div><div id="pl-list" class="pl-list" aria-live="polite"></div>', false);
+    if (q.trim().length >= 2) searchPlace(); else focusId('pl-q');
+  }
+  function searchPlace() {
+    var box = document.getElementById('pl-q'), list = document.getElementById('pl-list');
+    if (!box || !list) return;
+    var q = box.value.trim(), seq = ++plSeq;
+    if (q.length < 2) { list.innerHTML = '<p class="hint">' + t('form.plShort') + '</p>'; box.focus(); return; }
+    list.innerHTML = '<p class="hint">' + t('form.plWait') + '</p>';
+    fetch('/api/v1/places?q=' + encodeURIComponent(q)).then(function (r) { if (!r.ok) throw r; return r.json(); }).then(function (d) {
+      if (seq !== plSeq) return;
+      places = d;
+      list.innerHTML = d.length ? '<ul class="plain">' + d.map(function (pl, i) {
+        return '<li><button type="button" class="pl-item" data-act="pl-pick" data-i="' + i + '"><strong>' + esc(pl.name) + (pl.category ? ' <small>' + esc(pl.category) + '</small>' : '') + '</strong><span>' + esc(pl.address) + '</span></button></li>';
+      }).join('') + '</ul>' : '<p class="hint">' + t('form.plNone') + '</p>';
+    }, function () { if (seq === plSeq) list.innerHTML = '<p class="hint">' + t('form.plFail') + '</p>'; });
+  }
+  function pickPlace(i) {
+    var pl = places[i], p = S.p;
+    if (!pl) return;
+    function put(k, v) { p[k] = v; S.pErr[k] = ''; if (S.psrc) S.psrc[k] = ''; }
+    put('waddr', pl.address);
+    if (!S.f.company && !p.company) put('company', pl.name);
+    if (!p.wphone && pl.phone) put('wphone', pl.phone);
+    S.lt = null; save(); closeSheet(); render(); focusId('p-waddr');
+  }
+
   // ---------- 화면: 진정서 정보 ----------
   function vForm() {
     var R = viewResult();
     var p = S.p;
     function inp(id, key, label, type, opts) {
       opts = opts || {};
-      var miss = (opts.req && S.formTried && !p[key] && opts.req) || S.pErr[key];
+      // 빈 필수 칸은 빨간 테두리 없이 표시만 (문서 만들기를 누르면 첫 빈 칸으로 이동). 서버가 알려 준 오류만 문구로
+      var empty = opts.req && S.formTried && !p[key], miss = S.pErr[key];
       var doc = p[key] && (S.psrc || {})[key] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : '';
-      return '<div class="field"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(' + t('opt') + ')</span>') + doc + '</label>' +
-        '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
-        ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>' +
+      // find: 'addr' = 주소 찾기로만 넣는 칸 (못 불러오면 직접), 'place' = 가게 이름으로 찾기 + 직접 적기
+      var post = opts.find === 'addr' && !addrManual;
+      var box = '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
+        (post ? ' readonly data-act="addr" data-k="' + key + '" placeholder="' + esc(t('form.addrPh')) + '"' : '') +
+        ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (opts.req ? ' aria-required="true"' : '') + (empty ? ' data-miss' : '') + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>';
+      if (opts.find === 'place' || post) {
+        box = '<div class="addr-row">' + box + (post ? '<button type="button" class="btn btn-line" data-act="addr" data-k="' + key + '">' + icon('search') + '<span>' + t('form.addrFind') + '</span></button>'
+          : '<button type="button" class="btn btn-line" data-act="place">' + icon('search') + '<span>' + t('form.plBtn') + '</span></button>') + '</div>';
+      }
+      return '<div class="field' + (opts.wide ? ' wide-f' : '') + '"><label for="' + id + '">' + label + (opts.req ? ' <span class="req">' + t('form.req') + '</span>' : '') + doc + '</label>' + box +
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
     function docTag(k) { return S.src[k] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : ''; }
@@ -1357,31 +1459,32 @@
     var nDoc = Object.keys(S.psrc || {}).filter(function (k) { return S.psrc[k] === 'doc' && p[k]; }).length;
     var docNote = nDoc ? '<p class="note" role="status">' + icon('check') + ' ' + t('form.docNote', { n: nDoc }) + '</p>' : '';
     var got = READY.filter(function (k) { return S.ready[k]; }).length;
-    var readyBox = '<section class="note stack"><h2>' + t('title.ready') + '</h2><p>' + t('form.ready', { n: got, m: READY.length }) + '</p><button type="button" class="btn-text" style="align-self:flex-start" data-go="ready">' + t('form.readyGo') + '</button></section>';
+    // 이미 채워진 내용 + 고치기 + 챙길 서류를 한 상자에 (넓은 화면은 옆 칸, 휴대폰은 맨 위)
+    var autoBox = function (cls) {
+      return '<section class="note stack auto-box ' + cls + '"><div class="auto-head"><h2>' + t('form.auto') + '</h2><button type="button" class="btn-text" data-go="review">' + t('form.fix') + '</button></div>' + auto +
+        '<div class="nav-list">' + navRow('data-go="ready"', 'list', t('form.readyGo'), t('form.ready', { n: got, m: READY.length })) + '</div></section>';
+    };
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(4) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('form.title') + '</h1><p class="lead">' + t('form.lead') + '</p></div>' + docNote +
-      '<section class="note stack only-m"><h2>' + t('form.auto') + '</h2>' + auto +
-      '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
-      '<div class="only-m">' + readyBox + '</div>' +
-      '<fieldset class="stack"><legend><h2>' + t('form.me') + '</h2></legend>' +
+      autoBox('only-m') +
+      '<fieldset class="stack"><legend><h2>' + t('form.me') + '</h2></legend><div class="form-grid">' +
       inp('p-name', 'name', t('form.name'), 'text', { req: t('form.nameReq'), ac: 'name' }) +
       inp('p-phone', 'phone', t('form.phone'), 'tel', { req: t('form.phoneReq'), mode: 'tel', ac: 'tel', ph: '010-0000-0000' }) +
-      inp('p-addr', 'addr', t('form.addr'), 'text', { ac: 'street-address' }) + '</fieldset>' +
-      '<fieldset class="stack"><legend><h2>' + t('form.work') + '</h2></legend>' +
+      inp('p-addr', 'addr', t('form.addr'), 'text', { ac: 'street-address', wide: true, find: 'addr' }) + '</div></fieldset>' +
+      '<fieldset class="stack"><legend><h2>' + t('form.work') + '</h2></legend><div class="form-grid">' +
       (S.f.company ? '' : inp('p-company', 'company', t('form.company'), 'text', { req: t('form.companyReq') })) +
       inp('p-owner', 'owner', t('form.owner'), 'text', { req: t('form.ownerReq') }) +
-      inp('p-waddr', 'waddr', t('form.waddr'), 'text', { req: t('form.waddrReq') }) +
-      inp('p-wphone', 'wphone', t('form.wphone'), 'tel', { mode: 'tel' }) +
-      inp('p-job', 'job', t('form.job'), 'text', { req: t('form.jobReq'), ph: t('form.jobPh') }) + '</fieldset>' +
-      '<div class="field"><label for="p-facts">' + t('form.facts') + ' <span class="opt">(' + t('opt') + ')</span></label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
+      inp('p-waddr', 'waddr', t('form.waddr'), 'text', { req: t('form.waddrReq'), wide: true, find: 'place' }) +
+      inp('p-wphone', 'wphone', t('form.wphone'), 'tel', { mode: 'tel', ph: '02-000-0000' }) +
+      inp('p-job', 'job', t('form.job'), 'text', { req: t('form.jobReq'), ph: t('form.jobPh') }) + '</div></fieldset>' +
+      '<div class="field"><label for="p-facts">' + t('form.facts') + '</label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
       '<textarea id="p-facts" class="input" rows="5" aria-describedby="facts-help" data-p="facts">' + esc(p.facts) + '</textarea>' +
       listenBtn() +
       (S.pErr.facts ? '<p class="err">' + esc(S.pErr.facts) + '</p>' : '') + '</div>' +
       '</div>' +
-      '<aside class="side"><section class="note stack only-d"><h2>' + t('form.auto') + '</h2>' + auto + '<button type="button" class="btn-text" style="align-self:flex-start" data-go="review">' + t('form.fix') + '</button></section>' +
-      '<div class="only-d">' + readyBox + '</div>' +
-      '<p class="hint">' + icon('lock') + ' ' + t('form.privacy') + '</p>' +
+      '<aside class="side">' + autoBox('only-d') +
+      '<p class="hint privacy">' + icon('lock') + ' ' + t('form.privacy') + '</p>' +
       cta(primary(t('form.make'), 'data-act="make"'), ' ') + '</aside></div>';
   }
 
@@ -1937,6 +2040,8 @@
   var dockH = -1;
   function render(transition) {
     document.documentElement.classList.toggle('big', !!S.big);
+    // 쉬운 말: 휴대폰에서는 덜 중요한 설명을 접어 화면을 단순하게 (css .easy-m)
+    document.documentElement.classList.toggle('easy-m', !!S.easy && S.lang === 'ko');
     document.documentElement.lang = S.lang;
     app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (transition ? ' class="enter ' + transition + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
       '<div class="dock no-print">' + (hasTabs() ? tabs('tabbar') : '') + '</div>';
@@ -2116,7 +2221,7 @@
     var id = document.activeElement && document.activeElement.id;
     render();
     var el = (id && document.getElementById(id)) || document.getElementById('pages-title');
-    if (el && id) el.focus();
+    if (el && id) el.focus({ preventScroll: true });
   }
 
   // ---------- 동작 ----------
@@ -2234,7 +2339,7 @@
     var missing = need.filter(function (k) { return !p[k]; });
     if (missing.length) {
       render();
-      var first = app.querySelector('[aria-invalid="true"]');
+      var first = app.querySelector('[data-miss]');
       if (first) first.focus();
       toast(t('form.missing', { n: missing.length }));
       return;
@@ -2288,7 +2393,8 @@
     render();
     toast(t('cal.filled', { n: added }));
   }
-  function focusId(id) { var el = document.getElementById(id); if (el) el.focus(); }
+  // 다시 그린 뒤 포커스만 돌려준다. 화면은 움직이지 않게 (preventScroll)
+  function focusId(id) { var el = document.getElementById(id); if (el) el.focus({ preventScroll: true }); }
 
   document.addEventListener('click', function (e) {
     // 본문으로 건너뛰기: 주소(#main)를 바꾸면 화면 이동으로 읽혀 시작 화면으로 가 버리므로 초점만 옮긴다
@@ -2299,7 +2405,18 @@
     var a = t.dataset.act;
     if (a === 'home') { e.preventDefault(); home(); }
     else if (a === 'back') back();
+    else if (a === 'addr') findAddr(t.dataset.k);
+    else if (a === 'place') findPlace();
+    else if (a === 'pl-go') searchPlace();
+    else if (a === 'pl-pick') pickPlace(Number(t.dataset.i));
     else if (a === 'big') { S.big = !S.big; render(); }
+    // 더보기: 버튼 위쪽(합계 아래)에도 펼쳐지는 것이 있어 버튼이 밀린다 → 누른 버튼이 손가락 아래 그대로 있게 스크롤을 맞춘다
+    else if (a === 'm-more') {
+      var before = t.getBoundingClientRect().top;
+      S.moreOpen = !S.moreOpen; rerender();
+      var mb = document.getElementById('m-more-btn'); if (mb) window.scrollBy(0, mb.getBoundingClientRect().top - before);
+    }
+    else if (a === 'easy-off') { S.easy = false; render(); focusId('lang-top'); }
     else if (a === 'lang') { var fromSheet = !!t.closest('dialog'); closeSheet(); setLang(t.dataset.v).then(function () { if (fromSheet) focusId('lang-top'); }); }
     else if (a === 'lang-sheet') langSheet();
     else if (a === 'sheet-close') closeSheet();
@@ -2324,7 +2441,7 @@
     else if (a === 'wipe-yes') wipe();
     else if (a === 'term') showWord(t.dataset.v);
     else if (a === 'speak') speak(t.dataset.v);
-    else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus(); }
+    else if (a === 'day') { var i = Number(t.dataset.i); S.f.days[i] = !S.f.days[i]; S.src.days = 'self'; S.low.days = false; render(); var again = app.querySelector('[data-act="day"][data-i="' + i + '"]'); if (again) again.focus({ preventScroll: true }); }
     else if (a === 'month-add') { S.f.more.push({ month: '', paid: '' }); render(); focusId('mm' + (S.f.more.length - 1)); }
     // 그만둔 달이 며칠뿐일 때: 앞달을 못 받은 달로 더하고 그 달 받은 돈 칸으로
     else if (a === 'month-add-prev') { S.f.more.push({ month: t.dataset.v, paid: '' }); S.src.more = 'self'; render(); var rows = app.querySelectorAll('.opt-row-d'); if (rows[1]) rows[1].open = true; focusId('mp' + (S.f.more.length - 1)); }
@@ -2367,7 +2484,7 @@
     var a = t.dataset.act;
     if (a === 'sit') { S.sit = S.sit.filter(function (x) { return x !== t.value; }).concat(t.checked ? [t.value] : []); render(); focusId(t.id); }
     else if (a === 'easy') { S.easy = t.checked; render(); focusId('easy'); }
-    else if (a === 'agree') { S.agreed = t.checked; render(); var c = document.getElementById('agree'); if (c) c.focus(); }
+    else if (a === 'agree') { S.agreed = t.checked; render(); var c = document.getElementById('agree'); if (c) c.focus({ preventScroll: true }); }
     else if (a === 'files') { addFiles(t.files); t.value = ''; }
     else if (a === 'retake-file') { var rp = pageOf(retakeId); if (rp && t.files[0]) { setFile(rp, t.files[0]); rerender(); } t.value = ''; }
     else if (a === 'pg-type') { var tp = pageOf(t.dataset.id); tp.type = t.value; if (tp.state === 'ok' || tp.state === 'fail') tp.state = 'ready'; rerender(); }
@@ -2376,18 +2493,21 @@
     else if (a === 'sgg') { S.office.sgg = t.value; S.office.auto = false; render(); focusId('sgg'); }
     else if (a === 'ready') { S.ready[t.dataset.v] = t.checked; render(); focusId(t.id); }
     else if (a === 'ct-w') { S.ct.written[t.value] = t.checked; S.ct.res = null; save(); }
-    else if (a === 'ct') { S.ct[t.dataset.k] = t.value; S.ct.res = null; S.ct.fromF = false; render(); var cr = app.querySelector('[name="ct-' + t.dataset.k + '"][value="' + t.value + '"]'); if (cr) cr.focus(); }
+    else if (a === 'ct') { S.ct[t.dataset.k] = t.value; S.ct.res = null; S.ct.fromF = false; render(); var cr = app.querySelector('[name="ct-' + t.dataset.k + '"][value="' + t.value + '"]'); if (cr) cr.focus({ preventScroll: true }); }
     else if (a === 'ct-file') { if (t.files[0]) ctPhoto(t.files[0]); t.value = ''; }
     else if (a === 'dl') { S.dl[t.dataset.k] = t.value; S.dl.fromF = false; render(); focusId(t.id); }
-    else if (a === 'dj') { S.dj[t.dataset.k] = t.value; if (t.dataset.k === 'left') S.dj.fromF = false; render(); var r = app.querySelector('[name="dj-' + t.dataset.k + '"][value="' + t.value + '"]'); if (r) r.focus(); }
+    else if (a === 'dj') { S.dj[t.dataset.k] = t.value; if (t.dataset.k === 'left') S.dj.fromF = false; render(); var r = app.querySelector('[name="dj-' + t.dataset.k + '"][value="' + t.value + '"]'); if (r) r.focus({ preventScroll: true }); }
     else if (t.dataset.m !== undefined && t.dataset.k === 'month') { S.f.more[Number(t.dataset.m)].month = t.value; S.src.more = 'self'; render(); focusId(t.id); }
     else if (t.dataset.f !== undefined && !t.hasAttribute('data-live')) {
       setField(t);
       var id = t.id, val = t.value;
       render();
       var back2 = id ? document.getElementById(id) : app.querySelector('[data-f="' + t.dataset.f + '"][value="' + val + '"]');
-      if (back2) back2.focus();
+      if (back2) back2.focus({ preventScroll: true });
     }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'pl-q' && !e.isComposing) { e.preventDefault(); searchPlace(); }
   });
   document.addEventListener('input', function (e) {
     var t = e.target;
@@ -2405,7 +2525,7 @@
     else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
     else if (t.dataset.lt !== undefined) { S.ltIn[t.dataset.lt] = t.value; save(); }
     else if (t.dataset.p !== undefined) {
-      S.lt = null; S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
+      S.lt = null; S.p[t.dataset.p] = t.type === 'tel' ? setTel(t) : t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
       // 진정서 칸: 사업장 이름을 적는 대로 오른쪽 '자동으로 들어가는 내용'도 바뀐다
       if (t.dataset.p === 'company' && !S.f.company) { var nm = t.value.trim() || noCompany(); app.querySelectorAll('[data-auto-company]').forEach(function (el) { el.textContent = nm; }); }
     }
