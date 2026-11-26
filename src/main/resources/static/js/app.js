@@ -243,6 +243,7 @@
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
     map: '<path d="M3.5 6.5L9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
     pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
     list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4 6.5l1 1 2-2M4 12l1 1 2-2M4 17.5l1 1 2-2"/>',
     coin: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 9l1.8 6.5L12 10.5l1.7 5L15.5 9M7.5 12h9"/>',
     trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
@@ -1346,17 +1347,111 @@
     focusId('listen');
   }
 
+  // ---------- 진정서 칸 입력 도우미 ----------
+  // 전화번호: 숫자만 받아 적는 대로 하이픈을 넣는다 (010-1234-5678 · 02-123-4567 · 031-123-4567 · 1588-0075)
+  function telFmt(v) {
+    var d = String(v || '').replace(/\D/g, '');
+    if (/^1[5-9]/.test(d)) { d = d.slice(0, 8); return d.length > 4 ? d.slice(0, 4) + '-' + d.slice(4) : d; }
+    var a = d.indexOf('02') === 0 ? 2 : 3;
+    d = d.slice(0, a === 2 ? 10 : 11);
+    var r = d.slice(a);
+    if (!r) return d;
+    if (d.indexOf('01') === 0) return d.slice(0, a) + '-' + (r.length > 4 ? r.slice(0, 4) + '-' + r.slice(4) : r);
+    if (r.length <= 3) return d.slice(0, a) + '-' + r;
+    var m = r.length > 7 ? 4 : 3;
+    return d.slice(0, a) + '-' + r.slice(0, m) + '-' + r.slice(m);
+  }
+  // 하이픈을 넣어도 커서는 방금 적은 숫자 뒤에 둔다
+  function setTel(el) {
+    var n = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length, v = telFmt(el.value), i = 0;
+    if (v === el.value) return v;
+    el.value = v;
+    while (n > 0 && i < v.length) { if (/\d/.test(v[i])) n--; i++; }
+    el.setSelectionRange(i, i);
+    return v;
+  }
+  // 사는 곳 주소 찾기: 카카오 우편번호 서비스(키 없음). 누를 때 처음 한 번만 불러온다
+  // 못 불러왔으면(인터넷 · 차단) 이번 방문 동안만 직접 적게 둔다 (저장하지 않음)
+  var pcLoad = null, addrManual = false;
+  function loadPostcode() {
+    if (window.daum && daum.Postcode) return Promise.resolve();
+    if (!pcLoad) pcLoad = new Promise(function (ok, no) {
+      var sc = document.createElement('script');
+      sc.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      sc.onload = function () { daum.postcode.load(ok); };
+      sc.onerror = function () { pcLoad = null; sc.remove(); no(); };
+      document.head.appendChild(sc);
+    });
+    return pcLoad;
+  }
+  function findAddr(k) {
+    loadPostcode().then(function () {
+      openSheet(t('form.addrFind'), '<div id="pc-box" class="pc-box"></div>', false);
+      new daum.Postcode({
+        width: '100%', height: '100%',
+        oncomplete: function (d) {
+          var a = (d.userSelectedType === 'J' ? d.jibunAddress : d.roadAddress) || d.address;
+          if (d.apartment === 'Y' && d.buildingName) a += ' (' + d.buildingName + ')';
+          S.lt = null; S.p[k] = a; S.pErr[k] = ''; if (S.psrc) S.psrc[k] = ''; save();
+          closeSheet(); render(); focusId('p-' + k);
+        }
+      }).embed(document.getElementById('pc-box'));
+    }, function () {
+      addrManual = true; render(); focusId('p-' + k); toastT('form.addrFail');
+    });
+  }
+  // 가게 찾기: 가게 이름으로 찾아 고르면 주소를 채운다 (가게 이름 · 전화번호 칸이 비어 있으면 그것도)
+  // 카카오 장소 검색은 우리 서버(/api/v1/places)가 대신 부른다. 키는 서버에만 있다
+  var places = [], plSeq = 0;
+  function findPlace() {
+    var q = S.f.company || S.p.company || '';
+    openSheet(t('form.plTitle'), '<div class="pl-form"><input id="pl-q" class="input" type="search" enterkeyhint="search" autocomplete="off" aria-label="' + esc(t('form.plQ')) + '" placeholder="' + esc(t('form.plPh')) + '" value="' + esc(q) + '">' +
+      '<button type="button" class="btn btn-primary" data-act="pl-go"><span>' + t('form.plGo') + '</span></button></div><div id="pl-list" class="pl-list" aria-live="polite"></div>', false);
+    if (q.trim().length >= 2) searchPlace(); else focusId('pl-q');
+  }
+  function searchPlace() {
+    var box = document.getElementById('pl-q'), list = document.getElementById('pl-list');
+    if (!box || !list) return;
+    var q = box.value.trim(), seq = ++plSeq;
+    if (q.length < 2) { list.innerHTML = '<p class="hint">' + t('form.plShort') + '</p>'; box.focus(); return; }
+    list.innerHTML = '<p class="hint">' + t('form.plWait') + '</p>';
+    fetch('/api/v1/places?q=' + encodeURIComponent(q)).then(function (r) { if (!r.ok) throw r; return r.json(); }).then(function (d) {
+      if (seq !== plSeq) return;
+      places = d;
+      list.innerHTML = d.length ? '<ul class="plain">' + d.map(function (pl, i) {
+        return '<li><button type="button" class="pl-item" data-act="pl-pick" data-i="' + i + '"><strong>' + esc(pl.name) + (pl.category ? ' <small>' + esc(pl.category) + '</small>' : '') + '</strong><span>' + esc(pl.address) + '</span></button></li>';
+      }).join('') + '</ul>' : '<p class="hint">' + t('form.plNone') + '</p>';
+    }, function () { if (seq === plSeq) list.innerHTML = '<p class="hint">' + t('form.plFail') + '</p>'; });
+  }
+  function pickPlace(i) {
+    var pl = places[i], p = S.p;
+    if (!pl) return;
+    function put(k, v) { p[k] = v; S.pErr[k] = ''; if (S.psrc) S.psrc[k] = ''; }
+    put('waddr', pl.address);
+    if (!S.f.company && !p.company) put('company', pl.name);
+    if (!p.wphone && pl.phone) put('wphone', pl.phone);
+    S.lt = null; save(); closeSheet(); render(); focusId('p-waddr');
+  }
+
   // ---------- 화면: 진정서 정보 ----------
   function vForm() {
     var R = viewResult();
     var p = S.p;
     function inp(id, key, label, type, opts) {
       opts = opts || {};
-      var miss = (opts.req && S.formTried && !p[key] && opts.req) || S.pErr[key];
+      // 빈 필수 칸은 빨간 테두리 없이 표시만 (문서 만들기를 누르면 첫 빈 칸으로 이동). 서버가 알려 준 오류만 문구로
+      var empty = opts.req && S.formTried && !p[key], miss = S.pErr[key];
       var doc = p[key] && (S.psrc || {})[key] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : '';
-      return '<div class="field' + (opts.wide ? ' wide-f' : '') + '"><label for="' + id + '">' + label + (opts.req ? '' : ' <span class="opt">(' + t('opt') + ')</span>') + doc + '</label>' +
-        '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
-        ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>' +
+      // find: 'addr' = 주소 찾기로만 넣는 칸 (못 불러오면 직접), 'place' = 가게 이름으로 찾기 + 직접 적기
+      var post = opts.find === 'addr' && !addrManual;
+      var box = '<input id="' + id + '" class="input" type="' + type + '"' + (opts.mode ? ' inputmode="' + opts.mode + '"' : '') + (opts.ac ? ' autocomplete="' + opts.ac + '"' : '') + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : '') +
+        (post ? ' readonly data-act="addr" data-k="' + key + '" placeholder="' + esc(t('form.addrPh')) + '"' : '') +
+        ' data-p="' + key + '" value="' + esc(p[key]) + '"' + (opts.req ? ' aria-required="true"' : '') + (empty ? ' data-miss' : '') + (miss ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>';
+      if (opts.find === 'place' || post) {
+        box = '<div class="addr-row">' + box + (post ? '<button type="button" class="btn btn-line" data-act="addr" data-k="' + key + '">' + icon('search') + '<span>' + t('form.addrFind') + '</span></button>'
+          : '<button type="button" class="btn btn-line" data-act="place">' + icon('search') + '<span>' + t('form.plBtn') + '</span></button>') + '</div>';
+      }
+      return '<div class="field' + (opts.wide ? ' wide-f' : '') + '"><label for="' + id + '">' + label + (opts.req ? ' <span class="req">' + t('form.req') + '</span>' : '') + doc + '</label>' + box +
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
     function docTag(k) { return S.src[k] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : ''; }
@@ -1376,14 +1471,14 @@
       '<fieldset class="stack"><legend><h2>' + t('form.me') + '</h2></legend><div class="form-grid">' +
       inp('p-name', 'name', t('form.name'), 'text', { req: t('form.nameReq'), ac: 'name' }) +
       inp('p-phone', 'phone', t('form.phone'), 'tel', { req: t('form.phoneReq'), mode: 'tel', ac: 'tel', ph: '010-0000-0000' }) +
-      inp('p-addr', 'addr', t('form.addr'), 'text', { ac: 'street-address', wide: true }) + '</div></fieldset>' +
+      inp('p-addr', 'addr', t('form.addr'), 'text', { ac: 'street-address', wide: true, find: 'addr' }) + '</div></fieldset>' +
       '<fieldset class="stack"><legend><h2>' + t('form.work') + '</h2></legend><div class="form-grid">' +
       (S.f.company ? '' : inp('p-company', 'company', t('form.company'), 'text', { req: t('form.companyReq') })) +
       inp('p-owner', 'owner', t('form.owner'), 'text', { req: t('form.ownerReq') }) +
-      inp('p-waddr', 'waddr', t('form.waddr'), 'text', { req: t('form.waddrReq'), wide: true }) +
-      inp('p-wphone', 'wphone', t('form.wphone'), 'tel', { mode: 'tel' }) +
+      inp('p-waddr', 'waddr', t('form.waddr'), 'text', { req: t('form.waddrReq'), wide: true, find: 'place' }) +
+      inp('p-wphone', 'wphone', t('form.wphone'), 'tel', { mode: 'tel', ph: '02-000-0000' }) +
       inp('p-job', 'job', t('form.job'), 'text', { req: t('form.jobReq'), ph: t('form.jobPh') }) + '</div></fieldset>' +
-      '<div class="field"><label for="p-facts">' + t('form.facts') + ' <span class="opt">(' + t('opt') + ')</span></label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
+      '<div class="field"><label for="p-facts">' + t('form.facts') + '</label><p id="facts-help" class="hint">' + t('form.factsHelp') + '</p>' +
       '<textarea id="p-facts" class="input" rows="5" aria-describedby="facts-help" data-p="facts">' + esc(p.facts) + '</textarea>' +
       listenBtn() +
       (S.pErr.facts ? '<p class="err">' + esc(S.pErr.facts) + '</p>' : '') + '</div>' +
@@ -2244,7 +2339,7 @@
     var missing = need.filter(function (k) { return !p[k]; });
     if (missing.length) {
       render();
-      var first = app.querySelector('[aria-invalid="true"]');
+      var first = app.querySelector('[data-miss]');
       if (first) first.focus();
       toast(t('form.missing', { n: missing.length }));
       return;
@@ -2310,6 +2405,10 @@
     var a = t.dataset.act;
     if (a === 'home') { e.preventDefault(); home(); }
     else if (a === 'back') back();
+    else if (a === 'addr') findAddr(t.dataset.k);
+    else if (a === 'place') findPlace();
+    else if (a === 'pl-go') searchPlace();
+    else if (a === 'pl-pick') pickPlace(Number(t.dataset.i));
     else if (a === 'big') { S.big = !S.big; render(); }
     // 더보기: 버튼 위쪽(합계 아래)에도 펼쳐지는 것이 있어 버튼이 밀린다 → 누른 버튼이 손가락 아래 그대로 있게 스크롤을 맞춘다
     else if (a === 'm-more') {
@@ -2407,6 +2506,9 @@
       if (back2) back2.focus({ preventScroll: true });
     }
   });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'pl-q' && !e.isComposing) { e.preventDefault(); searchPlace(); }
+  });
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.hasAttribute('data-live')) { setField(t); refreshNext(); }
@@ -2423,7 +2525,7 @@
     else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
     else if (t.dataset.lt !== undefined) { S.ltIn[t.dataset.lt] = t.value; save(); }
     else if (t.dataset.p !== undefined) {
-      S.lt = null; S.p[t.dataset.p] = t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
+      S.lt = null; S.p[t.dataset.p] = t.type === 'tel' ? setTel(t) : t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
       // 진정서 칸: 사업장 이름을 적는 대로 오른쪽 '자동으로 들어가는 내용'도 바뀐다
       if (t.dataset.p === 'company' && !S.f.company) { var nm = t.value.trim() || noCompany(); app.querySelectorAll('[data-auto-company]').forEach(function (el) { el.textContent = nm; }); }
     }

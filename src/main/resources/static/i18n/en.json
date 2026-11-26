@@ -726,5 +726,18 @@
   "result.moreOpen": "More",
   "result.moreClose": "Less",
   "q6.titleM": "How much did you actually get for {m}?",
-  "q6.moreLine": "Tap any that apply"
+  "q6.moreLine": "Tap any that apply",
+  "form.req": "*Required",
+  "form.plBtn": "Find shop",
+  "form.plTitle": "Find the address by shop name",
+  "form.plQ": "Shop or company name",
+  "form.plPh": "e.g. Noorang Chicken Gangnam",
+  "form.plGo": "Search",
+  "form.plShort": "Enter at least 2 characters.",
+  "form.plWait": "Searching…",
+  "form.plNone": "No matching place. Try adding the branch name, or type the address.",
+  "form.plFail": "Search is not available now. Please type the address.",
+  "form.addrFind": "Find address",
+  "form.addrPh": "Tap to search for the address",
+  "form.addrFail": "Address search is not available. Please type the address."
 }

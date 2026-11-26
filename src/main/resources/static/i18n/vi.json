@@ -726,5 +726,18 @@
   "result.moreOpen": "Xem thêm",
   "result.moreClose": "Thu gọn",
   "q6.titleM": "Lương {m}, bạn thực nhận bao nhiêu?",
-  "q6.moreLine": "Bấm vào mục phù hợp nếu có"
+  "q6.moreLine": "Bấm vào mục phù hợp nếu có",
+  "form.req": "*Bắt buộc",
+  "form.plBtn": "Tìm cửa hàng",
+  "form.plTitle": "Tìm địa chỉ theo tên cửa hàng",
+  "form.plQ": "Tên cửa hàng hoặc công ty",
+  "form.plPh": "VD: Noorang Chicken Gangnam",
+  "form.plGo": "Tìm",
+  "form.plShort": "Hãy nhập ít nhất 2 ký tự.",
+  "form.plWait": "Đang tìm…",
+  "form.plNone": "Không thấy nơi phù hợp. Thử thêm tên chi nhánh, hoặc tự nhập địa chỉ.",
+  "form.plFail": "Hiện không tìm được. Hãy tự nhập địa chỉ.",
+  "form.addrFind": "Tìm địa chỉ",
+  "form.addrPh": "Bấm để tìm địa chỉ",
+  "form.addrFail": "Không mở được tìm địa chỉ. Hãy tự nhập địa chỉ."
 }
