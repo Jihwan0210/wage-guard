@@ -68,9 +68,15 @@ public class ComplaintService {
 
         String opening = "진정인은 " + (start.isEmpty() ? "[입사일]" : Words.dateKo(start)) + "부터 "
                 + (employed || end.isEmpty() ? "현재" : Words.dateKo(end)) + "까지 피진정인 사업장에서 "
-                + (blank(req.job()) ? "" : req.job() + " 업무로 ") + "근무하였으며, 위 체불 내역의 금품을 지급받지 못하였습니다.";
+                + (blank(req.job()) ? "" : req.job() + " 업무로 ") + "근무하였습니다.";
         Polished p = blank(req.extraFacts()) ? new Polished("", true) : polish(POLISH, req.extraFacts(), me, co);
-        String content = opening + (p.text().isEmpty() ? "" : "\n" + p.text());
+        boolean severance = false;
+        for (JsonNode item : result.path("items")) {
+            severance |= "SEVERANCE".equals(item.path("code").asString()) && item.path("amount").isNumber() && item.path("amount").asLong() > 0;
+        }
+        // 못 받았다는 말은 한 번만: 직접 적은 사정이 있으면 그 문장이 맡고, 없으면 체불 내역을 가리키는 문장을 넣는다
+        String content = opening + (p.text().isEmpty() ? " 위 체불 내역의 금품을 지급받지 못하였습니다." : "\n" + p.text())
+                + (severance && !employed ? "\n퇴직 후 14일이 지나도록 퇴직금도 지급받지 못하였습니다." : "");
 
         List<Section> ko = List.of(
                 new Section("진정인", or(me.name(), "[이름]") + ", " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
@@ -276,7 +282,15 @@ public class ComplaintService {
 
     // 금액이 계산된 항목만 줄마다, 마지막에 합계
     private static String unpaid(JsonNode result, String lang) {
-        return unpaidLines(result, lang) + TOTAL[Words.langIndex(lang)] + ' ' + Words.won(result.path("summary").path("totalUnpaid").asLong(), lang);
+        int li = Words.langIndex(lang);
+        boolean est = false;
+        for (JsonNode item : result.path("items")) {
+            est |= item.path("estimated").asBoolean(false) && item.path("amount").isNumber() && item.path("amount").asLong() != 0;
+        }
+        return unpaidLines(result, lang) + TOTAL[li] + ' ' + Words.won(result.path("summary").path("totalUnpaid").asLong(), lang)
+                + (est ? "\n" + new String[] { "(추정) 표시 금액은 입력한 정보로 계산한 참고 금액이며, 실제 금액은 노동청 조사에서 확정됩니다.",
+                        "Amounts marked (estimated) are worked out from the information entered; the labor office confirms the final amount.",
+                        "Khoản ghi (ước tính) được tính từ thông tin đã nhập; số tiền cuối cùng do Sở Lao động xác nhận." }[li] : "");
     }
 
     private static String unpaidLines(JsonNode result, String lang) {
@@ -289,7 +303,8 @@ public class ComplaintService {
                 sb.append(Words.month(item.path("month").asString(), lang)).append("ko".equals(lang) ? "분 " : " · ");
             }
             String code = item.path("code").asString();
-            sb.append(Words.label(code, lang, item.path("label").asString())).append(' ')
+            sb.append(Words.label(code, lang, item.path("label").asString()))
+                    .append(item.path("estimated").asBoolean(false) ? new String[] { "(추정)", " (estimated)", " (ước tính)" }[Words.langIndex(lang)] : "").append(' ')
                     .append(Words.won(item.path("amount").asLong(), lang)).append('\n');
         }
         return sb.toString();

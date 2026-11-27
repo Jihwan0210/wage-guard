@@ -566,6 +566,7 @@
     if (r !== 'start' && !S.agreed && FREE.indexOf(r) < 0) r = 'start';
     if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
     if (r === 'complaint' && !S.draft) r = 'form';
+    if (r === 'qx' && !needX()) r = 'review'; // 따로 물어볼 상황이 없으면 7번째 질문은 건너뛴다
     if (!opts || !opts.back) stack.push(S.route);
     stopSpeak(); speaking = '';
     closeSheet();
@@ -820,14 +821,16 @@
   // 질문 목록: 넓은 화면은 옆 칸에 늘 보이고, 휴대폰은 진행 표시를 누르면 아래 시트로 뜬다
   function qListHtml(n) {
     return qList().map(function (q, j) {
-      var i = j + 1, cur = i === n, done = !cur && valid(q);
-      var inner = '<b>' + (done ? icon('check') : i) + '</b>' + t('q.name' + i);
+      var i = j + 1, cur = i === n, done = !cur && valid(q), seen = (S.qSeen || {})[q];
+      // 아직 열어 보지 않았는데 서류로 채워진 질문은 체크 대신 '서류에서 채움' 으로 구분한다
+      var inner = '<b>' + (done && seen ? icon('check') : i) + '</b>' + t('q.name' + i) + (done && !seen ? ' <small class="q-src">' + t('q.fromDoc') + '</small>' : '');
       return '<li>' + (cur ? '<span aria-current="step">' + inner + '</span>' : '<button type="button" data-go="' + q + '"' + (done ? ' class="done"' : '') + '>' + inner + '</button>') + '</li>';
     }).join('');
   }
   function qSheet(n) { openSheet(t('q.listNav'), '<ol class="qlist">' + qListHtml(n) + '</ol>'); }
   function qShell(n, legend, help, body) {
     var qs = qList();
+    S.qSeen = S.qSeen || {}; S.qSeen[qs[n - 1]] = 1;
     var bars = qs.map(function (_, j) { var i = j + 1; return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
     // 진행 표시에 지금 질문의 이름도 붙인다: 「질문 5 / 6 · 약속한 급여」
     var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length }) + ', ' + t('q.name' + n);
@@ -1178,8 +1181,8 @@
         out.push([t('why.week', { d: krOrLocal(w.weekStart) }), w.formula]);
       });
     }
-    out.push([t('why.calc'), (paidAt > 0 ? f.slice(0, paidAt) : f)]);
-    if (paidAt > 0) out.push([t('why.paid'), f.slice(paidAt + 3)]);
+    // 받은 돈을 뺀 항목은 「2,299,000원 − 1,800,000원 = 499,000원」 한 줄로
+    out.push([t('why.calc'), paidAt > 0 && it.amount != null ? f.slice(0, paidAt) + ' − ' + f.slice(paidAt + 6) + ' = ' + money(it.amount) : f]);
     // 근거 링크는 서버 응답이라 https 주소일 때만 링크로 (javascript: 같은 주소는 글자로만)
     var law = it.basis.map(function (b) {
       var name = esc(b.law + ' ' + b.article);
@@ -1615,7 +1618,7 @@
       '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(plainText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
-      cta(saveBtns(), ' ') +
+      saveBtns() +
       '<p class="hint">' + t('cp.docxHint') + '<br>' + t('cp.copyHint') + '</p>' +
       '<button type="button" class="btn-text" style="align-self:flex-start" data-go="guide">' + t('cp.where') + '</button>' +
       '<div class="nav-list">' + navRow('data-go="letter"', t('cp.letter'), t('cp.letterSub')) + '</div></aside></div>';
@@ -1623,9 +1626,10 @@
 
   // 저장 단추: PDF(인쇄 창) · 한글/Word 파일(.docx) · 인쇄 · 전체 복사
   function saveBtns() {
-    return primary(t('cp.pdf'), 'data-act="print"') +
+    // 휴대폰에서는 첫 .cta(PDF 저장)만 아래 고정 칸으로 간다. 나머지 셋은 본문에 남겨 고정 칸이 화면을 덜 가리게
+    return cta(primary(t('cp.pdf'), 'data-act="print"'), ' ') + '<div class="cta save-more">' +
       '<button type="button" class="btn btn-line" data-act="docx">' + icon('file') + '<span>' + t('cp.docx') + '</span></button>' +
-      '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div>';
+      '<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('cp.print') + '</span></button><button type="button" class="btn btn-line" data-act="copy">' + icon('copy') + '<span>' + t('cp.copy') + '</span></button></div></div>';
   }
 
   // ---------- 한글 · Word 파일(.docx) ----------
@@ -1744,7 +1748,7 @@
       (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(langOf(trLang).name) + ' ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') + '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(letterText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
-      cta(saveBtns(), ' ') +
+      saveBtns() +
       '<p class="hint">' + t('cp.docxHint') + '</p><p class="hint">' + t('lt.post') + '</p>' + (sev ? '<p class="hint">' + t('lt.sev') + '</p>' : '') +
       '<button type="button" class="btn-text" style="align-self:flex-start" data-act="letter-reset">' + t('lt.again') + '</button></aside></div>';
   }
@@ -1785,7 +1789,7 @@
       var name = it.ko;
       return '<tr><th scope="row">' + esc(name + (it.month ? ' (' + Number(it.month.slice(5)) + '월)' : '') + (it.estimated ? ' (추정)' : '')) + '</th><td class="n">' + (it.amount != null ? won(it.amount) : '정보 없음') + '</td></tr>';
     }).join('');
-    var monthsRows = ms.map(function (m) { return '<li>' + m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월: 못 받은 돈 ' + won(by[m] || 0) + '</li>'; }).join('');
+    var monthsRows = ms.map(function (m) { return '<li>' + m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월: 월급과 수당 ' + won(by[m] || 0) + '</li>'; }).join('');
     loadOffices();
     var office = officeOf();
     var brought = READY.filter(function (k) { return S.ready[k]; }).map(function (k) { return L.ko['ready.' + k]; });
@@ -1801,7 +1805,7 @@
       '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ', ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + (workDays().length ? ', 달력 기록 ' + workDays().length + '일' : '') + '</dd>' +
       '<dt>약속한 급여</dt><dd>' + ({ hour: '시급 ', day: '일급 ', month: '월 ' }[f.wageType] || '') + (f.wage ? won(f.wage) : '') + (f.allowance ? ' + 수당 ' + won(f.allowance) : '') + '</dd>' +
       (office ? '<dt>관할 노동청</dt><dd>' + esc(office.name) + '</dd>' : '') + '</dl>' +
-      (monthsRows ? '<section class="stack" style="gap:4px"><h2>달별 못 받은 돈</h2><ul class="counsel-months">' + monthsRows + '</ul></section>' : '') +
+      (monthsRows ? '<section class="stack" style="gap:4px"><h2>달별 못 받은 월급과 수당 (퇴직금 빼고)</h2><ul class="counsel-months">' + monthsRows + '</ul></section>' : '') +
       '<table><caption>항목별 금액</caption><tbody>' + rows + '<tr class="sum"><th scope="row">합계</th><td class="n">' + won(R.total) + '</td></tr></tbody></table>' +
       (brought.length ? '<p><strong>가져온 증거</strong><br>' + esc(brought.join(', ')) + '</p>' : '') +
       '<p><strong>원하는 것</strong><br>밀린 임금' + (f.employed === 'yes' ? '을' : '과 퇴직금을') + ' 받고 싶습니다. 진정 절차를 안내해 주세요.</p>' +
@@ -1944,15 +1948,16 @@
     }
     var r = c.res, res = '';
     if (r) {
-      var lastLaw = ''; // 같은 근거가 이어지면 첫 줄에만 적는다
+      var lastLaw = '', missW = [], missLaw = ''; // 같은 근거가 이어지면 첫 줄에만 적는다
       var rows = r.findings.slice().sort(function (a, b) { return (b.level === 'PROBLEM') - (a.level === 'PROBLEM'); }).map(function (f) { // 문제(빨강) 먼저, 빠짐(노랑) 다음
         var law = f.basis.law + ' ' + f.basis.article, lawTag = law === lastLaw ? '' : ' <small lang="ko">' + esc(law) + '</small>';
         lastLaw = law;
         var bad = f.level === 'PROBLEM';
+        if (!bad) { missW.push(t('ct.w.' + f.code)); if (!missLaw) missLaw = law; return ''; }
         return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span>' + (bad ? '<strong>' + t('ct.bad') + '</strong> ' : '') + // 빠진 줄은 문장이 이미 '없어요' 라서 꼬리표를 붙이지 않는다
           (f.code === 'MIN_WAGE' ? t('ct.r.MIN_WAGE', { h: Number(r.hourlyWage).toLocaleString('ko-KR'), y: r.minimumWageYear, m: Number(r.minimumWage).toLocaleString('ko-KR') }) : f.code === 'OVER_52' ? t('ct.r.OVER_52') : t('ct.r.miss', { w: t('ct.w.' + f.code) })) +
           lawTag + '</span></li>';
-      }).concat(r.ok.map(function (k) { return '<li class="dj-ok">' + icon('check') + '<span>' + t('ct.r.ok', { w: t('ct.w.' + k) }) + '</span></li>'; })).join('');
+      }).concat(missW.length ? ['<li class="dj-warn">' + icon('info') + '<span>' + t('ct.r.missAll', { w: missW.map(function (w) { return "'" + w + "'"; }).join(', ') }) + ' <small lang="ko">' + esc(missLaw) + '</small></span></li>'] : []).concat(r.ok.map(function (k) { return '<li class="dj-ok">' + icon('check') + '<span>' + t('ct.r.ok', { w: t('ct.w.' + k) }) + '</span></li>'; })).join('');
       var skip = r.notChecked.length ? '<p class="hint" lang="ko">' + r.notChecked.map(esc).join('<br>') + '</p>' : '';
       res = '<section class="dj-result stack" aria-live="polite" id="ct-res"><h2 tabindex="-1">' + t(r.findings.some(function (f) { return f.level === 'PROBLEM'; }) ? 'ct.resBad' : r.findings.length ? 'ct.resMiss' : 'ct.resOk') + '</h2>' +
         '<ul class="plain stack ct-list">' + rows + '</ul>' + (r.hourlyWage ? '<p class="hint">' + t('ct.hourly', { f: esc(r.hourlyFormula), h: Number(r.hourlyWage).toLocaleString('ko-KR') }) + '</p>' : '') + skip +
@@ -2102,7 +2107,7 @@
     var r = OFF.regions.filter(function (x) { return x.sido === sido; })[0];
     if (!r) return;
     var g = r.sigungu.filter(function (x) { return addr.indexOf(' ' + x.name) > 0; }).sort(function (a, b) { return b.name.length - a.name.length; })[0];
-    S.office = { sido: r.sido, sgg: g ? g.name : '', auto: true };
+    S.office = { sido: r.sido, sgg: g ? g.name : '', auto: !!g };
   }
 
   var VIEWS = { start: vStart, sit: vSit, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, qx: vQx, info: vInfo, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords, contract: vContract, deadline: vDeadline, letter: vLetter, after: function () { return vInfo(true); } };

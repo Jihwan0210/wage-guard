@@ -754,5 +754,7 @@
   "form.plFail": "Hiện không tìm được. Hãy tự nhập địa chỉ.",
   "form.addrFind": "Tìm địa chỉ",
   "form.addrPh": "Bấm để tìm địa chỉ",
-  "form.addrFail": "Không mở được tìm địa chỉ. Hãy tự nhập địa chỉ."
+  "form.addrFail": "Không mở được tìm địa chỉ. Hãy tự nhập địa chỉ.",
+  "ct.r.missAll": "Hợp đồng còn thiếu: {w}",
+  "q.fromDoc": "lấy từ giấy tờ"
 }
