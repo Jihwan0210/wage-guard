@@ -1809,7 +1809,7 @@
       '<table><caption>항목별 금액</caption><tbody>' + rows + '<tr class="sum"><th scope="row">합계</th><td class="n">' + won(R.total) + '</td></tr></tbody></table>' +
       (brought.length ? '<p><strong>가져온 증거</strong><br>' + esc(brought.join(', ')) + '</p>' : '') +
       '<p><strong>원하는 것</strong><br>밀린 임금' + (f.employed === 'yes' ? '을' : '과 퇴직금을') + ' 받고 싶습니다. 진정 절차를 안내해 주세요.</p>' +
-      '<p class="foot">근로자가 입력한 내용으로 계산한 참고 자료입니다. 법률 자문이 아닙니다. 금액은 근로기준법 계산식(룰 엔진 ' + esc(S.calc.engineVersion || '') + ')으로만 계산했습니다.</p></article></div>' +
+      '<p class="foot">근로자가 입력한 내용으로 계산한 참고 자료입니다. 법률 자문이 아닙니다. 금액은 근로기준법 계산식으로만 계산했습니다(계산 규칙 버전 ' + esc(S.calc.engineVersion || '') + ').</p></article></div>' +
       cta('<div class="btn-row"><button type="button" class="btn btn-line" data-act="print">' + icon('print') + '<span>' + t('counsel.print') + '</span></button><button type="button" class="btn btn-primary" data-act="back">' + t('counsel.back') + '</button></div>');
   }
 
