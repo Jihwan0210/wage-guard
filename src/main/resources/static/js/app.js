@@ -1271,7 +1271,7 @@
   }
 
   // ---------- 읽어 주기 ----------
-  // 한국어는 서버가 영상 나레이션과 같은 목소리(InJoon)로 mp3 를 만들어 보낸다(/api/tts). 크롬에는 이 목소리가 없어서다.
+  // 한국어는 서버가 영상 나레이션과 같은 목소리(Gemini Charon, 안 되면 edge-tts InJoon)로 소리를 만들어 보낸다(/api/tts). 크롬에는 이 목소리가 없어서다.
   // 서버가 안 되거나 영어, 베트남어면 브라우저 목소리(Web Speech API)로 읽는다. 둘 다 안 되면 단추를 숨긴다
   var canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
   var speaking = '', audio = null;
@@ -1338,7 +1338,7 @@
     var parts = chunks(list), i = 0;
     var jobs = parts.map(function (x) {
       return fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: x }) }).then(function (r) {
-        if (!r.ok || (r.headers.get('Content-Type') || '').indexOf('audio/mpeg') !== 0) throw new Error('tts');
+        if (!r.ok || (r.headers.get('Content-Type') || '').indexOf('audio/') !== 0) throw new Error('tts');
         return r.blob();
       });
     });
