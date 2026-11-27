@@ -310,12 +310,14 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .start-cta .btn-line { min-height: 56px; border-color: var(--fg); }
 .trust { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); line-height: 1.6; }
 .trust a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-md); font-weight: 700; color: inherit; text-underline-offset: 4px; }
-.env { position: relative; margin: 0; padding: 56px var(--s5) var(--s5); background: var(--paper); border: 2px solid var(--fg); border-radius: var(--r-xs); }
-.env-flap { position: absolute; inset: 0 0 auto 0; width: 100%; height: 48px; fill: none; stroke: var(--fg); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.env figcaption { font-size: var(--fs-lg); font-weight: 800; margin-bottom: var(--s2); }
-.env ul { margin: 0; padding: 0; list-style: none; }
-.env li { padding-block: 9px; border-bottom: 1px solid var(--line); font-size: var(--fs-md); font-weight: 600; }
-.env-note { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
+/* 결과 화면 미리보기: 얇은 테 휴대폰 안에 결과 화면 클래스 그대로. 그림이라 누르지 않는다 */
+.pv { width: min(100%, 340px); justify-self: center; background: var(--bg); border: 1.5px solid var(--fg); border-radius: 32px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16); pointer-events: none; user-select: none; }
+.pv .receipt { border: 0; }
+.pv .receipt-in { padding: 0; }
+.pv-screen { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s6) var(--s4) var(--s5); }
+.pv-tag { align-self: flex-start; padding: 2px 12px; font-size: var(--fs-md); background: var(--brand); border-color: var(--brand); color: var(--brand-fg); }
+.pv .item-row { min-height: 60px; padding-inline: 0; cursor: default; }
+.pv .item-amt { font-size: var(--fs-md); }
 .flow h2 { font-size: var(--fs-xl); font-weight: 800; }
 .flow ol { margin: var(--s5) 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s5); }
 .flow li { counter-increment: st; display: grid; grid-template-columns: 26px minmax(0, 1fr); align-content: start; column-gap: var(--s3); row-gap: var(--s1); }
