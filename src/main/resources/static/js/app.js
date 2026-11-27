@@ -258,7 +258,7 @@
   // 월급지킴이 로고 (js/logo.js). 한국어는 글자 로고, 다른 언어는 동전 표시 + 그 언어 이름
   function brandMark() {
     var L = window.LOGO || {};
-    if (S.lang === 'ko' && L.word) return '<span class="brand-mark alt">' + (L.mark || '') + '</span><span class="brand-t brand-word" aria-hidden="true">' + L.word + '</span><span class="sr">' + t('brand') + '</span>';
+    if (S.lang === 'ko' && L.word) return '<span class="brand-mark alt">' + (L.mark || '') + '</span><span class="brand-t brand-word" aria-hidden="true">' + L.word + '</span>' + (L.mobile ? '<span class="brand-t brand-word-m" aria-hidden="true">' + L.mobile + '</span>' : '') + '<span class="sr">' + t('brand') + '</span>';
     return '<span class="brand-mark">' + (L.mark || '') + '</span><span class="brand-t">' + t('brand') + '</span>';
   }
 
@@ -1870,11 +1870,14 @@
     }
     var r = c.res, res = '';
     if (r) {
+      var lastLaw = ''; // 같은 근거가 이어지면 첫 줄에만 적는다
       var rows = r.findings.slice().sort(function (a, b) { return (b.level === 'PROBLEM') - (a.level === 'PROBLEM'); }).map(function (f) { // 문제(빨강) 먼저, 빠짐(노랑) 다음
+        var law = f.basis.law + ' ' + f.basis.article, lawTag = law === lastLaw ? '' : ' <small lang="ko">' + esc(law) + '</small>';
+        lastLaw = law;
         var bad = f.level === 'PROBLEM';
         return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span><strong>' + t(bad ? 'ct.bad' : 'ct.miss') + '</strong> ' +
           (f.code === 'MIN_WAGE' ? t('ct.r.MIN_WAGE', { h: Number(r.hourlyWage).toLocaleString('ko-KR'), y: r.minimumWageYear, m: Number(r.minimumWage).toLocaleString('ko-KR') }) : f.code === 'OVER_52' ? t('ct.r.OVER_52') : t('ct.r.miss', { w: t('ct.w.' + f.code) })) +
-          ' <small lang="ko">' + esc(f.basis.law + ' ' + f.basis.article) + '</small></span></li>';
+          lawTag + '</span></li>';
       }).concat(r.ok.map(function (k) { return '<li class="dj-ok">' + icon('check') + '<span>' + t('ct.r.ok', { w: t('ct.w.' + k) }) + '</span></li>'; })).join('');
       var skip = r.notChecked.length ? '<p class="hint" lang="ko">' + r.notChecked.map(esc).join('<br>') + '</p>' : '';
       res = '<section class="dj-result stack" aria-live="polite" id="ct-res"><h2 tabindex="-1">' + t(r.findings.some(function (f) { return f.level === 'PROBLEM'; }) ? 'ct.resBad' : r.findings.length ? 'ct.resMiss' : 'ct.resOk') + '</h2>' +

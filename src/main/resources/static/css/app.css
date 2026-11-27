@@ -129,6 +129,9 @@ input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 .brand-mark svg { width: 30px; height: 30px; }
 .brand-mark.alt { display: none; } /* 한국어 글자 로고 안에 동전이 이미 있다 */
 .brand-word svg { display: block; height: 26px; width: auto; }
+/* 휴대폰 머리줄용 로고가 따로 있으면 959px 아래에서 그것으로 바꾼다 */
+.brand-word-m { display: none; }
+@media (max-width: 959px) { .brand-word:has(+ .brand-word-m) { display: none; } .brand-word-m { display: block; } .brand-word-m svg { display: block; height: 24px; width: auto; } }
 .brand small { font-weight: 400; color: var(--muted); font-size: var(--fs-sm); }
 .brand-desk { display: inline-flex; min-width: 0; }
 .steps-nav { display: none; margin: 0 auto; padding: 0; list-style: none; gap: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
@@ -137,8 +140,8 @@ input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 .steps-nav li.done b { background: var(--fg); color: var(--bg); }
 .steps-nav li[aria-current="step"] { color: var(--fg); font-weight: 700; background: var(--brand-soft); }
 .steps-nav li[aria-current="step"] b { background: var(--brand); color: var(--brand-fg); }
-.top-tools { display: flex; align-items: center; gap: 2px; margin-left: auto; }
-.big-btn { min-width: 44px; height: 44px; border: 0; background: none; font-weight: 700; color: var(--muted); cursor: pointer; border-radius: var(--r-sm); transition: background var(--t-fast); }
+.top-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.big-btn { min-width: 44px; height: 44px; border: 0; box-shadow: inset 0 0 0 1px var(--input-line); background: var(--bg); font-weight: 700; color: var(--muted); cursor: pointer; border-radius: var(--r-sm); transition: background var(--t-fast); }
 .big-btn:hover { background: var(--surface); }
 .big-btn[aria-pressed="true"] { color: var(--brand-fg); background: var(--brand); }
 
@@ -260,8 +263,8 @@ legend { padding: 0; margin-bottom: var(--s2); }
 .sit:has(input:checked) { border-color: var(--fg); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--fg); }
 .sit:has(input:checked) .sit-mark { background: var(--fg); border-color: var(--fg); color: var(--bg); }
 .sit:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
-.info-list { display: flex; flex-direction: column; gap: var(--s6); }
-.info-card { padding-top: var(--s4); border-top: 2px solid var(--strong-line); }
+.info-list { display: flex; flex-direction: column; gap: var(--s7); }
+.info-card { padding: 0; }
 .info-card .bring li { align-items: flex-start; padding: var(--s2) 0; min-height: 0; }
 .info-card .bring .ico { margin-top: 3px; flex-shrink: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -295,7 +298,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 
 /* 시작 */
 /* 시작: 제목 하나가 화면의 중심이다. 그 아래 단추 둘, 한 줄 안내, 맨 아래 작은 링크. 상자 · 아이콘 없이 글과 선만 */
-.start { max-width: 640px; display: flex; flex-direction: column; gap: var(--s6); padding-top: var(--s4); }
+.start { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: var(--s6); padding-top: var(--s4); }
 .hero { display: flex; flex-direction: column; gap: var(--s4); }
 .hero h1 { font-size: clamp(2.125rem, 8.6vw, 3.5rem); line-height: 1.18; letter-spacing: -0.02em; font-weight: 800; max-width: 9em; }
 .hero .lead { font-size: var(--fs-lg); line-height: 1.6; }
@@ -306,7 +309,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .foot-links { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--s5); }
 .foot-links .btn-text { padding: 0; font-size: var(--fs-sm); font-weight: 500; text-decoration-thickness: 1px; }
 /* 상황 고르기: 카드 11개 뒤에 참고용 확인 한 줄과 시작 단추 */
-.sit-page { max-width: 880px; }
+.sit-page { max-width: 880px; margin-inline: auto; }
 .agree-row { display: flex; flex-direction: column; gap: var(--s1); padding-top: var(--s4); border-top: 1px solid var(--line); }
 .agree-row p { color: var(--muted); }
 .sit-cta { margin-top: 0; }
@@ -463,7 +466,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .phone b { font-size: var(--fs-lg); font-weight: 700; }
 .bring { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
 .bring li { display: flex; gap: var(--s3); align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); }
-.bring .ico { color: var(--ok); }
+.bring .ico { color: var(--fg); }
 
 /* 상담원 */
 .counsel { font-size: 1.0625rem; }
@@ -587,7 +590,7 @@ dialog small, .words small { font-weight: 400; color: var(--muted); font-size: v
 .warnbox ul { margin: 0; padding-left: 1.1em; }
 .weeks { margin: 0; padding-left: 1.1em; font-weight: 400; font-size: var(--fs-sm); display: flex; flex-direction: column; gap: 4px; }
 /* 노동청 · 도움받을 곳 */
-.office { padding-top: var(--s4); border-top: 2px solid var(--strong-line); } /* 고른 노동청: 노란 상자 대신 굵은 선 아래 */
+.office { padding: var(--s5); border-radius: var(--r); background: var(--surface); } /* 고른 노동청 하나: 노란 상자 대신 옅은 바탕 */
 .office h2 { font-size: var(--fs-xl); }
 .addr-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 a.small-btn { color: var(--fg); text-decoration: none; }
@@ -602,9 +605,9 @@ a.small-btn { color: var(--fg); text-decoration: none; }
 .ready-item span { display: flex; flex-direction: column; gap: 2px; }
 .ready-item small { font-weight: 400; color: var(--muted); font-size: var(--fs-sm); }
 /* 대지급금 */
-/* 대지급금 · 계약서 점검 · 기한 결과: 굵은 선 아래 줄 목록. 줄마다 상자 · 색 띠 없이 앞 표시와 첫 낱말 색으로 상태를 나눈다
+/* 대지급금 · 계약서 점검 · 기한 결과: 줄 목록. 줄마다 상자 · 색 띠 없이 앞 표시와 첫 낱말 색으로 상태를 나눈다
    (문제 · 지난 기한 = 빨강 X, 빠짐 = 갈색 i, 괜찮음 = 초록 체크) */
-.dj-result { padding-top: var(--s4); border-top: 2px solid var(--strong-line); }
+.dj-result { padding-top: var(--s2); }
 .dj-result ul.stack { gap: 0; border-top: 1px solid var(--line); }
 .dj-result li { padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
 .dj-bad > .ico, .dj-bad strong { color: var(--err); }
@@ -754,7 +757,7 @@ dialog h3.label { margin: 0; }
 .opt-body { padding: var(--s4); border: 1.5px solid var(--fg); border-top: 0; border-radius: 0 0 var(--r) var(--r); }
 
 /* 결과: 더 할 수 있는 일 (저장 · 다음 할 일 · 알아 두기 세 묶음). 상자 대신 선으로 나눈 목록 */
-.next-sec { margin-top: var(--s7); padding-top: var(--s6); border-top: 2px solid var(--strong-line); }
+.next-sec { margin-top: var(--s8); }
 .act-group { gap: var(--s2); }
 .act-group > .label { color: var(--muted); font-size: var(--fs-sm); }
 .act-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--s5); border-top: 1px solid var(--line); }
@@ -771,9 +774,6 @@ dialog h3.label { margin: 0; }
 @media (min-width: 640px) {
   .act-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .paid-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
-}
-@media (min-width: 960px) {
-  .act-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 639px) {
   .paid-grid { grid-template-columns: minmax(0, 1fr); }
@@ -819,10 +819,10 @@ dialog h3.label { margin: 0; }
 /* ===== 11/26 디자인 손질 ===== */
 
 /* 위쪽 메뉴의 '쉬운 말' 표시 (켜져 있을 때만 보이고, 누르면 끈다) */
-.easy-chip { height: 36px; padding: 0 12px 0 10px; margin-right: 4px; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 999px; background: var(--fg); color: var(--bg); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.easy-chip { height: 44px; padding: 0 12px 0 10px; display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: var(--r-sm); background: var(--fg); color: var(--bg); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; white-space: nowrap; }
 .easy-chip .ico { width: 16px; height: 16px; stroke-width: 2.25; }
 .easy-chip:hover { background: var(--btn-hover); }
-.easy-chip[aria-pressed="false"] { padding: 0 12px; background: none; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+.easy-chip[aria-pressed="false"] { padding: 0 12px; background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 1px var(--input-line); }
 .easy-chip[aria-pressed="false"]:hover { background: var(--surface); }
 
 /* 요일: 한 줄 묶음 단추. 고른 요일만 진하게 채우고 다른 강조(밑줄 · 그림자)는 없다 */
