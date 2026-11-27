@@ -755,11 +755,12 @@
   function pending() { return PAGES.some(function (p) { return p.state === 'prep'; }); }
   function live() { return PAGES.filter(function (p) { return p.state !== 'bad'; }); }
   function reading() { return S.up.status === 'reading' || (pending() && live().length > 0); }
-  // 읽기 상태 한 줄 (「다음」 아래). 화면 읽기 프로그램에는 announce() 로 한 번만 알린다
+  // 읽기 상태 (넓은 화면은 「다음」 아래, 휴대폰은 아래 고정 칸에서 「다음」 위). 글 한 줄과 칸 너비 막대.
+  // 「다음」을 누르고 기다리는 중이면 움직이는 표시는 단추 안에만 두고 글은 그 자리에 남긴다(아래가 들썩이지 않게).
+  // 화면 읽기 프로그램에는 announce() 로 한 번만 알린다
   function readStrip() {
     var u = S.up;
-    if (reading() && S.waitNext) return ''; // 「다음」을 누르고 기다리는 중이면 단추 안의 표시로 충분
-    if (reading()) return '<p class="read-st"><span class="read-ind" aria-hidden="true"></span><b>' + t('sit.reading', { n: u.status === 'reading' ? u.n : live().length }) + '</b></p>';
+    if (reading()) return '<div class="read-st"><b>' + t('sit.reading', { n: u.status === 'reading' ? u.n : live().length }) + '</b>' + (S.waitNext ? '' : '<span class="read-ind" aria-hidden="true"></span>') + '</div>';
     if (u.status === 'done') return '<p class="read-st done">' + icon('check') + '<span><b>' + t('sit.done') + '</b> ' + t('sit.doneSub') + '</span></p>';
     return '';
   }
@@ -771,8 +772,7 @@
       : PAGES.length ? esc((PAGES.filter(function (p) { return p.state === 'bad'; })[0] || {}).msg || '') : t('sit.noPages');
     return '<div id="read-err" class="warnbox read-err" tabindex="-1"><p><strong>' + msg + '</strong>' + (u.status === 'fail' ? ' ' + t('up.fail') : '') + '</p><div class="read-acts">' +
       (u.status === 'error' ? '<button type="button" class="btn btn-primary" data-act="read">' + t('sit.retry') + '</button>' : '') +
-      '<label class="btn ' + (u.status === 'error' ? 'btn-line' : 'btn-primary') + '" for="file">' + t('sit.again') + '</label>' +
-      '<button type="button" class="btn btn-line" data-act="no-doc">' + t('sit.noDoc') + '</button></div></div>';
+      '<label class="btn ' + (u.status === 'error' ? 'btn-line' : 'btn-primary') + '" for="file">' + t('sit.again') + '</label></div></div>';
   }
   // 올린 사진 목록: 장마다 미리보기, 서류 종류, 흐림 검사, 돌리기, 다시 찍기, 빼기. 읽는 중에는 손대지 않게 잠근다
   function pagesPanel() {
@@ -792,10 +792,10 @@
   }
   function sitCta() {
     var wait = S.waitNext && S.path === 'doc';
-    // 못 읽었으면 안내 상자의 「다시 올리기」가 주 단추라 「다음」은 흰 단추로 낮춘다
+    // 못 읽었으면 안내 상자의 「다시 올리기」가 주 단추라 「다음」은 흰 단추 「서류 없이 계속하기」로 바꾼다 (누르면 서류 없이 질문으로)
     var failed = S.path === 'doc' && readErr() !== '';
-    return cta('<p class="sit-n only-d">' + (S.sit.length ? chosenMsg() : t('sit.none')) + '</p>' +
-      '<button type="button" id="sit-next" class="btn ' + (failed ? 'btn-line' : 'btn-primary') + '" data-act="sit-next"' + (wait ? ' aria-busy="true"' : '') + '>' + (wait ? '<span class="read-ind" aria-hidden="true"></span>' : '') + '<span>' + t(wait ? 'sit.wait' : 'sit.next') + '</span></button>' +
+    return cta('<p class="sit-n only-d">' + (S.sit.length ? chosenMsg() : '') + '</p>' +
+      '<button type="button" id="sit-next" class="btn ' + (failed ? 'btn-line' : 'btn-primary') + '" data-act="sit-next"' + (wait ? ' aria-busy="true"' : '') + '>' + (wait ? '<span class="read-ind" aria-hidden="true"></span>' : '') + '<span>' + t(wait ? 'sit.wait' : failed ? 'sit.noDoc' : 'sit.next') + '</span></button>' +
       (S.path === 'doc' ? readStrip() : ''), ' ');
   }
   // 사진 한 장 카드: 미리보기 · 서류 종류 · 검사 결과 · 돌리기/다시 찍기/빼기
@@ -815,7 +815,7 @@
       '<div class="pg-thumb">' + thumb + '</div>' +
       '<div class="pg-body"><p class="pg-title"><b>' + t('up.page', { n: i + 1 }) + '</b>' + (state ? '<span class="pg-state">' + state + '</span>' : '') + '</p>' +
       '<p class="pg-name">' + esc(p.file.name) + '</p></div>' +
-      '<div class="pg-more">' + (p.state === 'bad' ? '' : '<label class="sr" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
+      '<div class="pg-more">' + (p.state === 'bad' ? '' : '<label class="pg-label" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
       warn +
       '<div class="pg-acts">' + (p.url ? btn('rotate', 'rotate', t('up.rotate')) : '') + (touch.matches ? btn('retake', 'camera', t('up.retake')) : btn('retake', 'file', t('up.replace'))) + btn('remove', 'x', t('up.remove')) + '</div></div></li>';
   }
@@ -2554,8 +2554,9 @@
       return;
     }
     if (u === 'done') { go('review'); return; }
-    var box = document.getElementById('read-err');
-    if (box) { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); box.focus({ preventScroll: true }); }
+    // 못 읽었으면 「다음」은 「서류 없이 계속하기」: 올린 사진은 비우고 고른 상황은 그대로 둔 채 질문으로
+    newDoc(); S.path = 'manual';
+    sitNext(skip);
   }
   function disclaimSheet() {
     openSheet(t('start.noteTitle'), '<p>' + t('result.disclaimToast') + '</p>', true);
@@ -2617,7 +2618,6 @@
     // 시작 화면의 「서류 없이 직접 입력하기」: 빈 칸으로 새로 시작해 상황 고르기로
     else if (a === 'pick') { newDoc(); S.path = 'manual'; go('sit'); }
     // 못 읽었을 때 「서류 없이 계속하기」: 사진을 버리고 이 화면에서 상황을 마저 고른 뒤 질문으로
-    else if (a === 'no-doc') { newDoc(); S.path = 'manual'; render(); focusId('sit-h'); }
     else if (a === 'qr') qrSheet();
     else if (a === 'resume') { var to = resumeTo; resumeTo = ''; go(to); }
     else if (a === 'restart') { var keep = { lang: S.lang, big: S.big }; S = Object.assign(fresh(), keep); resumeTo = ''; render(); toastT('resume.cleared'); }

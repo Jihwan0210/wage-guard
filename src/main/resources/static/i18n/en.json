@@ -111,7 +111,7 @@
   "up.retake": "Retake",
   "up.remove": "Remove",
   "up.preparing": "Preparing the photo",
-  "up.pageOk": "{n} blanks filled",
+  "up.pageOk": "{n} items read",
   "up.pageFail": "Could not read",
   "up.q.blur": "The photo is blurry. Hold your phone still and try again.",
   "up.q.dark": "The photo is dark. Try again in a brighter place.",
@@ -146,7 +146,7 @@
   "read.about": "about {n} {u}",
   "read.thousand": "thousand won",
   "read.million": "million won",
-  "foot.saved": "What you enter is saved only on this device (browser).<br>Your name, contact details and account are deleted when you close the window.",
+  "foot.saved": "What you enter stays only on this phone or computer.<br>Your name, contact details and account are deleted when you close the window.",
   "wipe.btn": "Delete my information",
   "wipe.confirm": "Delete all answers and results saved on this device? This cannot be undone.",
   "wipe.done": "Everything saved on this device has been deleted",
@@ -747,7 +747,6 @@
   "sit.docTitle": "Do you have documents?",
   "sit.docLead": "Upload a photo of your pay slip or contract and we fill in the blanks from it.",
   "sit.next": "Next",
-  "sit.none": "Nothing chosen yet",
   "sit.wait": "Moving on as soon as it is read",
   "sit.failTitle": "We could not read the text in your documents."
 }

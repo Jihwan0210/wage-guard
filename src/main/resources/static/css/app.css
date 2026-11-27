@@ -360,22 +360,23 @@ body:has(#file:focus-visible) label[for="file"], body:has(#cam:focus-visible) la
 .sit-head h1 { font-size: var(--fs-2xl); font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; }
 .sit-n { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sit-n:empty { display: none; }
-.cta .sit-n { font-size: var(--fs-sm); min-height: 28px; display: flex; align-items: center; }
+.cta .sit-n, .cta .sit-n:empty { font-size: var(--fs-sm); min-height: 28px; display: flex; align-items: center; } /* 0개여도 자리를 남겨 「다음」이 움직이지 않게 */
 .sit-help { color: var(--muted); text-wrap: pretty; }
 .sit-side > .read-err { grid-area: err; margin-bottom: var(--s5); }
 .sit-side > .up-mini, .sit-side > .drop-mini { grid-area: pages; margin-top: var(--s6); }
 .sit-grid { grid-area: cards; align-self: start; }
 /* 읽기 상태: 「다음」 바로 위 한 줄. 상자 없이 작은 진행 표시와 글 */
-.read-st { display: flex; align-items: center; gap: var(--s2); min-height: 28px; font-size: var(--fs-sm); line-height: 1.45; }
+.read-st { display: flex; flex-direction: column; gap: 6px; min-height: 28px; font-size: var(--fs-sm); line-height: 1.45; }
 .read-st b { font-weight: 700; }
 .sit-lay .cta { margin-top: 0; }
-/* 읽는 중: 가는 막대 위로 짧은 조각이 한 방향으로 계속 지나간다 (도는 표시는 쓰지 않음) */
-.read-ind { position: relative; flex-shrink: 0; width: 40px; height: 4px; border-radius: 2px; overflow: hidden; background: var(--surface-2); }
-.read-ind::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 16px; border-radius: 2px; background: var(--brand-deep); animation: read-go 1.1s linear infinite; }
-@keyframes read-go { from { transform: translateX(-16px); } to { transform: translateX(40px); } }
-.btn .read-ind { background: rgba(255, 255, 255, 0.28); }
-.btn .read-ind::after { background: var(--brand); }
-.read-st.done { align-items: flex-start; }
+/* 읽는 중: 칸 너비의 가는 막대 위로 노란 조각이 한 방향으로 계속 지나간다 (도는 표시는 쓰지 않음) */
+.read-ind { position: relative; display: block; flex-shrink: 0; width: 100%; height: 4px; border-radius: 2px; overflow: hidden; background: var(--surface-2); }
+.read-ind::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; border-radius: 2px; background: var(--brand); animation: read-go 1.4s linear infinite; }
+@keyframes read-go { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+.btn .read-ind { width: 40px; background: rgba(255, 255, 255, 0.28); }
+.btn .read-ind::after { width: 16px; }
+.dock .read-st { order: -1; } /* 휴대폰 아래 고정 칸: 읽기 상태를 「다음」 위에 */
+.read-st.done { flex-direction: row; align-items: flex-start; gap: var(--s2); }
 .read-st.done > .ico { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; color: var(--ok); }
 .read-st.done > span { color: var(--muted); }
 .read-st.done b { color: var(--fg); }
@@ -405,7 +406,8 @@ body:has(#file:focus-visible) label[for="file"], body:has(#cam:focus-visible) la
 .pg.ok .pg-state { color: var(--fg); }
 .pg.fail .pg-state { color: var(--warn-fg); }
 .pg-name { font-size: var(--fs-sm); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pg-type { min-height: 48px; }
+.pg-type { min-height: 44px; font-size: var(--fs-sm); }
+.pg-label { font-size: var(--fs-sm); color: var(--muted); }
 .pg-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .pg-btn { min-height: 44px; padding: 0 var(--s3); display: inline-flex; align-items: center; gap: 6px; border-radius: var(--r-sm); border: 1.5px solid var(--input-line); background: var(--bg); color: var(--fg); font-size: var(--fs-md); font-weight: 600; cursor: pointer; }
 .pg .pg-btn { font-size: var(--fs-sm); padding: 0 10px; }

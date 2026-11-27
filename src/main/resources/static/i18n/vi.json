@@ -111,7 +111,7 @@
   "up.retake": "Chụp lại",
   "up.remove": "Xóa",
   "up.preparing": "Đang xử lý ảnh",
-  "up.pageOk": "Đã điền {n} ô",
+  "up.pageOk": "Đã đọc {n} mục",
   "up.pageFail": "Không đọc được",
   "up.q.blur": "Ảnh bị mờ. Hãy giữ yên điện thoại và chụp lại.",
   "up.q.dark": "Ảnh bị tối. Hãy chụp lại ở nơi sáng hơn.",
@@ -146,7 +146,7 @@
   "read.about": "khoảng {n} {u}",
   "read.thousand": "nghìn won",
   "read.million": "triệu won",
-  "foot.saved": "Thông tin bạn nhập chỉ được lưu trên thiết bị này (trình duyệt).<br>Tên, số liên lạc và tài khoản sẽ bị xóa khi bạn đóng cửa sổ.",
+  "foot.saved": "Thông tin bạn nhập chỉ ở lại trên điện thoại hoặc máy tính này.<br>Tên, số liên lạc và tài khoản sẽ bị xóa khi bạn đóng cửa sổ.",
   "wipe.btn": "Xóa thông tin của tôi",
   "wipe.confirm": "Xóa tất cả thông tin đã nhập và kết quả tính đã lưu trên thiết bị này? Không thể khôi phục.",
   "wipe.done": "Đã xóa toàn bộ thông tin lưu trên thiết bị này",
@@ -747,7 +747,6 @@
   "sit.docTitle": "Nếu có giấy tờ",
   "sit.docLead": "Tải ảnh phiếu lương hoặc hợp đồng lên, chúng tôi sẽ đọc chữ và điền vào chỗ trống.",
   "sit.next": "Tiếp",
-  "sit.none": "Chưa chọn mục nào",
   "sit.wait": "Đọc xong sẽ chuyển ngay",
   "sit.failTitle": "Không đọc được chữ trong giấy tờ."
 }

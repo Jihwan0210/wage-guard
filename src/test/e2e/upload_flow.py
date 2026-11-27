@@ -119,21 +119,20 @@ def run(p, width, phone):
     page.wait_for_function("() => location.hash === '#review'", timeout=15000)
     check(tag + "다 읽으면 확인 화면으로 넘어감", True)
 
-    # 3. 읽기 실패: 그 자리에서 다시 올리기 또는 서류 없이 계속
+    # 3. 읽기 실패: 그 자리에서 다시 올리기, 또는 「다음」이 「서류 없이 계속하기」로 바뀌어 고른 상황 그대로 질문으로
     mode["answer"], mode["delay"] = "fail", 800
     fresh()
     page.set_input_files("#file", PHOTO)
     page.wait_for_selector("#read-err", timeout=15000)
     check(tag + "못 읽으면 같은 화면에 다시 올리기", page.locator('#read-err label[for="file"]').count() == 1 and h() == "#sit", h())
+    check(tag + "못 읽으면 「다음」은 서류 없이 계속하기", "서류 없이" in page.inner_text("#sit-next"), page.inner_text("#sit-next"))
     page.click('label[for="sit-less"]')
-    page.click("#sit-next")
-    page.wait_for_timeout(500)
-    check(tag + "못 읽은 채 「다음」 이면 넘어가지 않음", h() == "#sit", h())
-    page.click('#read-err [data-act="no-doc"]')
-    check(tag + "서류 없이 계속하면 고른 카드는 그대로", page.locator("#read-err").count() == 0 and page.is_checked("#sit-less"))
     page.click("#sit-next")
     page.wait_for_function("() => location.hash === '#q1'", timeout=5000)
     check(tag + "서류 없이 계속하면 질문으로", True)
+    page.go_back()
+    page.wait_for_function("() => location.hash === '#sit'", timeout=5000)
+    check(tag + "서류 없이 계속해도 고른 카드는 그대로", page.is_checked("#sit-less") and page.locator("#read-err").count() == 0)
     mode["answer"], mode["delay"] = "ok", 2500
 
     # 4. 서류 없음: 첫 화면 링크 → 상황 → 질문. 아무것도 안 고르면 한 번 묻고 넘어갈 수 있음
