@@ -1292,7 +1292,12 @@
   function voiceFor() {
     var vs = window.speechSynthesis.getVoices();
     if (!vs.length) return null;
-    return vs.filter(function (v) { return v.lang.toLowerCase().replace('_', '-').indexOf(S.lang) === 0; })[0] || false;
+    var mine = vs.filter(function (v) { return v.lang.toLowerCase().replace('_', '-').indexOf(S.lang) === 0; });
+    if (!mine.length) return false;
+    // 영상 나레이션과 같은 InJoon(엣지)을 먼저, 다음은 다른 온라인 목소리, 마지막에 기본 목소리
+    function pick(re) { return mine.filter(function (v) { return re.test(v.name); })[0]; }
+    return pick(/(InJoon|인준).*(Online|Natural)/i) || pick(/(SunHi|선히).*(Online|Natural)/i) || pick(/Online|Natural/i) || pick(/^Google/) ||
+      mine.filter(function (v) { return v.default; })[0] || mine[0];
   }
   function speakBtn(kind) {
     if (!canSpeak || voiceFor() === false) return '';
@@ -1307,20 +1312,31 @@
         return it.label + ', ' + (readable(it.amount) || money(it.amount));
       }), [t('result.disclaim')]).join('. ');
     }
-    return [plain(t('guide.title')), plain(t('guide.lead'))].concat([1, 2, 3, 4, 5, 6].map(function (n) { return n + '. ' + t('guide.s' + n) + '. ' + t('guide.s' + n + 'b'); })).join(' ');
+    return [plain(t('guide.title')), plain(t('guide.lead'))].concat([1, 2, 3, 4, 5, 6].map(function (n) { return n + '. ' + t('guide.s' + n) + '. ' + t('guide.s' + n + 'b'); })).join('. ');
+  }
+  // 문장마다 끊어 읽고 문장 사이에 잠깐 쉰다 (5.5 같은 소수점은 뒤에 빈칸이 없어 안 끊긴다)
+  function sentences(text) {
+    return text.replace(/\.\./g, '.').replace(/([.?!])\s+/g, '$1\n').split('\n').filter(function (x) { return x.trim(); });
   }
   function speak(kind) {
     var ss = window.speechSynthesis;
     ss.cancel();
     if (speaking === kind) { speaking = ''; render(); return; }
-    var u = new window.SpeechSynthesisUtterance(speechText(kind));
-    var v = voiceFor();
-    if (v) u.voice = v;
-    u.lang = v ? v.lang : S.lang;
-    u.rate = 0.95;
-    u.onend = u.onerror = function () { if (speaking === kind) { speaking = ''; if (S.route === kind) rerender(); } };
+    var v = voiceFor(), list = sentences(speechText(kind)), i = 0;
+    function done() { if (speaking === kind) { speaking = ''; if (S.route === kind) rerender(); } }
+    function next() {
+      if (speaking !== kind) return;
+      if (i >= list.length) { done(); return; }
+      var u = new window.SpeechSynthesisUtterance(list[i++]);
+      if (v) u.voice = v;
+      u.lang = v ? v.lang : S.lang;
+      u.rate = 1;
+      u.onend = function () { setTimeout(next, 350); };
+      u.onerror = done;
+      ss.speak(u);
+    }
     speaking = kind;
-    ss.speak(u);
+    next();
     rerender();
   }
   if (canSpeak) window.speechSynthesis.onvoiceschanged = function () { if (S.route === 'result' || S.route === 'guide') rerender(); };
