@@ -667,18 +667,28 @@
   }
 
   // ---------- 화면: 시작 ----------
-  // 결과 화면 미리보기: 결과 화면과 같은 클래스로 그린 그림(누를 수 없음). 금액은 발표 캡처에 쓴 시험 입력의 결과
-  // deslop-allow fake-ui: 이 서비스가 해 주는 일이 바로 이 결과 화면이라, 실제 화면을 줄여 보여 준다
+  // 문서 미리보기: 계산하면 나오는 결과 PDF 첫 장(앞)과 진정서 초안 첫머리(뒤)를 종이처럼 겹쳐 그린 그림(누를 수 없음)
+  // 금액과 기간은 발표 캡처에 쓴 시험 입력의 결과. 진정서는 노동청에 내는 한국어 원문 양식 그대로라 언어와 상관없이 한국어
+  // deslop-allow fake-ui: 이 서비스가 만들어 주는 것이 바로 이 문서들이라, 실제 양식을 줄여 보여 준다
   function preview() {
-    var amts = [499000, 165000, 4831561], names = t('start.pvRows').split('|');
-    var rows = amts.map(function (n, i) {
-      return '<li><div class="item-row"><span class="item-name">' + names[i] + '<small>' + (i === 2 ? '<span class="tag">' + t('result.estimated') + '</span> ' : '') + esc(readable(n)) + '</small></span>' +
-        '<span class="item-amt">' + money(n) + '</span>' + icon('chev', 'chev') + '</div></li>';
-    }).join('');
-    return '<div class="pv" aria-hidden="true"><div class="pv-screen"><span class="tag pv-tag">' + t('start.pvTag') + '</span>' +
-      '<div class="receipt"><div class="receipt-in"><span class="total-label">' + t('result.total') + '</span>' +
-      '<span class="total"><b>5,495,561</b><small>' + t('unit') + '</small></span><span class="total-read">' + esc(readable(5495561)) + '</span></div></div>' +
-      '<ul class="items">' + rows + '</ul><span class="btn btn-primary">' + t('result.make') + '</span></div></div>';
+    var amts = [499000, 165000, 4831561], names = t('start.pvRows').split('|'), zero = t('start.pvZero').split('|');
+    function row(name, right, cls) { return '<tr><td>' + name + '</td><td class="n' + cls + '">' + right + '</td></tr>'; }
+    // 결과 화면과 같은 순서: 월급, 연장, 야간, 휴일, 주휴, 퇴직금
+    var rows = row(names[0], money(amts[0]), '') + row(names[1], money(amts[1]), '') +
+      [0, 2, 4].map(function (i) { return row(zero[i], zero[i + 1], ' s'); }).join('') +
+      row(names[2] + ' (' + t('result.estimated') + ')', money(amts[2]), '');
+    var meta = t('result.meta', { period: '2025.01.02 ~ 2026.10.31', size: t('size.five'), paid: money(1800000) });
+    return '<div class="docs" aria-hidden="true"><p class="docs-note">' + t('start.pvNote') + '</p><div class="docs-pile">' +
+      '<div class="dp dp-back" lang="ko"><b class="dp-title">임 금 체 불  진 정 서</b>' +
+      '<b class="dp-h">진정인</b><p>홍길동, 010-0000-0000<br>서울시 한빛구 늘봄로 14</p>' +
+      '<b class="dp-h">피진정인</b><p>노란식당 (대표 김철수)<br>서울시 한빛구 장터길 7</p></div>' +
+      '<div class="dp dp-front"><span class="dp-run"><span>2026. 11. 27.</span><span>' + t('brand') + '</span></span>' +
+      '<b class="dp-title">' + t('title.result') + '<span class="dp-stamp">' + t('start.pvStamp') + '</span></b>' +
+      '<p class="dp-meta">' + esc(meta) + '</p>' +
+      '<div class="dp-total"><span>' + t('result.total') + '</span><b>' + money(5495561) + '</b></div>' +
+      '<b class="dp-h">' + t('result.items') + '</b><table><tbody>' + rows + '</tbody></table>' +
+      '<p class="dp-foot">' + t('result.disclaim') + '</p><span class="dp-run end">1/2</span></div>' +
+      '</div></div>';
   }
   function vStart() {
     // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
