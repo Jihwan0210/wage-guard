@@ -399,6 +399,8 @@
     };
   }
   function has(code) { return S.sit.indexOf(code) >= 0; }
+  // 쉬운 말 풀이 한 줄 (회색 작은 글). 꼭 필요한 낱말에만 ko 파일 easy.<키>.d 로 둔다
+  function gloss(k) { var g = t(k); return g === k ? '' : '<small class="gloss">' + g + '</small>'; }
   // 고른 상황 중 따로 물어볼 것이 있으면 7번째 질문(qx)을 넣는다
   function needX() { return has('fired') || has('leave') || has('minw') || has('shut'); }
   function qList() { return ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'].concat(needX() ? ['qx'] : []); }
@@ -429,7 +431,8 @@
       items: c.items.map(function (it) {
         nth[it.code] = (nth[it.code] || 0) + 1;
         var b = (it.legalBasis || [])[0] || {};
-        var name = names['item.' + it.code] || it.label;
+        var easyName = S.easy && S.lang === 'ko' && L.ko['easy.item.' + it.code];
+        var name = easyName || names['item.' + it.code] || it.label;
         // 서류 · 입력에 0시간이라고 적혀 있어 계산할 것이 없는 수당은 '정보 없음 · 입력하기' 대신 '해당 없음 (0시간)' (금액은 서버 그대로)
         var zero = it.status === 'NO_DATA' && !(S.f.work && Object.keys(S.f.work).length) && ({ NIGHT: S.f.night, HOLIDAY: S.f.holiday, OVERTIME: S.f.ot }[it.code] === '0');
         return {
@@ -437,6 +440,7 @@
           name: name,
           month: it.month,
           ko: it.label,
+          gloss: easyName ? (L.ko['easy.item.' + it.code + '.d'] || '') : '',
           basis: it.legalBasis || [],
           label: name + (it.month ? ' (' + monthName(it.month) + ')' : ''),
           amount: it.status === 'CALCULATED' ? it.amount : null,
@@ -701,7 +705,7 @@
       // 고른 개수는 안내 글 자리에 바꿔 쓴다 (줄이 늘어 아래가 밀려 내려가지 않게). 문구의 | 는 줄을 바꿔도 되는 자리(덩어리째 넘어감)
       '<fieldset class="stack"><legend class="label sit-title">' + t('sit.title') + '</legend><p class="hint" role="status">' + (S.sit.length ? t('sit.chosen', { n: S.sit.length }) : t('sit.help')) + '</p><div class="sit-grid">' +
       SITS.map(function (x) {
-        return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span class="sit-t">' + t('sit.' + x[0]).split('|').map(function (c) { return '<span>' + c + '</span>'; }).join(' ') + '</span><span class="sit-mark" aria-hidden="true">' + icon('check') + '</span></label>';
+        return '<label class="sit" for="sit-' + x[0] + '"><input id="sit-' + x[0] + '" class="sr" type="checkbox" data-act="sit" value="' + x[0] + '"' + (has(x[0]) ? ' checked' : '') + '>' + icon(x[1]) + '<span class="sit-t">' + t('sit.' + x[0]).split('|').map(function (c) { return '<span>' + c + '</span>'; }).join(' ') + gloss('sit.' + x[0] + '.d') + '</span><span class="sit-mark" aria-hidden="true">' + icon('check') + '</span></label>';
       }).join('') + '</div></fieldset>' +
       '<section class="stack" aria-labelledby="extra-t"><h2 id="extra-t" class="label">' + t('extra.title') + '</h2><div class="nav-list">' + extraRows() + '</div></section>' +
       '</div>' + footer() + '</div>';
@@ -1199,6 +1203,7 @@
       var right = it.amount != null ? '<span class="item-amt">' + money(it.amount) + '</span>' : '<span class="item-status">' + esc(it.status) + '</span>';
       var sub = it.amount ? readable(it.amount) : '';
       return '<li><button type="button" class="item-row" data-act="item" data-i="' + i + '"><span class="item-name">' + esc(it.label) +
+        (it.gloss ? '<small class="gloss">' + esc(it.gloss) + '</small>' : '') +
         (it.estimated || sub ? '<small>' + (it.estimated ? '<span class="tag">' + t('result.estimated') + '</span> ' : '') + esc(sub) + '</small>' : '') + '</span>' + right + icon('chev', 'chev') + '</button></li>';
     }).join('');
     if (missing.length) {
@@ -2042,12 +2047,12 @@
     // 쉬운 말: 휴대폰에서는 덜 중요한 설명을 접어 화면을 단순하게 (css .easy-m)
     document.documentElement.classList.toggle('easy-m', !!S.easy && S.lang === 'ko');
     document.documentElement.lang = S.lang;
+    document.title = t('brand');
     app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (transition ? ' class="enter ' + transition + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
       '<div class="dock no-print">' + (hasTabs() ? tabs('tabbar') : '') + '</div>';
     var dock = app.querySelector('.dock'), c = app.querySelector('main .cta');
     if (mobile.matches && c) dock.insertBefore(c, dock.firstChild);
     var h0 = mobile.matches ? dock.offsetHeight : 0;
-    document.title = t('brand');
     if (h0 !== dockH) { dockH = h0; document.documentElement.style.setProperty('--dock-h', h0 + 'px'); }
     if (transition) {
       window.scrollTo(0, 0);

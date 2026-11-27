@@ -250,6 +250,8 @@ legend { padding: 0; margin-bottom: var(--s2); }
 .sit > .ico { width: 24px; height: 24px; color: var(--fg); }
 .sit-t { flex: 1 1 auto; min-width: 0; text-wrap: balance; }
 .sit-t > span { display: inline-block; }
+.gloss { display: block; font-size: var(--fs-sm); font-weight: 500; color: var(--muted); line-height: 1.4; }
+.sit-t .gloss { margin-top: 2px; }
 .sit-mark { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--input-line); display: grid; place-items: center; color: transparent; }
 .sit-mark .ico { width: 16px; height: 16px; stroke-width: 2.5; }
 /* 휴대폰: 아이콘 · 동그라미와 글 사이를 조금 좁혀 「그만둔 지 14일이 지났는데 못 받았어요」가 390px 에서 한 줄에 들어가게 */
@@ -651,8 +653,6 @@ a.small-btn { color: var(--fg); text-decoration: none; }
 .lang-btn { height: 44px; padding: 0 12px 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--input-line); border-radius: var(--r-sm); background: var(--bg); font-size: var(--fs-sm); font-weight: 700; cursor: pointer; max-width: 9.5em; }
 .lang-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lang-btn .ico { width: 18px; height: 18px; color: var(--muted); }
-/* 아래 고정 영역: 주 버튼 + 탭 막대. 본문은 그 높이만큼 아래를 비운다 */
-.dock:empty { display: none; }
 /* 좁은 휴대폰 안쪽 화면: 화면 제목이 잘리지 않게 언어 단추는 지구 표시만(이름은 aria-label), 동전 표시는 조금 작게 */
 @media (max-width: 400px) {
   .top-in:has(.brand-desk) .lang-btn { padding: 0; width: 44px; justify-content: center; }
@@ -661,6 +661,8 @@ a.small-btn { color: var(--fg); text-decoration: none; }
   .brand-desk { margin-right: var(--s1); }
   .top-title { white-space: normal; text-overflow: clip; line-height: 1.2; text-wrap: balance; word-break: keep-all; }
 }
+/* 아래 고정 영역: 주 버튼 + 탭 막대. 본문은 그 높이만큼 아래를 비운다 */
+.dock:empty { display: none; }
 .tabbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tab { min-height: 56px; padding: 6px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: var(--fs-sm); font-weight: 600; line-height: 1.25; cursor: pointer; transition: color var(--t-fast), transform var(--t-fast); }
 .tab .ico { width: 24px; height: 24px; padding: 0; border-radius: 12px; }
