@@ -691,11 +691,14 @@
       '<section class="hero">' +
       '<h1 tabindex="-1">' + t('start.title') + '</h1>' +
       '<p class="lead">' + t('start.lead') + '</p>' + resume +
-      // 첫 화면에서 바로 서류를 올린다. 고르면 곧바로 읽기를 시작하고 상황 고르기 화면으로 넘어간다. 서류가 없으면 아래 글 단추
+      // 두 갈래 중 하나를 고른다: 서류를 올리거나(고르면 곧바로 읽기를 시작하고 상황 고르기로), 서류 없이 직접 입력하거나. 두 칸은 같은 크기, 같은 단추
+      '<div class="start-pick">' +
       '<section class="drop" aria-labelledby="drop-t"><h2 id="drop-t">' + t('start.dropTitle') + '</h2>' + upButtons(false, false) +
       '<p class="hint">' + t('up.limits', { max: MAX_PAGES }) + '</p>' + (mobile.matches ? '' : '<p class="hint">' + t('up.dropHint') + '</p>') + qrBtn() + upInputs() + '</section>' +
-      '<div class="start-alt"><button type="button" class="btn-text" data-act="pick" data-v="manual">' + t('start.manualBtn') + '</button>' +
-      '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p></div></section>' +
+      '<p class="start-or">' + t('start.or') + '</p>' +
+      '<section class="nodoc" aria-labelledby="nodoc-t"><h2 id="nodoc-t">' + t('start.noDocTitle') + '</h2><p>' + t('start.noDocBody') + '</p>' +
+      '<button type="button" class="btn btn-primary" data-act="pick" data-v="manual">' + icon('pen') + '<span>' + t('start.manualBtn') + '</span></button></section></div>' +
+      '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p></section>' +
       preview() + '</div>' +
       '<section class="flow" aria-labelledby="flow-t"><h2 id="flow-t">' + t('start.flowTitle') + '</h2><ol>' + steps + '</ol></section>' +
       '<footer class="foot-bar no-print"><ul class="foot-links">' +

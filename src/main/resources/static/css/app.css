@@ -299,7 +299,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .sumline strong { font-size: var(--fs-lg); }
 
 /* 시작 */
-/* 시작: 노랑 띠 위에 제목과 서류 올리기 칸, 그 아래 「서류 없이 직접 입력하기」, 옆에 실제로 만들어 주는 문서 그림.
+/* 시작: 노랑 띠 위에 제목과 두 갈래(서류 올리기 칸 「또는」 서류 없이 칸), 옆에 실제로 만들어 주는 문서 그림.
    그 아래 머리줄 단계(1 서류 ~ 4 진정서)를 풀어 쓴 설명, 맨 아래 작은 링크 */
 .wrap:has(.start) { padding-top: 0; }
 .start { display: flex; flex-direction: column; gap: var(--s7); }
@@ -315,11 +315,15 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 /* 파일 칸은 보이지 않으니, 키보드로 그 칸에 오면 그 칸을 여는 단추에 초점 테두리를 그린다 */
 body:has(#file:focus-visible) label[for="file"], body:has(#cam:focus-visible) label[for="cam"] { outline: 3px solid var(--accent); outline-offset: 2px; }
 .drop.drag { background: var(--brand-soft); border-color: var(--fg); border-style: solid; }
-.start .drop { margin-top: var(--s2); max-width: 34rem; }
 .up-btns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s2); }
 .qr-btn { align-self: flex-start; padding-inline: 0; font-size: var(--fs-sm); }
-.start-alt { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); }
-.start-alt .btn-text { align-self: flex-start; padding-inline: 0; font-size: var(--fs-lg); font-weight: 700; }
+/* 두 갈래: 서류 올리기 칸(점선, 끌어다 놓는 자리)과 서류 없이 칸(흰 종이. 테두리는 바탕색이라 안 보이고 크기만 점선 칸과 맞춘다)을 같은 폭 · 같은 안쪽 여백 · 같은 단추로 「또는」 위아래에 둔다
+   deslop-allow bordered-boxes: 둘 중 하나를 고르는 두 갈래라 칸 하나가 곧 선택지 하나다 */
+.start-pick { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); max-width: 34rem; }
+.start-or { font-size: var(--fs-lg); font-weight: 700; line-height: 1.4; text-align: center; }
+.nodoc { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s5) var(--s4) var(--s4); border-radius: var(--r-lg); background: var(--bg); border: 2px solid var(--bg); }
+.nodoc h2 { font-size: var(--fs-lg); font-weight: 700; line-height: 1.4; }
+.nodoc p { font-size: var(--fs-md); line-height: 1.5; }
 .trust { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); line-height: 1.6; }
 .trust a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-md); font-weight: 700; color: inherit; text-underline-offset: 4px; }
 /* 문서 미리보기: 실제로 인쇄되는 A4 두 장의 그림. 같은 크기, 같은 각도로 반듯하게 놓는다.

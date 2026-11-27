@@ -748,5 +748,8 @@
   "sit.docLead": "Upload a photo of your pay slip or contract and we fill in the blanks from it.",
   "sit.next": "Next",
   "sit.wait": "Moving on as soon as it is read",
-  "sit.failTitle": "We could not read the text in your documents."
+  "sit.failTitle": "We could not read the text in your documents.",
+  "start.or": "or",
+  "start.noDocTitle": "No documents? That is fine",
+  "start.noDocBody": "Answer a few questions and we calculate what you are owed."
 }

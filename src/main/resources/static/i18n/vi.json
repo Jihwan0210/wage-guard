@@ -748,5 +748,8 @@
   "sit.docLead": "Tải ảnh phiếu lương hoặc hợp đồng lên, chúng tôi sẽ đọc chữ và điền vào chỗ trống.",
   "sit.next": "Tiếp",
   "sit.wait": "Đọc xong sẽ chuyển ngay",
-  "sit.failTitle": "Không đọc được chữ trong giấy tờ."
+  "sit.failTitle": "Không đọc được chữ trong giấy tờ.",
+  "start.or": "hoặc",
+  "start.noDocTitle": "Không có giấy tờ cũng được",
+  "start.noDocBody": "Trả lời vài câu hỏi, chúng tôi tính số tiền bạn được nhận."
 }
