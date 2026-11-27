@@ -328,9 +328,10 @@ body:has(#file:focus-visible) label[for="file"], body:has(#cam:focus-visible) la
 .trust a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-md); font-weight: 700; color: inherit; text-underline-offset: 4px; }
 /* 문서 미리보기: 실제로 인쇄되는 A4 두 장의 그림. 같은 크기, 같은 각도로 반듯하게 놓는다.
    뒷장(진정서)은 오른쪽으로 24px(종이 여백만 보이게), 위로 종이 높이의 12%(제목과 겹줄까지 보이게) 비킨다.
-   그림자는 바닥에 놓인 종이처럼 두 겹. 휴대폰은 앞장 한 장만 단추 아래에 */
+   그림자는 노란 바닥에 놓인 종이처럼: 가장자리 얇은 선, 바로 아래 짙고 작은 그림자, 멀리 옅고 넓은 그림자. 빛은 위에서 와서 아래로만 진다.
+   색은 회색 대신 바탕 노랑의 어두운 톤. 앞장의 그림자는 뒷장 위에도 떨어진다. 휴대폰은 앞장 한 장만 단추 아래에 */
 .docs { align-self: center; justify-self: center; width: 100%; margin: 0; display: flex; flex-direction: column; gap: var(--s3); pointer-events: none; user-select: none; }
-.dp { display: block; width: 100%; height: auto; aspect-ratio: 900 / 1273; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 24px -6px rgba(0, 0, 0, 0.18); }
+.dp { display: block; width: 100%; height: auto; aspect-ratio: 900 / 1273; background: #FFFFFF; box-shadow: 0 0 0 1px rgb(110 66 0 / 0.12), 0 1px 1px rgb(110 66 0 / 0.18), 0 3px 6px -1px rgb(110 66 0 / 0.16), 0 10px 20px -6px rgb(110 66 0 / 0.20), 0 28px 48px -14px rgb(110 66 0 / 0.24); }
 .dp-back { display: none; }
 .docs figcaption { font-size: var(--fs-sm); color: var(--fg); }
 @media (min-width: 960px) {
@@ -338,7 +339,7 @@ body:has(#file:focus-visible) label[for="file"], body:has(#cam:focus-visible) la
   /* 위 여백 = (폭 - 24px) x 1.4144(A4) x 12% */
   .docs-pile { position: relative; padding: calc(16.97% - 4px) 24px 0 0; }
   .docs-pile .dp-front { position: relative; }
-  .dp-back { display: block; position: absolute; top: 0; right: 0; width: calc(100% - 24px); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 6px 16px -6px rgba(0, 0, 0, 0.12); }
+  .dp-back { display: block; position: absolute; top: 0; right: 0; width: calc(100% - 24px); box-shadow: 0 0 0 1px rgb(110 66 0 / 0.10), 0 1px 1px rgb(110 66 0 / 0.14), 0 4px 10px -3px rgb(110 66 0 / 0.14), 0 18px 36px -14px rgb(110 66 0 / 0.18); }
 }
 @media (min-width: 1400px) {
   body .start-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } /* 아래 960 규칙보다 뒤에 오지 않아 한 단계 세게 */
