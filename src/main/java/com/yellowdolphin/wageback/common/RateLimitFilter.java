@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 // IP당 분당 요청 제한: 업로드 5(한 장 · 여러 장 요청 합쳐서) · 해설/진정서/내용증명 10 · 그 외 API 60 (API.md 요청 제한)
+// 소리로 읽어 주기(/api/tts) 는 분당 20, 하루 전체 3000 (서버가 목소리 파일을 만든다)
 // LLM 을 부르는 요청은 모든 사용자를 합쳐 하루 상한도 둔다: 업로드 300 · 해설/진정서/내용증명 600
 // (누가 작정하고 불러도 LLM 요금이 끝없이 나가지 않게)
 @Component
@@ -48,15 +49,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String path = request.getRequestURI();
         String bucket = path.endsWith("/documents/extract") || path.endsWith("/documents/extract-batch") ? "upload"
-                : path.endsWith("/explanation") || path.endsWith("/complaint-draft") || path.endsWith("/demand-letter") ? "ai" : "api";
+                : path.endsWith("/explanation") || path.endsWith("/complaint-draft") || path.endsWith("/demand-letter") ? "ai"
+                : path.equals("/api/tts") ? "tts" : "api";
         int limit = switch (bucket) {
             case "upload" -> 5;
             case "ai" -> 10;
+            case "tts" -> 20;
             default -> 60;
         };
         // 분당 제한에 걸린 요청은 하루 상한에서 세지 않는다
         String body = !allow(counts, bucket + "|" + request.getRemoteAddr(), limit, MINUTE) ? BODY
-                : !bucket.equals("api") && !allow(daily, bucket, bucket.equals("upload") ? 300 : 600, DAY) ? DAILY_BODY : null;
+                : !bucket.equals("api") && !allow(daily, bucket, bucket.equals("upload") ? 300 : bucket.equals("tts") ? 3000 : 600, DAY) ? DAILY_BODY : null;
         if (body == null) {
             chain.doFilter(request, response);
             return;

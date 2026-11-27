@@ -567,7 +567,7 @@
     if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
     if (r === 'complaint' && !S.draft) r = 'form';
     if (!opts || !opts.back) stack.push(S.route);
-    if (canSpeak) { window.speechSynthesis.cancel(); speaking = ''; }
+    stopSpeak(); speaking = '';
     closeSheet();
     // 앱처럼 옆으로 밀기: 앞으로는 오른쪽에서, 뒤로는 왼쪽에서, 탭끼리는 살짝 나타나기
     var tabs = !!S.calc && !!TAB_OF[S.route] && !!TAB_OF[r];
@@ -667,28 +667,13 @@
   }
 
   // ---------- 화면: 시작 ----------
-  // 문서 미리보기: 계산하면 나오는 결과 PDF 첫 장(앞)과 진정서 초안 첫머리(뒤)를 종이처럼 겹쳐 그린 그림(누를 수 없음)
-  // 금액과 기간은 발표 캡처에 쓴 시험 입력의 결과. 진정서는 노동청에 내는 한국어 원문 양식 그대로라 언어와 상관없이 한국어
-  // deslop-allow fake-ui: 이 서비스가 만들어 주는 것이 바로 이 문서들이라, 실제 양식을 줄여 보여 준다
+  // 문서 미리보기: 이 서비스가 실제로 인쇄해 주는 상담 요청서(앞)와 진정서 초안(뒤)의 첫 장 그림.
+  // 시험 입력(이름 홍길동)으로 끝까지 가서 PDF 로 저장한 것을 그대로 그림으로 뽑았다(_도구/real_doc.py). 둘 다 한국어 원문이라 언어와 상관없이 같다
   function preview() {
-    var amts = [499000, 165000, 4831561], names = t('start.pvRows').split('|'), zero = t('start.pvZero').split('|');
-    function row(name, right, cls) { return '<tr><td>' + name + '</td><td class="n' + cls + '">' + right + '</td></tr>'; }
-    // 결과 화면과 같은 순서: 월급, 연장, 야간, 휴일, 주휴, 퇴직금
-    var rows = row(names[0], money(amts[0]), '') + row(names[1], money(amts[1]), '') +
-      [0, 2, 4].map(function (i) { return row(zero[i], zero[i + 1], ' s'); }).join('') +
-      row(names[2] + ' (' + t('result.estimated') + ')', money(amts[2]), '');
-    var meta = t('result.meta', { period: '2025.01.02 ~ 2026.10.31', size: t('size.five'), paid: money(1800000) });
-    return '<div class="docs" aria-hidden="true"><p class="docs-note">' + t('start.pvNote') + '</p><div class="docs-pile">' +
-      '<div class="dp dp-back" lang="ko"><b class="dp-title">임 금 체 불  진 정 서</b>' +
-      '<b class="dp-h">진정인</b><p>홍길동, 010-0000-0000<br>서울시 한빛구 늘봄로 14</p>' +
-      '<b class="dp-h">피진정인</b><p>노란식당 (대표 김철수)<br>서울시 한빛구 장터길 7</p></div>' +
-      '<div class="dp dp-front"><span class="dp-run"><span>2026. 11. 27.</span><span>' + t('brand') + '</span></span>' +
-      '<b class="dp-title">' + t('title.result') + '<span class="dp-stamp">' + t('start.pvStamp') + '</span></b>' +
-      '<p class="dp-meta">' + esc(meta) + '</p>' +
-      '<div class="dp-total"><span>' + t('result.total') + '</span><b>' + money(5495561) + '</b></div>' +
-      '<b class="dp-h">' + t('result.items') + '</b><table><tbody>' + rows + '</tbody></table>' +
-      '<p class="dp-foot">' + t('result.disclaim') + '</p><span class="dp-run end">1/2</span></div>' +
-      '</div></div>';
+    return '<figure class="docs" aria-hidden="true"><div class="docs-pile">' +
+      '<img class="dp dp-back" src="/img/doc-complaint.webp" width="900" height="1273" alt="" decoding="async">' +
+      '<img class="dp dp-front" src="/img/doc-counsel.webp" width="900" height="1273" alt="" decoding="async">' +
+      '</div><figcaption>' + t('start.pvNote') + '</figcaption></figure>';
   }
   function vStart() {
     // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
@@ -1285,26 +1270,29 @@
     sheetItem = i;
   }
 
-  // ---------- 읽어 주기 (Web Speech API) ----------
-  // 지원하지 않거나, 그 언어 목소리가 없으면 단추를 숨긴다
+  // ---------- 읽어 주기 ----------
+  // 한국어는 서버가 영상 나레이션과 같은 목소리(InJoon)로 mp3 를 만들어 보낸다(/api/tts). 크롬에는 이 목소리가 없어서다.
+  // 서버가 안 되거나 영어, 베트남어면 브라우저 목소리(Web Speech API)로 읽는다. 둘 다 안 되면 단추를 숨긴다
   var canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
-  var speaking = '';
+  var speaking = '', audio = null;
   function voiceFor() {
     var vs = window.speechSynthesis.getVoices();
     if (!vs.length) return null;
     var mine = vs.filter(function (v) { return v.lang.toLowerCase().replace('_', '-').indexOf(S.lang) === 0; });
     if (!mine.length) return false;
-    // 영상 나레이션과 같은 InJoon(엣지)을 먼저, 다음은 다른 온라인 목소리, 마지막에 기본 목소리
+    // 자연스러운 목소리 먼저: 엣지의 InJoon, 크롬의 Google 한국의, 그 언어의 Neural(en-US, vi-VN), 마지막에 기본 목소리
     function pick(re) { return mine.filter(function (v) { return re.test(v.name); })[0]; }
-    return pick(/(InJoon|인준).*(Online|Natural)/i) || pick(/(SunHi|선히).*(Online|Natural)/i) || pick(/Online|Natural/i) || pick(/^Google/) ||
-      mine.filter(function (v) { return v.default; })[0] || mine[0];
+    return pick(/(InJoon|인준).*(Online|Natural)/i) || pick(/^Google 한국/) || pick(/(SunHi|선히).*(Online|Natural)/i) ||
+      pick(/(Online|Natural|Neural).*(United States|Vietnam)|(en-US|vi-VN).*(Online|Natural|Neural)/i) || pick(/Online|Natural|Neural/i) ||
+      pick(/^Google/) || mine.filter(function (v) { return v.default; })[0] || mine[0];
   }
   function speakBtn(kind) {
-    if (!canSpeak || voiceFor() === false) return '';
+    if (S.lang !== 'ko' && (!canSpeak || voiceFor() === false)) return '';
     var on = speaking === kind;
     return '<button type="button" class="btn btn-line speak no-print" data-act="speak" data-v="' + kind + '" aria-pressed="' + on + '">' + icon(on ? 'stop' : 'sound') + '<span>' + t(on ? 'speak.stop' : 'speak.btn') + '</span></button>';
   }
   function plain(html) { var d = document.createElement('div'); d.innerHTML = html.replace(/<br>/g, ' '); return d.textContent; }
+  // 금액은 '549만 5,561원' 처럼 읽기 쉬운 꼴로, 항목 사이는 마침표로 끊어 잠깐 쉬게 한다 (쉬운 말을 켜도 같은 규칙)
   function speechText(kind) {
     if (kind === 'result') {
       var R = viewResult();
@@ -1314,29 +1302,70 @@
     }
     return [plain(t('guide.title')), plain(t('guide.lead'))].concat([1, 2, 3, 4, 5, 6].map(function (n) { return n + '. ' + t('guide.s' + n) + '. ' + t('guide.s' + n + 'b'); })).join('. ');
   }
-  // 문장마다 끊어 읽고 문장 사이에 잠깐 쉰다 (5.5 같은 소수점은 뒤에 빈칸이 없어 안 끊긴다)
+  // 문장마다 끊는다 (5.5 같은 소수점은 뒤에 빈칸이 없어 안 끊긴다). 문장 끝에 마침표가 없으면 붙인다
   function sentences(text) {
-    return text.replace(/\.\./g, '.').replace(/([.?!])\s+/g, '$1\n').split('\n').filter(function (x) { return x.trim(); });
+    return text.replace(/\.\./g, '.').replace(/([.?!])\s+/g, '$1\n').split('\n').map(function (x) { x = x.trim(); return x && !/[.?!]$/.test(x) ? x + '.' : x; })
+      .filter(function (x) { return x; });
   }
-  function speak(kind) {
-    var ss = window.speechSynthesis;
-    ss.cancel();
-    if (speaking === kind) { speaking = ''; render(); return; }
-    var v = voiceFor(), list = sentences(speechText(kind)), i = 0;
-    function done() { if (speaking === kind) { speaking = ''; if (S.route === kind) rerender(); } }
+  // 서버 한 번에 600자까지라 문장 단위로 묶어 보낸다
+  function chunks(list) {
+    var out = [''];
+    list.forEach(function (x) { if ((out[out.length - 1] + ' ' + x).length > 600) out.push(''); out[out.length - 1] = (out[out.length - 1] + ' ' + x).trim(); });
+    return out.filter(function (x) { return x; });
+  }
+  function stopSpeak() {
+    if (canSpeak) window.speechSynthesis.cancel();
+    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+  }
+  function speakDone(kind) { if (speaking === kind) { speaking = ''; if (S.route === kind) rerender(); } }
+  function speakLocal(kind, list) {
+    if (!canSpeak || voiceFor() === false) { speakDone(kind); return; }
+    var ss = window.speechSynthesis, v = voiceFor(), i = 0;
     function next() {
       if (speaking !== kind) return;
-      if (i >= list.length) { done(); return; }
+      if (i >= list.length) { speakDone(kind); return; }
       var u = new window.SpeechSynthesisUtterance(list[i++]);
       if (v) u.voice = v;
       u.lang = v ? v.lang : S.lang;
       u.rate = 1;
       u.onend = function () { setTimeout(next, 350); };
-      u.onerror = done;
+      u.onerror = function () { speakDone(kind); };
       ss.speak(u);
     }
-    speaking = kind;
     next();
+  }
+  function speakServer(kind, list) {
+    var parts = chunks(list), i = 0;
+    var jobs = parts.map(function (x) {
+      return fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: x }) }).then(function (r) {
+        if (!r.ok || (r.headers.get('Content-Type') || '').indexOf('audio/mpeg') !== 0) throw new Error('tts');
+        return r.blob();
+      });
+    });
+    function next() {
+      if (speaking !== kind) return;
+      if (i >= jobs.length) { audio = null; speakDone(kind); return; }
+      var at = i++;
+      jobs[at].then(function (b) {
+        if (speaking !== kind) return;
+        audio = new Audio(URL.createObjectURL(b));
+        audio.onended = function () { URL.revokeObjectURL(audio.src); next(); };
+        return audio.play();
+      }).catch(function () {
+        // 서버 목소리가 안 되면 남은 글을 브라우저 목소리로 이어 읽는다
+        if (speaking !== kind) return;
+        audio = null;
+        speakLocal(kind, [].concat.apply([], parts.slice(at).map(function (x) { return sentences(x); })));
+      });
+    }
+    next();
+  }
+  function speak(kind) {
+    stopSpeak();
+    if (speaking === kind) { speaking = ''; render(); return; }
+    var list = sentences(speechText(kind));
+    speaking = kind;
+    if (S.lang === 'ko') speakServer(kind, list); else speakLocal(kind, list);
     rerender();
   }
   if (canSpeak) window.speechSynthesis.onvoiceschanged = function () { if (S.route === 'result' || S.route === 'guide') rerender(); };
