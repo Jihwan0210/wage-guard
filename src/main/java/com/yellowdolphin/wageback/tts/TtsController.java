@@ -68,7 +68,7 @@ public class TtsController {
     private final long timeoutMs;
     private final List<String> keys;
     private final URI geminiUrl;
-    private final String model;
+    private final List<String> models;
     private final Duration geminiTimeout;
     private final HttpClient http;
     private final JsonMapper json = JsonMapper.builder().build();
@@ -78,20 +78,20 @@ public class TtsController {
     public TtsController(Environment env) {
         this(env.getProperty("wageback.tts.command", ".tts-venv/bin/edge-tts"), Path.of(env.getProperty("wageback.tts.cache", ".tts-cache")), 15_000,
                 env.getProperty("GEMINI_API_KEY", ""), env.getProperty("wageback.tts.gemini-url", "https://generativelanguage.googleapis.com"),
-                env.getProperty("wageback.tts.gemini-model", "gemini-3.8-flash-tts"), 30_000);
+                env.getProperty("wageback.tts.gemini-models", "gemini-3.8-flash-tts,gemini-3.1-flash-tts-preview,gemini-3.8-flash-lite-tts,gemini-2.5-flash-preview-tts"), 30_000);
     }
 
     TtsController(String command, Path cache, long timeoutMs) {
         this(command, cache, timeoutMs, "", "http://127.0.0.1", "none", 1000);
     }
 
-    TtsController(String command, Path cache, long timeoutMs, String geminiKeys, String geminiBase, String model, long geminiTimeoutMs) {
+    TtsController(String command, Path cache, long timeoutMs, String geminiKeys, String geminiBase, String models, long geminiTimeoutMs) {
         this.command = command;
         this.cache = cache;
         this.timeoutMs = timeoutMs;
         this.keys = Arrays.stream(geminiKeys.split(",")).map(String::trim).filter(k -> !k.isEmpty()).toList();
         this.geminiUrl = URI.create(geminiBase.replaceAll("/+$", "") + "/v1beta/interactions");
-        this.model = model;
+        this.models = Arrays.stream(models.split(",")).map(String::trim).filter(m -> !m.isEmpty()).toList();
         this.geminiTimeout = Duration.ofMillis(geminiTimeoutMs);
         this.http = HttpClient.newBuilder().connectTimeout(geminiTimeout).build();
     }
@@ -146,8 +146,26 @@ public class TtsController {
         return ResponseEntity.ok().contentType(type).header("X-Tts-Voice", voice).cacheControl(CacheControl.noStore()).body(Files.readAllBytes(f));
     }
 
-    // Gemini TTS (interactions). 키를 쉼표로 여러 개 넣었으면 429 일 때 다음 키로. 응답은 24kHz mono 16bit WAV (헤더가 없으면 붙인다)
+    // Gemini TTS (interactions). 무료 구간은 모델마다 하루 한도가 따로라 429 면 다음 모델(같은 Charon 목소리), 키가 여럿이면 다음 키로.
+    // 응답은 24kHz mono 16bit WAV (헤더가 없으면 붙인다)
     private void makeGemini(String text, Path wav) throws IOException {
+        int status = 0;
+        for (String model : models) {
+            for (String key : keys) {
+                status = tryGemini(model, key, text, wav);
+                if (status == 200) {
+                    log.info("tts gemini model={}", model);
+                    return;
+                }
+                if (status != 429) {
+                    throw new IOException("gemini http " + status + " " + model);
+                }
+            }
+        }
+        throw new IOException("gemini http " + status);
+    }
+
+    private int tryGemini(String model, String key, String text, Path wav) throws IOException {
         ObjectNode body = json.createObjectNode();
         body.put("model", model);
         ObjectNode content = body.putArray("input").addObject().put("type", "user_input").putArray("content").addObject();
@@ -156,8 +174,7 @@ public class TtsController {
         body.putObject("response_format").put("type", "audio");
         body.putObject("generation_config").putArray("speech_config").addObject().put("voice", GEMINI_VOICE);
         String req = json.writeValueAsString(body);
-        int status = 0;
-        for (String key : keys) {
+        {
             HttpRequest r = HttpRequest.newBuilder(geminiUrl).timeout(geminiTimeout).header("Content-Type", "application/json")
                     .header("x-goog-api-key", key).POST(HttpRequest.BodyPublishers.ofString(req, StandardCharsets.UTF_8)).build();
             HttpResponse<byte[]> res;
@@ -167,12 +184,8 @@ public class TtsController {
                 Thread.currentThread().interrupt();
                 throw new IOException("interrupted");
             }
-            status = res.statusCode();
-            if (status == 429) {
-                continue;
-            }
-            if (status != 200) {
-                break;
+            if (res.statusCode() != 200) {
+                return res.statusCode();
             }
             byte[] audio = audioOf(json.readTree(res.body()));
             if (audio == null || audio.length < 100) {
@@ -189,9 +202,8 @@ public class TtsController {
             } finally {
                 Files.deleteIfExists(part);
             }
-            return;
+            return 200;
         }
-        throw new IOException("gemini http " + status);
     }
 
     private static byte[] audioOf(JsonNode root) {
