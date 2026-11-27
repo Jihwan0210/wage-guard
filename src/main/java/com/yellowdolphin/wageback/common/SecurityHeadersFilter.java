@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SecurityHeadersFilter extends OncePerRequestFilter {
 
-    static final String CSP = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
+    static final String CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; "
             + "script-src 'self' https://t1.kakaocdn.net; frame-src postcode.map.kakao.com postcode.map.daum.net; "
             + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
