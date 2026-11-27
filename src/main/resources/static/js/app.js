@@ -6,15 +6,16 @@
   var DAYS = ['월', '화', '수', '목', '금', '토', '일'];
   var MIN_WAGE = 10320;
   var MAX_SIZE = 10 * 1024 * 1024;
-  var ALL = ['start', 'sit', 'upload', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'qx', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words', 'info', 'contract', 'deadline', 'after', 'letter'];
+  var ALL = ['start', 'sit', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'qx', 'cal', 'review', 'result', 'form', 'complaint', 'guide', 'counselor', 'help', 'ready', 'daeji', 'words', 'info', 'contract', 'deadline', 'after', 'letter'];
   // 동의 없이 바로 볼 수 있는 안내 화면 (시작 화면의 '더 확인할 수 있는 것' · 쉬운 말 사전)
   var FREE = ['sit', 'contract', 'deadline', 'after', 'words'];
-  var STEP = { upload: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, qx: 1, cal: 1, review: 2, result: 3, form: 4, complaint: 4, letter: 4 };
-  var TITLE = { sit: 'title.sit', upload: 'title.upload', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', qx: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', letter: 'title.letter', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words', info: 'title.info', contract: 'title.contract', deadline: 'title.deadline', after: 'title.after' };
+  var STEP = { sit: 1, q1: 1, q2: 1, q3: 1, q4: 1, q5: 1, q6: 1, qx: 1, cal: 1, review: 2, result: 3, form: 4, complaint: 4, letter: 4 };
+  var TITLE = { sit: 'title.sit', q1: 'title.q', q2: 'title.q', q3: 'title.q', q4: 'title.q', q5: 'title.q', q6: 'title.q', qx: 'title.q', cal: 'title.cal', review: 'title.review', result: 'title.result', form: 'title.form', complaint: 'title.complaint', letter: 'title.letter', guide: 'title.guide', counselor: 'title.counselor', help: 'title.help', ready: 'title.ready', daeji: 'title.daeji', words: 'title.words', info: 'title.info', contract: 'title.contract', deadline: 'title.deadline', after: 'title.after' };
   var NEED_CALC = ['result', 'form', 'complaint', 'counselor', 'letter'];
   // 결과 뒤 둘러보는 화면: 휴대폰은 아래 탭 막대, 넓은 화면은 위 탭으로 오간다 (입력 흐름 중에는 숨김)
   var TABS = [['result', 'coin'], ['guide', 'list'], ['help', 'pin'], ['ready', 'check']];
-  var TAB_OF = { result: 'result', counselor: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide', contract: 'guide', deadline: 'guide', after: 'guide' };
+  // 계약서 점검은 결과 뒤에도 탭 막대는 두되 어느 탭도 켜지 않는다(절차가 아니라 따로 쓰는 도구)
+  var TAB_OF = { result: 'result', counselor: 'result', guide: 'guide', help: 'help', ready: 'ready', daeji: 'guide', words: 'guide', info: 'guide', contract: '-', deadline: 'guide', after: 'guide' };
   // 상황 진단: 시작 화면에서 여러 개 고른다 [코드, 아이콘]. 고른 것에 맞춰 질문 · 안내가 바뀐다
   var SITS = ['less', 'late', 'sev', 'fired', 'extra', 'minw', 'deduct', 'leave', 'payslip', 'shut', 'over14'];
   var mobile = window.matchMedia('(max-width: 959px)');
@@ -183,6 +184,7 @@
   function monthName(ym, lang) {
     lang = lang || S.lang;
     if (lang === 'ko') return Number(ym.slice(5)) + '월';
+    if (lang === 'vi') return 'tháng ' + Number(ym.slice(5)) + '/' + ym.slice(0, 4); // 'thg 10 2026' 같은 줄임 대신
     return new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5) - 1, 1)).toLocaleDateString(lang, { year: 'numeric', month: 'short', timeZone: 'UTC' });
   }
   // 출근 · 퇴근 시각은 시간 단위 소수('9.5' = 09:30), 쉬는 시간도 시간 단위('0.75' = 45분)로 둔다. 퇴근이 출근보다 이르면 다음 날 퇴근
@@ -296,10 +298,6 @@
     return m && m[1];
   }
   function hoursOrNull(v) { return v === '' ? null : Number(v); }
-  function toAgree() {
-    var ag = document.getElementById('agree');
-    if (ag) { ag.scrollIntoView({ block: 'center' }); ag.focus({ preventScroll: true }); }
-  }
   // 못 받은 달 기본값: 그만뒀으면 마지막으로 일한 달, 다니는 중이면 지난달 (이번 달은 아직 끝나지 않아 월급날 전이다. 이번 달에 입사했으면 이번 달)
   function lastMonth() {
     var f = S.f;
@@ -562,6 +560,7 @@
 
   // ---------- 이동 ----------
   function go(r, opts) {
+    if (r === 'upload') r = 'sit'; // 예전 서류 올리기 화면 주소는 상황 고르기로 (올리기는 시작 화면, 읽는 동안 상황을 고른다)
     if (ALL.indexOf(r) < 0) r = 'start';
     if (r !== 'start' && !S.agreed && FREE.indexOf(r) < 0) r = 'start';
     if (NEED_CALC.indexOf(r) >= 0 && !S.calc) r = 'review';
@@ -604,7 +603,7 @@
   // ---------- 공통 틀 ----------
   function topbar() {
     var r = S.route;
-    var step = STEP[r] || 0;
+    var step = stepOf(r);
     var steps = [1, 2, 3, 4].map(function (i) {
       return '<li' + (step === i ? ' aria-current="step"' : step > i ? ' class="done"' : '') + '><b>' + (step > i ? icon('check') : i) + '</b>' + stepName(i) + '</li>';
     }).join('');
@@ -626,6 +625,8 @@
       '<button type="button" id="lang-top" class="lang-btn" data-act="lang-sheet" aria-haspopup="dialog" aria-label="' + esc(t('top.lang') + ': ' + me.name) + '">' + icon('globe') + '<span lang="' + me.code + '">' + esc(me.name) + '</span></button>' +
       '</div></div></header>';
   }
+  // 서류로 왔으면 질문과 달력은 확인 화면에서 빠진 값을 채우는 곳이라 2단계(확인)로, 서류 없이 왔으면 1단계(입력)
+  function stepOf(r) { var s = STEP[r] || 0; return s === 1 && r !== 'sit' && S.path === 'doc' ? 2 : s; }
   function hasTabs() { return !!S.calc && !!TAB_OF[S.route]; }
   // 탭 막대: 아이콘 + 짧은 글. 사전 · 대지급금은 '절차' 탭 아래 화면으로 친다
   function tabs(cls) {
@@ -690,10 +691,11 @@
       '<section class="hero">' +
       '<h1 tabindex="-1">' + t('start.title') + '</h1>' +
       '<p class="lead">' + t('start.lead') + '</p>' + resume +
-      // deslop-allow two-button-hero: 서류가 있는 사람과 없는 사람의 길이 처음부터 다르다
-      cta(primary(t('start.docBtn'), 'data-act="pick" data-v="doc"') +
-        '<button type="button" class="btn btn-line" data-act="pick" data-v="manual">' + t('start.manualBtn') + '</button>' +
-        '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p>', 'start-cta') + '</section>' +
+      // 첫 화면에서 바로 서류를 올린다. 고르면 곧바로 읽기를 시작하고 상황 고르기 화면으로 넘어간다. 서류가 없으면 아래 글 단추
+      '<section class="drop" aria-labelledby="drop-t"><h2 id="drop-t">' + t('start.dropTitle') + '</h2>' + upButtons(false, false) +
+      '<p class="hint">' + t('up.limits', { max: MAX_PAGES }) + '</p>' + (mobile.matches ? '' : '<p class="hint">' + t('up.dropHint') + '</p>') + qrBtn() + upInputs() + '</section>' +
+      '<div class="start-alt"><button type="button" class="btn-text" data-act="pick" data-v="manual">' + t('start.manualBtn') + '</button>' +
+      '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p></div></section>' +
       preview() + '</div>' +
       '<section class="flow" aria-labelledby="flow-t"><h2 id="flow-t">' + t('start.flowTitle') + '</h2><ol>' + steps + '</ol></section>' +
       '<footer class="foot-bar no-print"><ul class="foot-links">' +
@@ -704,80 +706,103 @@
       '<p class="hint">' + t('foot.saved') + '</p><p class="hint">' + t('foot.team') + '</p></footer></div>';
   }
 
-  // ---------- 화면: 상황 고르기 (시작에서 단추를 누른 다음) ----------
-  function vSit() {
-    // 고른 개수는 안내 글 자리에 바꿔 쓴다. 문구의 | 는 줄을 바꿔도 되는 자리(덩어리째 넘어감)
-    return '<div class="sit-page stack-lg">' + langBanner() +
-      '<fieldset class="stack"><legend class="sit-title"><h1 tabindex="-1">' + t('sit.title') + '</h1></legend><p class="hint" role="status">' + (S.sit.length ? t('sit.chosen', { n: S.sit.length }) : t('sit.help')) + '</p><div class="sit-grid">' +
-      SITS.map(function (x) {
-        return '<label class="sit" for="sit-' + x + '"><input id="sit-' + x + '" class="sr" type="checkbox" data-act="sit" value="' + x + '"' + (has(x) ? ' checked' : '') + '><span class="sit-t">' + t('sit.' + x).split('|').map(function (c) { return '<span>' + c + '</span>'; }).join(' ') + gloss('sit.' + x + '.d') + '</span><span class="sit-mark" aria-hidden="true">' + icon('check') + '</span></label>';
-      }).join('') + '</div></fieldset>' +
-      // 단추는 흐리게 꺼 두지 않는다. 확인하지 않고 누르면 체크 칸으로 데려가고 알림을 한 번 띄운다
-      '<div class="agree-row"><p>' + t('start.noteBody') + '</p>' +
-      '<label class="check" for="agree"><input id="agree" type="checkbox" data-act="agree"' + (S.agreed ? ' checked' : '') + '><span>' + t('start.agree') + '</span></label></div>' +
-      cta(primary(t(S.path === 'manual' ? 'sit.goManual' : 'sit.goDoc'), 'data-act="path" data-v="' + (S.path === 'manual' ? 'manual' : 'doc') + '"'), 'sit-cta') + '</div>';
+  // ---------- 서류 올리기 단추 (시작 화면, 상황 화면이 같이 쓴다) ----------
+  // 휴대폰은 사진 찍기와 고르기 둘, PC 는 고르기 하나(끌어다 놓기, 붙여 넣기도 된다). sub: 보조 단추 모양, add: 이미 올린 사진에 더하기
+  function upButtons(sub, add) {
+    var main = sub ? 'btn-line' : 'btn-primary';
+    return '<div class="up-btns">' +
+      (touch.matches ? '<label class="btn ' + main + '" for="cam">' + icon('camera') + '<span>' + t('up.cam') + '</span></label>' : '') +
+      '<label class="btn ' + (touch.matches ? 'btn-line' : main) + '" for="file">' + icon(add ? 'plus' : 'file') + '<span>' + t(add ? 'sit.more' : 'up.pick') + '</span></label></div>';
+  }
+  // 파일 칸은 화면마다 한 벌만 둔다 (위 단추와 「다시 올리기」가 같은 칸을 연다). 읽는 중에는 잠근다
+  function upInputs() {
+    var dis = S.up.status === 'reading' ? ' disabled' : '';
+    return (touch.matches ? '<input id="cam" class="sr" type="file" accept="image/*" capture="environment" data-act="files"' + dis + '>' : '') +
+      '<input id="file" class="sr" type="file" accept="application/pdf,image/*,.hwp" multiple data-act="files"' + dis + '>' +
+      '<input id="retake" class="sr" type="file" accept="application/pdf,image/*"' + (touch.matches ? ' capture="environment"' : '') + ' data-act="retake-file" tabindex="-1" aria-hidden="true">';
+  }
+  // 화면 읽기 프로그램에 읽기 상태를 알린다. 화면은 통째로 다시 그려지므로 늘 있는 칸(index.html 의 #live)에 쓴다
+  function announce(msg) {
+    var el = document.getElementById('live');
+    if (!el) return;
+    el.textContent = '';
+    setTimeout(function () { el.textContent = msg; }, 60);
+  }
+  // PC 에서만: 휴대폰으로 이 주소를 여는 QR (아래 시트)
+  function qrBtn() {
+    return touch.matches || mobile.matches ? '' : '<button type="button" class="btn-text qr-btn" data-act="qr" aria-haspopup="dialog">' + t('up.qrBtn') + '</button>';
   }
 
-  // ---------- 화면: 서류 올리기 ----------
-  // 찍기 전 안내 그림 (72x52, 선 1.75)
-  var HOWTO = {
-    flat: '<rect class="pf" x="27" y="3" width="18" height="13" rx="2.5"/><path class="hl" d="M36 20v8M33 25l3 3 3-3"/><path class="pf" d="M10 47h52l-8-13H18z"/><path d="M22 38h20M20 42h26"/>',
-    corner: '<rect class="pf" x="22" y="9" width="28" height="34" rx="2"/><path d="M27 17h18M27 22h18M27 27h12"/><path class="hl" d="M16 13V5h8M48 5h8v8M56 39v8h-8M24 47h-8v-8"/>',
-    light: '<rect class="pf" x="12" y="13" width="30" height="36" rx="2"/><path d="M17 21h20M17 26h20M17 31h14"/><circle class="hl" cx="57" cy="13" r="5"/><path class="hl" d="M57 3v2M57 21v2M47 13h2M65 13h2M50 6l1.5 1.5M62.5 18.5L64 20M64 6l-1.5 1.5"/>'
-  };
-  function vUpload() {
-    var u = S.up;
-    var busy = u.status === 'reading';
-    var how = [['flat', 'up.how1'], ['corner', 'up.how2'], ['light', 'up.how3']].map(function (h) {
-      return '<li><svg viewBox="0 0 72 52" aria-hidden="true" focusable="false">' + HOWTO[h[0]] + '</svg><span>' + t(h[1]) + '</span></li>';
+  // ---------- 화면: 상황 고르기 (서류를 올렸으면 읽는 동안) ----------
+  // 한 격자: 왼쪽 열은 제목과 카드, 오른쪽 열(카드 윗선에서 시작)은 고른 개수, 「다음」, 그 아래 읽기 상태 한 줄, 올린 서류.
+  // 「다음」은 읽는 중, 다 읽음, 못 읽음 어느 때나 같은 자리. 휴대폰은 「다음」과 읽기 상태가 아래 고정 칸에 있어 카드를 내려 봐도 보인다.
+  // 다 읽어도 화면은 그대로 두고, 「다음」을 눌러야 확인 화면으로 간다. 읽는 중에 「다음」을 누르면 이 화면에서 기다렸다가 넘어간다.
+  // 못 읽으면 넓은 화면은 「다음」 아래, 휴대폰은 제목 바로 아래에 다시 올리기 안내
+  function vSit() {
+    var doc = S.path === 'doc';
+    // 문구의 | 는 줄을 바꿔도 되는 자리(덩어리째 넘어감)
+    var cards = SITS.map(function (x) {
+      return '<label class="sit" for="sit-' + x + '"><input id="sit-' + x + '" class="sr" type="checkbox" data-act="sit" value="' + x + '"' + (has(x) ? ' checked' : '') + '><span class="sit-t">' + t('sit.' + x).split('|').map(function (c) { return '<span>' + c + '</span>'; }).join(' ') + gloss('sit.' + x + '.d') + '</span><span class="sit-mark" aria-hidden="true">' + icon('check') + '</span></label>';
     }).join('');
-    var status = '';
-    if (busy) {
-      status = '<div class="filecard" role="status"><div class="scan" aria-hidden="true"><i></i><i></i><i></i></div><p>' + t('up.reading', { n: u.n }) + '</p></div>';
-    } else if (u.status === 'done') {
-      status = '<div class="filecard done" role="status"><div class="filecard-head">' + icon('check') + '<span>' + t('up.done', { n: u.n }) + '</span></div>' +
-        (u.unread || u.masked ? '<p>' + (u.unread ? t('up.unread', { n: u.unread }) : '') + (u.masked ? ' ' + t('up.masked', { n: u.masked }) : '') + '</p>' : '') + '</div>';
-    } else if (u.status === 'error') {
-      status = '<div class="warnbox" role="alert"><strong>' + esc(u.msg) + '</strong></div>';
-    } else if (u.status === 'fail') {
-      status = '<div class="warnbox stack" role="alert"><strong>' + esc(u.msg) + '</strong><p>' + t('up.fail') + '</p><button type="button" class="btn btn-line" data-act="path" data-v="manual">' + t('up.manual') + '</button></div>';
-    }
-    var list = PAGES.length
-      ? '<section class="stack" aria-labelledby="pages-title"><h2 id="pages-title" tabindex="-1">' + t('up.listTitle', { n: PAGES.length, max: MAX_PAGES }) + '</h2><ol class="pages">' + PAGES.map(function (p, i) { return pageCard(p, i, busy); }).join('') + '</ol></section>'
-      : '';
-    var waiting = PAGES.some(function (p) { return p.state === 'prep'; });
-    var bad = PAGES.some(function (p) { return p.state === 'bad'; });
-    var unread = PAGES.some(function (p) { return p.state === 'ready'; });
-    var read = Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; });
-    // 다 읽었으면 '확인하기', 아니면(못 읽음 포함) '읽기'
-    var main = (u.status === 'done' && !unread && !waiting) || (!PAGES.length && read)
-      ? primary(t('up.reviewBtn'), 'data-go="review"', true)
-      : PAGES.length ? primary(t('up.readBtn', { n: PAGES.length }), 'data-act="read"', !waiting && !bad && !busy)
-      : '<p class="hint">' + t('up.readNone') + '</p>';
-    return '<div class="split">' +
-      '<div class="stack-lg">' + progress(1) + langBanner() +
-      '<div class="stack"><h1 tabindex="-1">' + t('up.h1') + '</h1><p class="lead">' + t('up.lead') + '</p></div>' +
-      '<section><h2 class="sr">' + t('up.howTitle') + '</h2><ul class="howto">' + how + '</ul></section>' +
-      '<div class="capture">' +
-      '<div class="btn-row' + (touch.matches ? '' : ' one') + '">' +
-      (touch.matches ? '<label class="btn btn-primary" for="cam">' + icon('camera') + '<span>' + t('up.cam') + '</span></label>' : '') +
-      '<label class="btn ' + (touch.matches ? 'btn-line' : 'btn-primary') + '" for="file">' + icon('file') + '<span>' + t('up.pick') + '</span></label></div>' +
-      (touch.matches ? '<input id="cam" class="sr" type="file" accept="image/*" capture="environment" data-act="files"' + (busy ? ' disabled' : '') + '>' : '') +
-      '<input id="file" class="sr" type="file" accept="application/pdf,image/*,.hwp" multiple data-act="files"' + (busy ? ' disabled' : '') + '>' +
-      '<input id="retake" class="sr" type="file" accept="application/pdf,image/*"' + (touch.matches ? ' capture="environment"' : '') + ' data-act="retake-file" tabindex="-1" aria-hidden="true">' +
-      '<p class="hint only-d">' + t('up.dropHint') + '</p>' +
-      '<p class="hint">' + t('up.limits', { max: MAX_PAGES }) + '<br>' + t('up.hwpHint') + '</p></div>' +
-      list + status + '</div>' +
-      '<aside class="side no-print">' + qrBox() +
-      '<p class="note">' + icon('lock') + ' ' + t('up.privacy') + '</p>' +
-      cta(main + (bad && !busy ? '<p class="hint">' + t('up.removeBad') + '</p>' : '') +
-        '<button type="button" class="btn-text" data-act="path" data-v="manual">' + t('up.manual') + '</button>', ' ') +
-      '</aside></div>';
+    return '<div class="sit-page">' + progress(1) + langBanner() +
+      '<div class="sit-lay">' +
+      '<div class="sit-head"><div class="sit-hrow"><h1 id="sit-h" tabindex="-1">' + t('sit.title') + '</h1><p class="sit-n only-m">' + (S.sit.length ? chosenMsg() : '') + '</p></div>' +
+      '<p id="sit-s" class="sit-help">' + t('sit.help') + '</p></div>' +
+      '<div class="sit-grid" role="group" aria-labelledby="sit-h" aria-describedby="sit-s">' + cards + '</div>' +
+      '<div class="sit-side">' + sitCta() + (doc ? readErr() + pagesPanel() : docOffer()) + '</div></div>' + upInputs() + '</div>';
+  }
+  function chosenMsg() { return t('sit.chosen', { n: S.sit.length }); }
+  function pending() { return PAGES.some(function (p) { return p.state === 'prep'; }); }
+  function live() { return PAGES.filter(function (p) { return p.state !== 'bad'; }); }
+  function reading() { return S.up.status === 'reading' || (pending() && live().length > 0); }
+  // 읽기 상태 (넓은 화면은 「다음」 아래, 휴대폰은 아래 고정 칸에서 「다음」 위). 글 한 줄과 칸 너비 막대.
+  // 「다음」을 누르고 기다리는 중이면 움직이는 표시는 단추 안에만 두고 글은 그 자리에 남긴다(아래가 들썩이지 않게).
+  // 화면 읽기 프로그램에는 announce() 로 한 번만 알린다
+  function readStrip() {
+    var u = S.up;
+    if (reading()) return '<div class="read-st"><b>' + t('sit.reading', { n: u.status === 'reading' ? u.n : live().length }) + '</b>' + (S.waitNext ? '' : '<span class="read-ind" aria-hidden="true"></span>') + '</div>';
+    if (u.status === 'done') return '<p class="read-st done">' + icon('check') + '<span><b>' + t('sit.done') + '</b> ' + t('sit.doneSub') + '</span></p>';
+    return '';
+  }
+  function readErr() {
+    var u = S.up;
+    if (reading() || u.status === 'done') return '';
+    // 못 읽음(422)은 서버 문구 대신 이 자리에 맞는 말로 (서버 문구는 「직접 입력해 주세요」라 아래 안내와 겹친다)
+    var msg = u.status === 'fail' ? t('sit.failTitle') : u.status === 'error' ? esc(u.msg)
+      : PAGES.length ? esc((PAGES.filter(function (p) { return p.state === 'bad'; })[0] || {}).msg || '') : t('sit.noPages');
+    return '<div id="read-err" class="warnbox read-err" tabindex="-1"><p><strong>' + msg + '</strong>' + (u.status === 'fail' ? ' ' + t('up.fail') : '') + '</p><div class="read-acts">' +
+      (u.status === 'error' ? '<button type="button" class="btn btn-primary" data-act="read">' + t('sit.retry') + '</button>' : '') +
+      '<label class="btn ' + (u.status === 'error' ? 'btn-line' : 'btn-primary') + '" for="file">' + t('sit.again') + '</label></div></div>';
+  }
+  // 올린 사진 목록: 장마다 미리보기, 서류 종류, 흐림 검사, 돌리기, 다시 찍기, 빼기. 읽는 중에는 손대지 않게 잠근다
+  function pagesPanel() {
+    var busy = S.up.status === 'reading';
+    // 못 읽었으면 위 안내의 「다시 올리기」가 같은 일을 하므로 아래 「사진 더 올리기」는 숨긴다
+    var noMore = busy || S.up.status === 'fail' || S.up.status === 'error' || PAGES.length >= MAX_PAGES;
+    return '<section class="up-mini stack no-print" aria-labelledby="pages-title">' +
+      '<h2 id="pages-title" tabindex="-1">' + t('up.listTitle', { n: PAGES.length, max: MAX_PAGES }) + '</h2>' +
+      (PAGES.length ? '<ol class="pages">' + PAGES.map(function (p, i) { return pageCard(p, i, busy); }).join('') + '</ol>' : '') +
+      (noMore ? '' : '<div class="drop drop-mini">' + upButtons(true, true) + (mobile.matches ? '' : '<p class="hint">' + t('up.dropHint') + '</p>') + '</div>') +
+      '<p class="hint">' + icon('lock') + ' ' + t('up.privacy') + '</p></section>';
+  }
+  // 서류 없이 왔을 때: 서류가 생기면 여기서 올려도 된다
+  function docOffer() {
+    return '<section class="drop drop-mini no-print" aria-labelledby="offer-t"><h2 id="offer-t">' + t('sit.docTitle') + '</h2><p class="hint">' + t('sit.docLead') + '</p>' +
+      upButtons(true, false) + qrBtn() + '</section>';
+  }
+  function sitCta() {
+    var wait = S.waitNext && S.path === 'doc';
+    // 못 읽었으면 안내 상자의 「다시 올리기」가 주 단추라 「다음」은 흰 단추 「서류 없이 계속하기」로 바꾼다 (누르면 서류 없이 질문으로)
+    var failed = S.path === 'doc' && readErr() !== '';
+    return cta('<p class="sit-n only-d">' + (S.sit.length ? chosenMsg() : '') + '</p>' +
+      '<button type="button" id="sit-next" class="btn ' + (failed ? 'btn-line' : 'btn-primary') + '" data-act="sit-next"' + (wait ? ' aria-busy="true"' : '') + '>' + (wait ? '<span class="read-ind" aria-hidden="true"></span>' : '') + '<span>' + t(wait ? 'sit.wait' : failed ? 'sit.noDoc' : 'sit.next') + '</span></button>' +
+      (S.path === 'doc' ? readStrip() : ''), ' ');
   }
   // 사진 한 장 카드: 미리보기 · 서류 종류 · 검사 결과 · 돌리기/다시 찍기/빼기
   function pageCard(p, i, busy) {
     var thumb = p.url ? '<img src="' + p.url + '" alt="">' : icon('file');
-    var state = { prep: t('up.preparing'), reading: t('up.readingOne'), ok: t('up.pageOk', { n: p.n }), fail: t('up.pageFail') }[p.state] || '';
+    // 읽는 중은 「다음」 위 한 줄이 알리므로 카드에는 미리보기 위 움직이는 선만
+    var state = { prep: t('up.preparing'), ok: t('up.pageOk', { n: p.n }), fail: t('up.pageFail') }[p.state] || '';
     var types = ['payslip', 'contract'].map(function (d) { return '<option value="' + d + '"' + (p.type === d ? ' selected' : '') + '>' + t('up.' + d) + '</option>'; }).join('');
     var warn = p.state === 'bad' ? '<p class="err">' + esc(p.msg) + '</p>'
       : p.warn.length ? '<div class="qual"><ul>' + p.warn.map(function (w) { return '<li>' + t('up.q.' + w) + '</li>'; }).join('') + '</ul><p>' + t('up.qStill') + '</p></div>' : '';
@@ -785,35 +810,35 @@
     function btn(act, ico, label) {
       return '<button type="button" class="pg-btn" id="' + act + p.id + '" data-act="pg-' + act + '" data-id="' + p.id + '"' + dis + '>' + icon(ico) + '<span>' + label + '</span></button>';
     }
+    // 위 줄은 작은 미리보기와 이름, 그 아래 서류 종류와 단추는 카드 폭을 다 쓴다 (좁은 옆 칸에서도 단추가 한 줄에)
     return '<li class="pg ' + p.state + '">' +
       '<div class="pg-thumb">' + thumb + '</div>' +
       '<div class="pg-body"><p class="pg-title"><b>' + t('up.page', { n: i + 1 }) + '</b>' + (state ? '<span class="pg-state">' + state + '</span>' : '') + '</p>' +
-      '<p class="pg-name">' + esc(p.file.name) + '</p>' +
-      (p.state === 'bad' ? '' : '<label class="sr" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
+      '<p class="pg-name">' + esc(p.file.name) + '</p></div>' +
+      '<div class="pg-more">' + (p.state === 'bad' ? '' : '<label class="pg-label" for="type' + p.id + '">' + t('up.typeLabel') + '</label><select id="type' + p.id + '" class="input pg-type" data-act="pg-type" data-id="' + p.id + '"' + dis + '>' + types + '</select>') +
       warn +
       '<div class="pg-acts">' + (p.url ? btn('rotate', 'rotate', t('up.rotate')) : '') + (touch.matches ? btn('retake', 'camera', t('up.retake')) : btn('retake', 'file', t('up.replace'))) + btn('remove', 'x', t('up.remove')) + '</div></div></li>';
   }
   // 데스크톱: 휴대폰으로 이 주소 열기 QR (주소만 담는다. 사진은 주고받지 않음)
   var qrSvg = '';
-  function qrBox() {
-    if (mobile.matches) return '';
+  function qrSheet() {
+    if (!window.qrcode) { loadQr(); return; }
     if (!qrSvg) {
-      if (!window.qrcode) { loadQr(); return ''; }
       var q = window.qrcode(0, 'M');
       q.addData(location.origin + location.pathname);
       q.make();
       qrSvg = q.createSvgTag(4, 0);
     }
     var local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
-    return '<section class="qr"><div class="qr-code" role="img" aria-label="' + t('up.qrAlt') + '">' + qrSvg + '</div>' +
-      '<div class="stack"><h2>' + t('up.qrTitle') + '</h2><p>' + t('up.qrText') + '</p><p class="hint">' + t(local ? 'up.qrLocal' : 'up.qrNote') + '</p></div></section>';
+    openSheet(t('up.qrTitle'), '<div class="qr"><div class="qr-code" role="img" aria-label="' + t('up.qrAlt') + '">' + qrSvg + '</div>' +
+      '<div class="stack"><p>' + t('up.qrText') + '</p><p class="hint">' + t(local ? 'up.qrLocal' : 'up.qrNote') + '</p></div></div>', true);
   }
   function loadQr() {
     if (loadQr.on) return;
     loadQr.on = true;
     var s = document.createElement('script');
     s.src = 'js/vendor/qrcode.js';
-    s.onload = function () { if (S.route === 'upload') rerender(); };
+    s.onload = qrSheet;
     document.head.appendChild(s);
   }
 
@@ -845,8 +870,8 @@
   }
   function nextCta(r) {
     var next = { q1: 'q2', q2: 'q3', q3: 'q4', q4: 'q5', q5: 'q6', q6: needX() ? 'qx' : 'review', qx: 'review' }[r];
-    // 이전: 앞 질문으로. 첫 질문이면 서류 화면(서류로 시작한 경우)이나 시작 화면으로
-    var qs = qList(), prev = qs[qs.indexOf(r) - 1] || (S.path === 'doc' ? 'upload' : 'sit');
+    // 이전: 앞 질문으로. 첫 질문이면 상황 고르기로
+    var qs = qList(), prev = qs[qs.indexOf(r) - 1] || 'sit';
     return cta('<div class="btn-row q-nav"><button type="button" class="btn btn-line" data-go="' + prev + '">' + icon('arrow-l') + '<span>' + t('q.prev') + '</span></button>' +
       primary(t(next === 'review' ? 'q.toReview' : 'q.next'), 'data-go="' + next + '" data-next', valid(r)) + '</div>' +
       '<p class="hint" data-next-hint' + (valid(r) ? ' hidden' : '') + '>' + t('q.nextHint') + '</p>', ' ');
@@ -922,19 +947,19 @@
       ? '<p class="warnbox" role="status">' + t('q5.minWarn') + ' ' + term('minWage') + '</p>' : '';
     return qShell(5, t('q5.title'), t('q5.help'),
       radios('wageType', 'wageType', [['hour', t('q5.hour')], ['day', t('q5.day')], ['month', t('q5.month')]]) +
-      '<div class="field"><label for="wage">' + t('q5.amount') + '</label><input id="wage" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="wage" data-live value="' + esc(f.wage) + '"><p class="readable" data-readable="wage" aria-live="polite">' + readable(f.wage) + '</p></div>' + warn);
+      '<div class="field"><label for="wage">' + t('q5.amount') + '</label><input id="wage" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="wage" data-live value="' + commas(f.wage) + '"><p class="readable" data-readable="wage" aria-live="polite">' + readable(f.wage) + '</p></div>' + warn);
   }
   function vQ6() {
     var f = S.f;
     function num(id, key, label, unit) {
-      return '<div class="field"><label for="' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="' + key + '" data-live value="' + esc(f[key]) + '"></div>';
+      return '<div class="field"><label for="' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="' + key + '" data-live value="' + (MONEY.indexOf(key) >= 0 ? commas(f[key]) : esc(f[key])) + '"></div>';
     }
     var recorded = workDays().length;
     var dup = monthList().length !== f.more.filter(function (m) { return m.month; }).length + 1;
     // 못 받은 달 더하기: 달 + 그 달에 받은 돈
     var more = f.more.map(function (m, i) {
       return '<li class="month-row"><div class="field"><label for="mm' + i + '">' + t('q6.extraMonth') + '</label><input id="mm' + i + '" class="input" type="month" data-m="' + i + '" data-k="month" value="' + esc(m.month) + '"></div>' +
-        '<div class="field"><label for="mp' + i + '">' + t('q6.extraPaid') + '</label><input id="mp' + i + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-m="' + i + '" data-k="paid" value="' + esc(m.paid) + '"><p class="readable" data-readable-m="' + i + '" aria-live="polite">' + readable(m.paid) + '</p></div>' +
+        '<div class="field"><label for="mp' + i + '">' + t('q6.extraPaid') + '</label><input id="mp' + i + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-m="' + i + '" data-k="paid" value="' + commas(m.paid) + '"><p class="readable" data-readable-m="' + i + '" aria-live="polite">' + readable(m.paid) + '</p></div>' +
         '<button type="button" class="pg-btn" data-act="month-del" data-i="' + i + '">' + icon('x') + '<span>' + t('q6.removeMonth') + '</span></button></li>';
     }).join('');
     var extraN = [f.ot, f.night, f.holiday, f.allowance].filter(function (v) { return v !== ''; }).length;
@@ -947,7 +972,7 @@
       // 1) 꼭 적을 것: 못 받은 달 · 그 달에 받은 돈
       '<div class="paid-box stack"><div class="grid2 paid-grid">' +
       '<div class="field"><label for="month">' + t('q6.month') + '</label><input id="month" class="input" type="month" data-f="month" value="' + esc(f.month || lastMonth()) + '" max="' + today().slice(0, 7) + '"><p class="hint">' + t('q6.monthHint') + '</p></div>' +
-      '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input input-money" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + esc(f.paid) + '" placeholder="0"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
+      '<div class="field"><label for="paid">' + t('q6.paid') + '</label><input id="paid" class="input input-money" type="text" inputmode="numeric" autocomplete="off" data-f="paid" data-live value="' + commas(f.paid) + '" placeholder="0"><p class="readable" data-readable="paid" aria-live="polite">' + readable(f.paid) + '</p></div>' +
       '</div>' + partialNote() + '</div>' +
       // 2) 해당되면 누르는 목록 (세 줄 모두 같은 모양. 위 꼭 적을 칸과는 구분선 하나로 나눈다)
       '<section class="stack opt-sec" aria-labelledby="opt-t"><p id="opt-t" class="opt-line">' + t('q6.moreLine') + '</p>' +
@@ -979,7 +1004,7 @@
   function vQx() {
     var f = S.f, body = '';
     function num(id, key, label) {
-      return '<div class="field"><label for="' + id + '">' + label + '</label><input id="' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="' + key + '" data-live value="' + esc(f[key]) + '"></div>';
+      return '<div class="field"><label for="' + id + '">' + label + '</label><input id="' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-f="' + key + '" data-live value="' + (MONEY.indexOf(key) >= 0 ? commas(f[key]) : esc(f[key])) + '"></div>';
     }
     if (has('fired')) {
       body += '<section class="stack"><h2>' + t('qx.fired') + '</h2>' + radios('notice', 'notice', [['none', t('qx.none')], ['some', t('qx.some')], ['full', t('qx.full')]]) +
@@ -1027,8 +1052,18 @@
         return navRow('href="' + esc(x.url) + '" target="_blank" rel="noopener" lang="ko"', esc(x.name), esc(t('info.checked', { d: GUIDE_DAY })));
       }).join('');
       var body = pick(g.lines) || [];
-      return '<li class="info-card stack"><h2>' + esc(pick(g.title)) + (mine(g) ? ' <span class="tag">' + t('info.mine') + '</span>' : '') + '</h2>' +
-        '<ul class="bring">' + body.map(function (b) { return '<li>' + icon('dot') + '<span>' + nobr(esc(b)) + '</span></li>'; }).join('') + '</ul>' +
+      // 문장(마침표, 쌍점으로 끝남)과 조건 조각이 섞인 안내는 문장은 본문으로, 조각만 점 목록으로 (도입 문장이 조건과 같은 목록에 끼지 않게)
+      function sentence(b) { return /[.:?!]$/.test(b.trim()); }
+      var mixed = body.some(sentence) && !body.every(sentence);
+      var item = function (b) { return '<li>' + icon('dot') + '<span>' + nobr(esc(b)) + '</span></li>'; };
+      var lines = !mixed ? '<ul class="bring">' + body.map(item).join('') + '</ul>'
+        : body.reduce(function (acc, b) {
+          if (sentence(b)) acc.push('<p>' + nobr(esc(b)) + '</p>');
+          else if (/<\/ul>$/.test(acc[acc.length - 1] || '')) acc[acc.length - 1] = acc[acc.length - 1].replace(/<\/ul>$/, item(b) + '</ul>');
+          else acc.push('<ul class="bring">' + item(b) + '</ul>');
+          return acc;
+        }, []).join('');
+      return '<li class="info-card stack"><h2>' + esc(pick(g.title)) + (mine(g) ? ' <span class="tag">' + t('info.mine') + '</span>' : '') + '</h2>' + lines +
         (src ? '<div class="nav-list">' + src + '</div>' : '') + '</li>';
     }).join('');
     return '<div class="wide col stack-lg">' + langBanner() +
@@ -1080,7 +1115,7 @@
     }
     var usualText = usual ? t('cal.fillBody', { days: f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(', '), s: hh(f.tStart), e: hh(f.tEnd) }) : '';
     return '<div class="split">' +
-      '<div class="stack-lg">' + progress(1) + langBanner() +
+      '<div class="stack-lg">' + progress(stepOf('cal')) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('cal.title') + '</h1><p class="lead">' + t('cal.lead') + ' ' + term('overtime') + ' ' + term('night') + '</p></div>' +
       nav +
       '<div class="cal" role="group" aria-label="' + esc(ymName(ym)) + '"><p class="cal-head">' + ymName(ym) + '</p><div class="cal-grid"><div class="cal-week" aria-hidden="true">' + heads + '</div><div class="cal-days">' + cells + '</div></div></div>' +
@@ -1099,6 +1134,7 @@
   // ---------- 화면: 내용 확인 ----------
   function vReview() {
     var f = S.f;
+    var multi = Object.keys(S.from).map(function (k) { return S.from[k]; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }).length > 1;
     // key: 줄 이름 (S.src · S.low · S.unread · S.fieldErr 공통)
     function row(label, value, key, goTo) {
       var src = S.src[key];
@@ -1106,7 +1142,8 @@
       var checked = S.low[key] && S.ok[key];
       var err = S.fieldErr[key];
       var val = value ? '<span>' + esc(value) + '</span>' : '<span class="empty">' + t(S.unread[key] ? 'review.unread' : 'review.empty') + '</span>';
-      var tag = src === 'doc' ? '<span class="tag">' + t('review.doc') + (S.from[key] ? ', ' + t('up.page', { n: S.from[key] }) : '') + '</span>' : src === 'self' ? '<span class="tag self">' + t('review.self') + '</span>' : '';
+      // 서류에서 읽은 값은 꼬리표 없이 (제목이 이미 「읽은 내용」). 사진이 여러 장일 때만 몇 번 사진인지, 직접 적은 값은 「직접」
+      var tag = src === 'doc' ? (multi && S.from[key] ? '<span class="tag src">' + t('up.page', { n: S.from[key] }) + '</span>' : '') : src === 'self' ? '<span class="tag self">' + t('review.self') + '</span>' : '';
       return '<div class="row' + (low ? ' low' : '') + '"><div class="row-main"><dt>' + label + '</dt><dd>' + val + tag + (checked ? '<span class="checked">' + icon('check') + t('review.checked') + '</span>' : '') + '</dd>' +
         '<button type="button" class="row-edit" data-go="' + goTo + '" aria-label="' + esc(t('review.editOf', { what: label })) + '">' + t('review.edit') + '</button></div>' +
         (err ? '<p class="err" role="alert">' + esc(err) + '</p>' : '') +
@@ -1125,6 +1162,14 @@
         row(t('review.ot'), f.ot ? t('cal.hoursShort', { h: f.ot }) : '', 'ot', 'q6') + row(t('review.night'), f.night ? t('cal.hoursShort', { h: f.night }) : '', 'night', 'q6') + row(t('review.holiday'), f.holiday ? t('cal.hoursShort', { h: f.holiday }) : '', 'holiday', 'q6')]
     ].map(function (g) { return '<section class="group"><h2>' + g[0] + '</h2><dl class="rows">' + g[1] + '</dl></section>'; }).join('');
     var left = lowLeft();
+    // 표시 보는 법: 화면에 실제로 있는 표시만 (없는 「노란 줄」을 설명하지 않게)
+    function legend() {
+      var keys = Object.keys(S.src), items = [];
+      if (multi) items.push('<span><span class="tag src">' + t('up.page', { n: 1 }) + '</span> ' + t('review.legDoc') + '</span>');
+      if (keys.some(function (k) { return S.src[k] === 'self'; })) items.push('<span><span class="tag self">' + t('review.self') + '</span> ' + t('review.legSelf') + '</span>');
+      if (left) items.push('<span><span class="tag warn">' + t('review.legWarnTag') + '</span> ' + t('review.legWarn') + '</span>');
+      return items.length ? '<div class="note stack"><h2>' + t('review.legend') + '</h2><div class="legend-row" style="flex-direction:column">' + items.join('') + '</div></div>' : '';
+    }
     var ok = valid('review');
     // 답하지 않은 질문이 있으면 무엇이 빠졌는지 · 어디로 가면 되는지를 맨 위에 (계산 단추만 꺼져 있으면 찾을 수 없다)
     var qs = qList(), missQ = qs.filter(function (q) { return !valid(q); });
@@ -1134,7 +1179,7 @@
       '<div class="stack-lg">' + progress(2) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t(Object.keys(S.src).some(function (k) { return S.src[k] === 'doc'; }) ? 'review.title' : 'review.titleSelf') + '</h1><p class="lead">' + t('review.lead') + '</p></div>' +
       missBox + groups + '</div>' +
-      '<aside class="side"><div class="note stack"><h2>' + t('review.legend') + '</h2><div class="legend-row" style="flex-direction:column"><span><span class="tag">' + t('review.doc') + '</span> ' + t('review.legDoc') + '</span><span><span class="tag self">' + t('review.self') + '</span> ' + t('review.legSelf') + '</span><span><span class="tag warn">' + t('review.legWarnTag') + '</span> ' + t('review.legWarn') + '</span></div></div>' +
+      '<aside class="side">' + legend() +
       '<p class="hint">' + t('review.rule') + '</p>' +
       cta(primary(t('calc.btn'), 'data-act="calculate"', ok) +
         (ok ? '' : '<p class="hint">' + (left ? t('review.left', { n: left }) : t('review.missing')) + '</p>'), ' ') +
@@ -1587,17 +1632,18 @@
     var showTr = S.tr && trs.length > 0;
     var ko = draftSections().map(function (s, i) {
       var editable = s.heading === EDITABLE;
+      // 다듬기에 실패해 적은 그대로 들어갔으면 문단 위 안내 상자 안에 「이 문단 고치기」를 둔다 (직접 고친 뒤에는 표시 없음)
+      var raw = editable && d.factsAsWritten && S.factsText == null;
+      var editBtn = '<button type="button" class="small-btn no-print" data-act="facts-edit">' + icon('pen') + t('cp.editBtn') + '</button>';
       var body;
       if (editable && S.editing) {
         body = '<label class="sr" for="facts-edit">' + t('cp.editLabel') + '</label><textarea id="facts-edit" class="input" rows="7">' + esc(s.body) + '</textarea>' +
           '<div class="btn-row no-print"><button type="button" class="btn btn-line" data-act="facts-cancel">' + t('cp.cancel') + '</button><button type="button" class="btn btn-primary" style="min-height:48px;font-size:1rem" data-act="facts-save">' + t('cp.save') + '</button></div>';
       } else {
-        body = '<p>' + esc(s.body) + '</p>' + (editable ? '<button type="button" class="small-btn no-print" data-act="facts-edit">' + icon('pen') + t('cp.editBtn') + '</button>' : '');
+        body = '<p>' + esc(s.body) + '</p>' + (editable && !raw ? editBtn : '');
       }
-      // 다듬기에 실패해 적은 그대로 들어갔으면 표시를 바꾸고 직접 고치라고 알린다 (직접 고친 뒤에는 표시 없음)
-      var raw = d.factsAsWritten && S.factsText == null;
-      var head = '<h3>' + esc(s.heading) + (editable && S.factsText == null ? '<span class="no-print' + (raw ? ' raw' : '') + '">' + t(raw ? 'cp.rawTag' : 'cp.aiTag') + '</span>' : '') + '</h3>' +
-        (editable && raw && !S.editing ? '<p class="warnbox no-print">' + t('cp.rawNote') + '</p>' : '');
+      var head = '<h3>' + esc(s.heading) + (editable && S.factsText == null && !raw ? '<span class="no-print">' + t('cp.aiTag') + '</span>' : '') + '</h3>' +
+        (raw && !S.editing ? '<div class="warnbox stack no-print"><p>' + t('cp.rawNote') + '</p>' + editBtn + '</div>' : '');
       var inline = showTr && trs[i] ? '<p class="tr-inline" lang="' + trLang + '">' + esc(trs[i].body) + '</p>' : '';
       return '<section>' + head + body + inline + '</section>';
     }).join('');
@@ -1945,7 +1991,7 @@
       }).join('') + '</div>';
     }
     function num(id, label, unit) {
-      return '<div class="field"><label for="ct-' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="ct-' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-act="ct-num" data-k="' + id + '" value="' + esc(c[id]) + '"></div>';
+      return '<div class="field"><label for="ct-' + id + '">' + label + ' <span class="opt">(' + unit + ')</span></label><input id="ct-' + id + '" class="input" type="text" inputmode="numeric" autocomplete="off" data-act="ct-num" data-k="' + id + '" value="' + (id === 'wage' ? commas(c[id]) : esc(c[id])) + '"></div>';
     }
     var r = c.res, res = '';
     if (r) {
@@ -2049,10 +2095,6 @@
       '<aside class="side"><p class="note">' + t('dl.note') + '</p><a class="phone" href="tel:1350">' + icon('phone') + '<span><strong>' + t('ct.call') + '</strong><small>' + t('dl.callSub') + '</small></span><b>1350</b></a>' +
       '<div class="nav-list">' + navRow('data-go="after"', t('title.after')) + '</div></aside></div>';
   }
-  // 시작 · 결과 화면의 '더 확인할 수 있는 것' 세 줄
-  function extraRows() {
-    return navRow('data-go="contract"', t('title.contract'), t('ct.sub')) + navRow('data-go="deadline"', t('title.deadline'), t('dl.sub')) + navRow('data-go="after"', t('title.after'), t('after.sub'));
-  }
 
   // ---------- 화면: 쉬운 말 사전 ----------
   function vWords() {
@@ -2111,7 +2153,7 @@
     S.office = { sido: r.sido, sgg: g ? g.name : '', auto: !!g };
   }
 
-  var VIEWS = { start: vStart, sit: vSit, upload: vUpload, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, qx: vQx, info: vInfo, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords, contract: vContract, deadline: vDeadline, letter: vLetter, after: function () { return vInfo(true); } };
+  var VIEWS = { start: vStart, sit: vSit, q1: vQ1, q2: vQ2, q3: vQ3, q4: vQ4, q5: vQ5, q6: vQ6, qx: vQx, info: vInfo, review: vReview, result: vResult, form: vForm, complaint: vComplaint, guide: vGuide, counselor: vCounselor, cal: vCal, help: vHelp, ready: vReady, daeji: vDaeji, words: vWords, contract: vContract, deadline: vDeadline, letter: vLetter, after: function () { return vInfo(true); } };
 
   // transition: 화면을 옮길 때 전환 방향('from-r' · 'from-l' · 'fade'). 있으면 맨 위로 올리고 h1 에 포커스. 휴대폰은 주 버튼 · 탭 막대를 아래 고정 영역(dock)으로 옮겨
   // 본문만 스크롤되게 한다. 넓은 화면은 버튼이 옆 칸에 그대로 있다
@@ -2124,7 +2166,7 @@
     document.title = t('brand');
     app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (transition ? ' class="enter ' + transition + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
       '<div class="dock no-print">' + (hasTabs() ? tabs('tabbar') : '') + '</div>';
-    var dock = app.querySelector('.dock'), c = app.querySelector('main .cta:not(.start-cta)'); // 시작 화면은 단추를 제목 바로 아래에 둔다
+    var dock = app.querySelector('.dock'), c = app.querySelector('main .cta');
     if (mobile.matches && c) dock.insertBefore(c, dock.firstChild);
     var h0 = mobile.matches ? dock.offsetHeight : 0;
     if (h0 !== dockH) { dockH = h0; document.documentElement.style.setProperty('--dock-h', h0 + 'px'); }
@@ -2184,8 +2226,36 @@
       PAGES.push(p);
       setFile(p, file);
     });
-    if (S.up.status !== 'reading') S.up = { status: 'idle' };
+    if (S.up.status !== 'reading' && S.up.status !== 'done') S.up = { status: 'idle' };
     rerender();
+    autoRead();
+  }
+  // 고른 서류로 새로 시작한다: 앞에서 쓰던 칸과 사진을 비운다 (시작 화면에서 사진을 고르면)
+  function newDoc() {
+    S.path = 'doc'; S.agreed = true; S.waitNext = false; resumeTo = '';
+    S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {};
+    S.up = { status: 'idle' };
+    PAGES.forEach(function (p) { setUrl(p, null); });
+    PAGES = [];
+  }
+  // 사진이 들어오는 길 하나 (고르기, 찍기, 끌어다 놓기, 붙여 넣기). 시작 화면이면 상황 화면으로 넘어가며 바로 읽는다.
+  // 못 읽은 뒤 다시 올리면 못 읽은 사진은 빼고 새 사진만 읽는다
+  function takeFiles(list) {
+    if (!list || !list.length) return;
+    if (S.route === 'start') { newDoc(); go('sit'); }
+    else {
+      S.path = 'doc'; S.agreed = true;
+      if (S.up.status === 'fail' || S.up.status === 'error' || PAGES.every(function (p) { return p.state === 'bad'; })) {
+        PAGES.forEach(function (p) { setUrl(p, null); });
+        PAGES = []; S.up = { status: 'idle' };
+      }
+    }
+    addFiles(list);
+  }
+  // 올린 사진이 다 준비되면 곧바로 읽는다 (상황 화면에 있을 때만. 실패한 뒤에는 사용자가 다시 올리거나 고칠 때까지 기다린다)
+  function autoRead() {
+    if (S.route !== 'sit' || S.path !== 'doc' || S.up.status === 'reading' || pending()) return;
+    if (PAGES.some(function (p) { return p.state === 'ready'; })) readAll();
   }
   function setFile(p, file) {
     var name = (file.name || '').toLowerCase();
@@ -2224,13 +2294,13 @@
       p.warn = quality(c, Math.max(w, h));
       encode(c, 0.85, function (blob) {
         if (blob) { setUrl(p, blob); p.state = 'ready'; } else bad(p, t('err.413'));
-        if (S.route === 'upload') rerender();
+        if (S.route === 'sit') { rerender(); autoRead(); }
       });
     };
     im.onerror = function () {
       URL.revokeObjectURL(src);
       bad(p, t('err.415'));
-      if (S.route === 'upload') rerender();
+      if (S.route === 'sit') { rerender(); autoRead(); }
     };
     im.src = src;
   }
@@ -2264,17 +2334,22 @@
     if (origLong < SMALL_MIN) out.push('small');
     return out;
   }
-  // 모두 한 번에 보내고, 장별 결과를 카드에 · 합친 값을 확인 화면에
+  // 올릴 수 있는 사진을 한 번에 보내고, 장별 결과를 카드에, 합친 값을 확인 화면에. 화면은 넘기지 않는다
+  // (읽는 동안 상황을 고르던 사람이 마저 고르게). 「다음」을 눌러 기다리던 중이면 그때 확인 화면으로
   function readAll() {
+    var sent = PAGES.filter(function (p) { return p.blob && p.state !== 'bad' && p.state !== 'prep'; });
+    if (!sent.length) return;
     var form = new FormData();
-    PAGES.forEach(function (p, i) {
+    sent.forEach(function (p, i) {
       form.append('files', p.blob, 'page' + (i + 1) + (p.pdf ? '.pdf' : '.jpg'));
       form.append('docTypes', p.type.toUpperCase());
       p.state = 'reading';
     });
-    S.up = { status: 'reading', n: PAGES.length };
-    render();
-    var sent = PAGES.slice();
+    S.up = { status: 'reading', n: sent.length };
+    rerender();
+    announce(t('sit.reading', { n: sent.length }) + '. ' + t('sit.readingSub'));
+    // 서버의 쪽 번호(보낸 순서) → 목록에 보이는 번호(n번 사진)
+    function no(k) { return PAGES.indexOf(sent[k - 1]) + 1 || k; }
     api('/api/v1/documents/extract-batch', form).then(function (res) {
       res.pages.forEach(function (r) {
         var p = sent[r.page - 1]; p.state = r.ok ? 'ok' : 'fail'; p.n = r.fields.length;
@@ -2282,17 +2357,23 @@
         var rk = r.ok && { PAYSLIP: 'payslip', CONTRACT: 'contract' }[r.docType];
         if (rk && S.ready[rk] === undefined) S.ready[rk] = true;
       });
+      res.fields.forEach(function (x) { if (x.page) x.page = no(x.page); });
+      (res.conflicts || []).forEach(function (c) { c.values.forEach(function (v) { v.page = no(v.page); }); });
       applyExtract(res);
       S.up.status = 'done';
-      toast(t('up.toast'));
-      if (S.route === 'upload') go('review'); else save();
+      announce(t('sit.done') + ' ' + t('sit.doneSub'));
+      if (S.route !== 'sit') { toast(t('up.toast')); save(); }
+      else if (S.waitNext) { S.waitNext = false; go('review'); }
+      else rerender();
     }, function (e) {
       sent.forEach(function (p, i) {
         if (e.field === 'files[' + i + ']') bad(p, e.message);
         else p.state = e.status === 422 ? 'fail' : 'ready';
       });
       S.up = { status: e.status === 422 ? 'fail' : 'error', msg: e.message };
-      if (S.route === 'upload') render(); else save();
+      S.waitNext = false;
+      announce(e.status === 422 ? t('sit.failTitle') : e.message);
+      if (S.route === 'sit') rerender(); else save();
     });
   }
   // 다시 그려도 누르던 단추에 포커스를 둔다 (없어졌으면 목록 제목)
@@ -2361,6 +2442,19 @@
     S.up.unread = (res.unreadable || []).length;
     S.up.masked = res.maskedCount || 0;
   }
+  // 금액 칸은 보이는 글에만 천 단위 쉼표를 넣는다 (값은 숫자만 그대로). 고치는 중에도 커서는 같은 숫자 뒤에
+  var MONEY = ['wage', 'paid', 'allowance', 'shutPaid'];
+  function commas(v) { return v === '' || v == null ? '' : Number(v).toLocaleString('ko-KR'); }
+  function moneyShow(el, v) {
+    var shown = commas(v);
+    if (el.value === shown) return;
+    var pos = el.selectionStart == null ? el.value.length : el.selectionStart;
+    var digits = el.value.slice(0, pos).replace(/[^0-9]/g, '').length - (el.value.replace(/[^0-9]/g, '').length - v.length);
+    el.value = shown;
+    var i = 0, n = 0;
+    while (i < shown.length && n < digits) { if (shown.charAt(i) !== ',') n++; i++; }
+    try { el.setSelectionRange(i, i); } catch (e) {}
+  }
   function setField(el) {
     var key = el.dataset.f;
     var v = el.value;
@@ -2379,7 +2473,7 @@
     }
     else if (el.hasAttribute('data-live')) {
       v = v.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
-      if (el.value !== v) el.value = v;
+      if (MONEY.indexOf(key) >= 0) moneyShow(el, v); else if (el.value !== v) el.value = v;
     }
     S.f[key] = v;
     var srcKey = (key === 'tStart' || key === 'tEnd' || key === 'brk') ? 'time' : key === 'wageType' ? 'wage' : key === 'employed' ? 'end' : key;
@@ -2438,11 +2532,31 @@
   }
   function toastT(k) { toast(t(k)); }
   function noCompany() { return t('form.noCompany'); }
-  // 상황 카드를 안 고르고 시작하면: 고르러 가기 · 그냥 시작
-  function sitAsk(path) {
+  // 상황 카드를 안 고르고 「다음」을 누르면: 고르러 가기, 고르지 않고 넘어가기
+  function sitAsk() {
     openSheet(t('sit.askTitle'), '<p>' + t('sit.askBody') + '</p>' +
       '<button type="button" class="btn btn-primary" data-act="to-sit"><span>' + t('sit.askGo') + '</span></button>' +
-      '<button type="button" class="btn btn-line" data-act="path" data-v="' + path + '" data-skip="1">' + t('sit.askSkip') + '</button>');
+      '<button type="button" class="btn btn-line" data-act="sit-next" data-skip="1">' + t('sit.askSkip') + '</button>');
+  }
+  // 상황 화면의 「다음」. 서류 없이: 질문으로. 서류로: 다 읽었으면 확인 화면, 읽는 중이면 여기서 기다렸다가 넘어간다.
+  // 못 읽었으면 넘어가지 않고 위의 안내(다시 올리기, 서류 없이 계속하기)로 데려간다
+  function sitNext(skip) {
+    if (!S.sit.length && !skip) { sitAsk(); return; }
+    closeSheet();
+    S.agreed = true; resumeTo = '';
+    // 그만둔 상황(퇴직금, 해고, 연차, 14일)을 골랐으면 질문 3 「지금도 다니나요」를 미리 「그만뒀어요」로
+    if (!S.f.employed && ['sev', 'fired', 'leave', 'over14'].some(has)) S.f.employed = 'no';
+    if (S.path !== 'doc') { S.path = 'manual'; go('q1'); return; }
+    var u = S.up.status, waiting = u === 'reading' || pending();
+    if (waiting || PAGES.some(function (p) { return p.state === 'ready'; })) {
+      S.waitNext = true;
+      if (waiting) rerender(); else readAll();
+      return;
+    }
+    if (u === 'done') { go('review'); return; }
+    // 못 읽었으면 「다음」은 「서류 없이 계속하기」: 올린 사진은 비우고 고른 상황은 그대로 둔 채 질문으로
+    newDoc(); S.path = 'manual';
+    sitNext(skip);
   }
   function disclaimSheet() {
     openSheet(t('start.noteTitle'), '<p>' + t('result.disclaimToast') + '</p>', true);
@@ -2500,22 +2614,11 @@
     else if (a === 'lang-sheet') langSheet();
     else if (a === 'sheet-close') closeSheet();
     else if (a === 'item') itemSheet(Number(t.dataset.i));
-    else if (a === 'path') {
-      if (!S.agreed) { toAgree(); toastT('start.agreeHint'); return; }
-      // 상황 카드를 하나도 안 골랐으면 한 번 묻는다 (안 고르면 연차수당 · 해고예고수당 · 지연이자 같은 항목이 빠진다)
-      if (!S.sit.length && !t.dataset.skip && S.route === 'sit') { sitAsk(t.dataset.v); return; }
-      closeSheet();
-      S.path = t.dataset.v;
-      // 서류로 시작하거나 서류 없이 직접 입력하면 빈 칸부터
-      if (S.path === 'doc' || S.up.status !== 'done') { S.f = blankFields(); S.src = {}; S.from = {}; S.conf = {}; S.low = {}; S.ok = {}; S.unread = {}; S.fieldErr = {}; }
-      if (S.path === 'doc') { S.up = { status: 'idle' }; PAGES.forEach(function (p) { setUrl(p, null); }); PAGES = []; }
-      // 시작 화면에서 그만둔 상황(퇴직금 · 해고 · 연차 · 14일)을 골랐으면 질문 3 「지금도 다니나요」를 미리 「그만뒀어요」로
-      if (!S.f.employed && ['sev', 'fired', 'leave', 'over14'].some(has)) S.f.employed = 'no';
-      resumeTo = '';
-      go(S.path === 'manual' ? 'q1' : 'upload');
-    }
-    // 시작 화면의 두 단추: 서류로 · 직접 입력 중 하나를 기억하고 상황 고르기로
-    else if (a === 'pick') { S.path = t.dataset.v; resumeTo = ''; go('sit'); }
+    else if (a === 'sit-next') sitNext(!!t.dataset.skip);
+    // 시작 화면의 「서류 없이 직접 입력하기」: 빈 칸으로 새로 시작해 상황 고르기로
+    else if (a === 'pick') { newDoc(); S.path = 'manual'; go('sit'); }
+    // 못 읽었을 때 「서류 없이 계속하기」: 사진을 버리고 이 화면에서 상황을 마저 고른 뒤 질문으로
+    else if (a === 'qr') qrSheet();
     else if (a === 'resume') { var to = resumeTo; resumeTo = ''; go(to); }
     else if (a === 'restart') { var keep = { lang: S.lang, big: S.big }; S = Object.assign(fresh(), keep); resumeTo = ''; render(); toastT('resume.cleared'); }
     else if (a === 'wipe') wipeAsk();
@@ -2539,15 +2642,14 @@
     else if (a === 'read') readAll();
     else if (a === 'pg-rotate') { var rp = pageOf(t.dataset.id); rp.rot = (rp.rot + 90) % 360; prep(rp); rerender(); }
     else if (a === 'pg-retake') { retakeId = Number(t.dataset.id); document.getElementById('retake').click(); }
-    else if (a === 'pg-remove') { var gone = pageOf(t.dataset.id); setUrl(gone, null); PAGES.splice(PAGES.indexOf(gone), 1); rerender(); }
+    else if (a === 'pg-remove') { var gone = pageOf(t.dataset.id); setUrl(gone, null); PAGES.splice(PAGES.indexOf(gone), 1); rerender(); autoRead(); }
     else if (a === 'print') doPrint();
     else if (a === 'copy') doCopy();
     else if (a === 'docx') saveDocx();
     else if (a === 'listen') listen();
-    else if (a === 'to-agree') toAgree();
     // 결과의 '적지 않아 계산하지 않은 것' → 질문 6 의 연장 · 야간 · 휴일 칸을 펼친 채로
     else if (a === 'miss-go') { openOt = true; go('q6'); openOt = false; var ot = document.getElementById('ot'); if (ot) { ot.scrollIntoView({ block: 'center' }); ot.focus({ preventScroll: true }); } }
-    else if (a === 'to-sit') { closeSheet(); var st = app.querySelector('.sit-title'); if (st) { st.scrollIntoView({ block: 'start', behavior: 'smooth' }); var first = document.getElementById('sit-' + SITS[0]); if (first) first.focus({ preventScroll: true }); } }
+    else if (a === 'to-sit') { closeSheet(); var st = document.getElementById('sit-h'); if (st) { st.scrollIntoView({ block: 'start', behavior: 'smooth' }); var first = document.getElementById('sit-' + SITS[0]); if (first) first.focus({ preventScroll: true }); } }
     else if (a === 'q-sheet') qSheet(Number(t.dataset.n));
     else if (a === 'addr-copy') copyAddr(t.dataset.v);
     else if (a === 'make') make();
@@ -2563,11 +2665,11 @@
   document.addEventListener('change', function (e) {
     var t = e.target;
     var a = t.dataset.act;
-    if (a === 'sit') { S.sit = S.sit.filter(function (x) { return x !== t.value; }).concat(t.checked ? [t.value] : []); render(); focusId(t.id); }
-    else if (a === 'agree') { S.agreed = t.checked; render(); var c = document.getElementById('agree'); if (c) c.focus({ preventScroll: true }); }
-    else if (a === 'files') { addFiles(t.files); t.value = ''; }
-    else if (a === 'retake-file') { var rp = pageOf(retakeId); if (rp && t.files[0]) { setFile(rp, t.files[0]); rerender(); } t.value = ''; }
-    else if (a === 'pg-type') { var tp = pageOf(t.dataset.id); tp.type = t.value; if (tp.state === 'ok' || tp.state === 'fail') tp.state = 'ready'; rerender(); }
+    // 화면을 다시 그리므로 고른 개수는 늘 있는 알림 칸(#live)으로 알린다
+    if (a === 'sit') { S.sit = S.sit.filter(function (x) { return x !== t.value; }).concat(t.checked ? [t.value] : []); render(); focusId(t.id); announce(chosenMsg()); }
+    else if (a === 'files') { var fl = Array.prototype.slice.call(t.files); t.value = ''; takeFiles(fl); }
+    else if (a === 'retake-file') { var rp = pageOf(retakeId); if (rp && t.files[0]) { setFile(rp, t.files[0]); rerender(); autoRead(); } t.value = ''; }
+    else if (a === 'pg-type') { var tp = pageOf(t.dataset.id); tp.type = t.value; if (tp.state === 'ok' || tp.state === 'fail') tp.state = 'ready'; rerender(); autoRead(); }
     else if (a === 'cal-month') { S.calM = t.value; S.calSel = ''; render(); focusId('cal-month'); }
     else if (a === 'sido') { S.office = { sido: t.value, sgg: '' }; render(); focusId('sido'); }
     else if (a === 'sgg') { S.office.sgg = t.value; S.office.auto = false; render(); focusId('sgg'); }
@@ -2594,7 +2696,7 @@
     if (t.hasAttribute('data-live')) { setField(t); refreshNext(); }
     else if (t.dataset.m !== undefined && t.dataset.k === 'paid') {
       var v = t.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
-      if (t.value !== v) t.value = v;
+      moneyShow(t, v);
       S.f.more[Number(t.dataset.m)].paid = v;
       S.src.more = 'self';
       var r = app.querySelector('[data-readable-m="' + t.dataset.m + '"]');
@@ -2602,7 +2704,7 @@
       save();
       refreshNext();
     }
-    else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(/[^0-9.]/g, ''); if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
+    else if (t.dataset.act === 'ct-num') { var cv = t.value.replace(t.dataset.k === 'wage' ? /[^0-9]/g : /[^0-9.]/g, ''); if (t.dataset.k === 'wage') moneyShow(t, cv); else if (t.value !== cv) t.value = cv; S.ct[t.dataset.k] = cv; S.ct.res = null; save(); }
     else if (t.dataset.lt !== undefined) { S.ltIn[t.dataset.lt] = t.value; save(); }
     else if (t.dataset.p !== undefined) {
       S.lt = null; S.p[t.dataset.p] = t.type === 'tel' ? setTel(t) : t.value; S.pErr[t.dataset.p] = ''; if (S.psrc) S.psrc[t.dataset.p] = ''; save();
@@ -2636,31 +2738,33 @@
   document.addEventListener('pointerup', dragEnd);
   document.addEventListener('pointercancel', dragEnd);
 
-  // 데스크톱: 끌어다 놓기 · 붙여넣기(Ctrl+V)
-  function dropZone(on) { var z = app.querySelector('.capture'); if (z) z.classList.toggle('drag', on); }
-  document.addEventListener('dragover', function (e) { if (S.route !== 'upload' || S.up.status === 'reading') return; e.preventDefault(); dropZone(true); });
+  // 데스크톱: 끌어다 놓기, 붙여넣기(Ctrl+V). 시작 화면과 상황 화면(읽는 중이 아닐 때)에서 받는다
+  function upOpen() { return S.route === 'start' || (S.route === 'sit' && S.up.status !== 'reading' && PAGES.length < MAX_PAGES); }
+  function dropZone(on) { var z = app.querySelector('.drop'); if (z) z.classList.toggle('drag', on); }
+  document.addEventListener('dragover', function (e) { if (!upOpen()) return; e.preventDefault(); dropZone(true); });
   document.addEventListener('dragleave', function (e) { if (!e.relatedTarget) dropZone(false); });
   document.addEventListener('drop', function (e) {
-    if (S.route !== 'upload' || S.up.status === 'reading') return;
+    if (!upOpen()) return;
     e.preventDefault();
     dropZone(false);
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files.length) takeFiles(Array.prototype.slice.call(e.dataTransfer.files));
   });
   document.addEventListener('paste', function (e) {
-    if (S.route !== 'upload' || S.up.status === 'reading' || !e.clipboardData) return;
+    if (!upOpen() || !e.clipboardData) return;
     var files = Array.prototype.map.call(e.clipboardData.items, function (it) { return it.kind === 'file' ? it.getAsFile() : null; }).filter(Boolean);
-    if (files.length) { e.preventDefault(); addFiles(files); }
+    if (files.length) { e.preventDefault(); takeFiles(files); }
   });
 
   var start = (location.hash || '').slice(1);
   // 주소에 화면 표시 없이 새로 열면 시작 화면에서 '이어서 하기 · 처음부터'를 고른다
   if (!start && S.saved && S.agreed && S.route !== 'start') resumeTo = S.route;
   if (!start || ALL.indexOf(start) < 0 || (!S.agreed && FREE.indexOf(start) < 0)) S.route = 'start';
-  else S.route = start;
+  else S.route = start === 'upload' ? 'sit' : start;
   if (NEED_CALC.indexOf(S.route) >= 0 && !S.calc) S.route = 'review';
   if (S.route === 'complaint' && !S.draft) S.route = 'form';
   // 사진은 메모리에만 있어 새로고침하면 사라진다 → 읽는 중 표시도 지운다
   if (S.up.status === 'reading') S.up = { status: 'idle' };
+  S.waitNext = false;
   S.ct.busy = false;
   // 언어 목록 → 한국어(기본 문구)와 고른 언어 문구를 받은 뒤 그린다
   fetch('i18n/languages.json').then(function (r) { return r.json(); }).then(function (l) { LANGS = l; }, function () {}).then(function () {
