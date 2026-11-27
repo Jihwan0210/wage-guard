@@ -87,9 +87,10 @@ class TtsControllerTest {
         srv.createContext("/v1beta/interactions", ex -> {
             seen.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             String pcm = Base64.getEncoder().encodeToString(new byte[200]);
-            byte[] out = (code == 200 ? "{\"steps\":[{\"type\":\"model_output\",\"content\":[{\"type\":\"audio\",\"data\":\"" + pcm + "\"}]}]}" : "{}")
+            int c = seen.get().contains("\"model\":\"limited\"") ? 429 : code;
+            byte[] out = (c == 200 ? "{\"steps\":[{\"type\":\"model_output\",\"content\":[{\"type\":\"audio\",\"data\":\"" + pcm + "\"}]}]}" : "{}")
                     .getBytes(StandardCharsets.UTF_8);
-            ex.sendResponseHeaders(code, out.length);
+            ex.sendResponseHeaders(c, out.length);
             ex.getResponseBody().write(out);
             ex.close();
         });
@@ -130,6 +131,20 @@ class TtsControllerTest {
             assertThat(res.getHeaders().getContentType().toString()).isEqualTo("audio/mpeg");
             assertThat(res.getHeaders().getFirst("X-Tts-Voice")).isEqualTo(TtsController.VOICE);
             assertThat(status(() -> t.speak(new TtsController.TtsRequest("다른 글이에요.")))).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        } finally {
+            srv.stop(0);
+        }
+    }
+
+    @Test
+    void dailyLimitOnOneModelTriesNextModel() throws IOException {
+        AtomicReference<String> seen = new AtomicReference<>();
+        HttpServer srv = fakeGemini(200, seen);
+        try {
+            TtsController t = new TtsController("no-such-edge-tts-command", dir, 1000, "k1", "http://127.0.0.1:" + srv.getAddress().getPort(), "limited,second", 5000);
+            var res = t.speak(new TtsController.TtsRequest("다음 모델로 읽어요."));
+            assertThat(res.getHeaders().getFirst("X-Tts-Voice")).isEqualTo("Charon");
+            assertThat(seen.get()).contains("\"model\":\"second\"");
         } finally {
             srv.stop(0);
         }
