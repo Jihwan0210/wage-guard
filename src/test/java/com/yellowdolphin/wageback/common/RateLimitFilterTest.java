@@ -39,6 +39,7 @@ class RateLimitFilterTest {
         assertEquals(0, allowedOf("/api/v1/documents/extract-batch", 2)); // 한 장 · 여러 장은 같은 몫
         assertEquals(10, allowedOf("/api/v1/calculations/a/explanation", 12));
         assertEquals(60, allowedOf("/api/v1/calculations", 70));
+        assertEquals(20, allowedOf("/api/tts", 25)); // 소리로 읽어 주기
         assertEquals(200, call("/index.html", "1.1.1.1").getStatus()); // 화면 파일은 세지 않는다
     }
 

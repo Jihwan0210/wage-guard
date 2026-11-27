@@ -310,37 +310,23 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .start-cta .btn-line { min-height: 56px; border-color: var(--fg); }
 .trust { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); line-height: 1.6; }
 .trust a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-md); font-weight: 700; color: inherit; text-underline-offset: 4px; }
-/* 문서 미리보기: 계산하면 나오는 결과 PDF 첫 장과 진정서 첫머리를 A4 종이(1:1.414)처럼 겹친다. 기울이지 않는다. 그림이라 누르지 않는다
-   휴대폰은 앞 장 한 장만 단추 아래에
-   deslop-allow dividers: 종이 안의 줄은 실제 진정서 양식(.paper h3 밑줄, 제목 두 줄)과 결과 표를 그대로 옮긴 것
-   deslop-allow bordered-boxes: 종이 한 장 한 장이 따로 떨어진 실제 물건이라 테두리 대신 얇은 그림자로 가장자리를 보인다 */
-.docs { justify-self: center; width: min(100%, 320px); display: flex; flex-direction: column; gap: var(--s3); pointer-events: none; user-select: none; }
-.dp { position: relative; aspect-ratio: 1 / 1.414; overflow: hidden; display: flex; flex-direction: column; gap: 6px; padding: 10% 8% 9%; background: #FFFFFF; color: #1F1F1F; font-size: 11px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 10px 28px rgba(0, 0, 0, 0.14); }
-.dp p { margin: 0; }
+/* 문서 미리보기: 실제로 인쇄되는 A4 두 장의 그림. 같은 크기, 같은 각도로 반듯하게 놓는다.
+   뒷장(진정서)은 오른쪽으로 24px(종이 여백만 보이게), 위로 종이 높이의 12%(제목과 겹줄까지 보이게) 비킨다.
+   그림자는 바닥에 놓인 종이처럼 두 겹. 휴대폰은 앞장 한 장만 단추 아래에 */
+.docs { align-self: center; justify-self: center; width: 100%; margin: 0; display: flex; flex-direction: column; gap: var(--s3); pointer-events: none; user-select: none; }
+.dp { display: block; width: 100%; height: auto; aspect-ratio: 900 / 1273; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 24px -6px rgba(0, 0, 0, 0.18); }
 .dp-back { display: none; }
-/* 브라우저로 PDF 저장하면 종이 여백에 찍히는 날짜와 문서 이름, 쪽 번호 */
-.dp-run { position: absolute; left: 9%; right: 9%; top: 3.6%; display: flex; justify-content: space-between; font-size: 8px; color: #5C5C5C; }
-.dp-run.end { top: auto; bottom: 3.6%; justify-content: flex-end; }
-.dp-title { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 800; padding-bottom: 6px; border-bottom: 2px solid #1F1F1F; }
-.dp-stamp { font-size: 11px; font-weight: 700; color: #B42318; border: 1.5px solid #B42318; padding: 0 6px; letter-spacing: 0.1em; }
-.dp-back .dp-title { justify-content: center; letter-spacing: 0.3em; white-space: pre; font-weight: 700; border-bottom: 3px double #1F1F1F; }
-.dp-h { font-weight: 700; margin-top: 3px; padding-bottom: 2px; border-bottom: 1px solid #1F1F1F; }
-.dp-meta { color: #5C5C5C; }
-.dp-total { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border: 1.5px solid #1F1F1F; }
-.dp-total b { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.dp table { width: 100%; border-collapse: collapse; }
-.dp td { padding: 4px 0; border-bottom: 1px solid #D4D4D4; vertical-align: top; }
-.dp td.n.s { color: #5C5C5C; font-variant-numeric: normal; }
-.dp td.n { text-align: right; white-space: nowrap; padding-left: 8px; font-variant-numeric: tabular-nums; }
-.dp-foot { margin-top: auto; padding-top: 5px; border-top: 1px solid #D4D4D4; color: #5C5C5C; font-size: 10px; }
-.docs-note { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); }
+.docs figcaption { font-size: var(--fs-sm); color: var(--fg); }
 @media (min-width: 960px) {
-  .docs { width: min(100%, 350px); }
-  /* 뒷장은 피진정인 칸까지 보이고, 앞장이 그 아래 20px 에서 덮는다 */
-  .docs-pile { position: relative; height: 630px; }
-  .docs-pile .dp { position: absolute; width: 88%; }
-  .dp-back { display: flex; top: 0; right: 0; padding-top: 7%; gap: 4px; line-height: 1.45; font-size: 10.5px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08); }
-  .dp-front { left: 0; bottom: 0; }
+  .docs { max-width: 410px; justify-self: end; }
+  /* 위 여백 = (폭 - 24px) x 1.4144(A4) x 12% */
+  .docs-pile { position: relative; padding: calc(16.97% - 4px) 24px 0 0; }
+  .docs-pile .dp-front { position: relative; }
+  .dp-back { display: block; position: absolute; top: 0; right: 0; width: calc(100% - 24px); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 6px 16px -6px rgba(0, 0, 0, 0.12); }
+}
+@media (min-width: 1400px) {
+  body .start-band { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } /* 아래 960 규칙보다 뒤에 오지 않아 한 단계 세게 */
+  .docs { max-width: 480px; }
 }
 .flow h2 { font-size: var(--fs-xl); font-weight: 800; }
 .flow ol { margin: var(--s5) 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s5); }
@@ -365,7 +351,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .capture .hint { text-align: center; }
 /* 찍기 전 안내 그림 · 여러 장 카드 · QR */
 .howto { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
-.howto li { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s3) var(--s2); border-radius: var(--r); background: var(--surface); text-align: center; font-weight: 600; line-height: 1.4; }
+.howto li { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s2) 0; text-align: center; font-weight: 600; line-height: 1.4; }
 .howto svg { width: 72px; height: 52px; flex-shrink: 0; fill: none; stroke: var(--fg); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .howto .pf { fill: var(--bg); }
 .howto .hl { stroke: var(--brand-deep); stroke-width: 2.25; }
