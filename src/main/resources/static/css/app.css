@@ -315,7 +315,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
    deslop-allow dividers: 종이 안의 줄은 실제 진정서 양식(.paper h3 밑줄, 제목 두 줄)과 결과 표를 그대로 옮긴 것
    deslop-allow bordered-boxes: 종이 한 장 한 장이 따로 떨어진 실제 물건이라 테두리 대신 얇은 그림자로 가장자리를 보인다 */
 .docs { justify-self: center; width: min(100%, 320px); display: flex; flex-direction: column; gap: var(--s3); pointer-events: none; user-select: none; }
-.dp { position: relative; aspect-ratio: 1 / 1.414; overflow: hidden; display: flex; flex-direction: column; gap: 7px; padding: 10% 9% 9%; background: #FFFFFF; color: #1F1F1F; font-size: 11px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 10px 28px rgba(0, 0, 0, 0.14); }
+.dp { position: relative; aspect-ratio: 1 / 1.414; overflow: hidden; display: flex; flex-direction: column; gap: 6px; padding: 10% 8% 9%; background: #FFFFFF; color: #1F1F1F; font-size: 11px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 10px 28px rgba(0, 0, 0, 0.14); }
 .dp p { margin: 0; }
 .dp-back { display: none; }
 /* 브라우저로 PDF 저장하면 종이 여백에 찍히는 날짜와 문서 이름, 쪽 번호 */
@@ -329,15 +329,15 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .dp-total { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border: 1.5px solid #1F1F1F; }
 .dp-total b { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .dp table { width: 100%; border-collapse: collapse; }
-.dp td { padding: 5px 0; border-bottom: 1px solid #D4D4D4; vertical-align: top; }
+.dp td { padding: 4px 0; border-bottom: 1px solid #D4D4D4; vertical-align: top; }
 .dp td.n.s { color: #5C5C5C; font-variant-numeric: normal; }
 .dp td.n { text-align: right; white-space: nowrap; padding-left: 8px; font-variant-numeric: tabular-nums; }
 .dp-foot { margin-top: auto; padding-top: 5px; border-top: 1px solid #D4D4D4; color: #5C5C5C; font-size: 10px; }
 .docs-note { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); }
 @media (min-width: 960px) {
-  .docs { width: min(100%, 340px); }
+  .docs { width: min(100%, 350px); }
   /* 뒷장은 피진정인 칸까지 보이고, 앞장이 그 아래 20px 에서 덮는다 */
-  .docs-pile { position: relative; height: 620px; }
+  .docs-pile { position: relative; height: 630px; }
   .docs-pile .dp { position: absolute; width: 88%; }
   .dp-back { display: flex; top: 0; right: 0; padding-top: 7%; gap: 4px; line-height: 1.45; font-size: 10.5px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08); }
   .dp-front { left: 0; bottom: 0; }
