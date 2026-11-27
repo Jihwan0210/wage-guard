@@ -822,7 +822,7 @@
     var qs = qList();
     var bars = qs.map(function (_, j) { var i = j + 1; return '<span' + (i < n ? ' class="on"' : i === n ? ' class="now"' : '') + '></span>'; }).join('');
     // 진행 표시에 지금 질문의 이름도 붙인다: 「질문 5 / 6 · 약속한 급여」
-    var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length }) + ' · ' + t('q.name' + n);
+    var list = qListHtml(n), where = t('q.progress', { n: n, total: qs.length }) + ', ' + t('q.name' + n);
     return '<div class="split">' +
       '<div class="stack-lg">' +
       '<div class="progress"><div class="bar" style="--n:' + qs.length + '" aria-hidden="true">' + bars + '</div><span class="hint only-d">' + where + '</span>' +
@@ -1043,7 +1043,7 @@
     for (var d = 1; d <= n; d++) {
       var date = ym + '-' + pad(d), w = f.work[date], wd = (lead + d - 1) % 7, ok = inPeriod(date);
       if (w) { total += workedMin(w); count++; }
-      var label = krOrLocal(date) + (w ? ' · ' + w.s + '~' + w.e + ' · ' + t('cal.hoursShort', { h: hrs(workedMin(w)) }) + (w.h ? ' · ' + t('cal.holiday') : '') : '');
+      var label = krOrLocal(date) + (w ? ', ' + w.s + '~' + w.e + ', ' + t('cal.hoursShort', { h: hrs(workedMin(w)) }) + (w.h ? ', ' + t('cal.holiday') : '') : '');
       cells += '<button type="button" id="cd' + date + '" class="cal-day' + (wd > 4 ? ' we' : '') + (w ? ' has' : '') + (w && w.h ? ' hol' : '') + '" data-act="cal-day" data-d="' + date + '" aria-pressed="' + (S.calSel === date) + '" aria-label="' + esc(label) + '"' + (ok ? '' : ' disabled') + '>' +
         '<b>' + d + '</b>' + (w ? '<small>' + (w.h ? t('cal.holShort') : '') + hrs(workedMin(w)) + 'h</small>' : '') + '</button>';
     }
@@ -1066,7 +1066,7 @@
         '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="cal-save"><span>' + t('cal.save') + '</span></button>' +
         (f.work[S.calSel] ? '<button type="button" class="btn btn-line" data-act="cal-del">' + icon('trash') + '<span>' + t('cal.del') + '</span></button>' : '<button type="button" class="btn btn-line" data-act="cal-close">' + t('cal.close') + '</button>') + '</div></section>';
     }
-    var usualText = usual ? t('cal.fillBody', { days: f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(' · '), s: hh(f.tStart), e: hh(f.tEnd) }) : '';
+    var usualText = usual ? t('cal.fillBody', { days: f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(', '), s: hh(f.tStart), e: hh(f.tEnd) }) : '';
     return '<div class="split">' +
       '<div class="stack-lg">' + progress(1) + langBanner() +
       '<div class="stack"><h1 tabindex="-1">' + t('cal.title') + '</h1><p class="lead">' + t('cal.lead') + ' ' + term('overtime') + ' ' + term('night') + '</p></div>' +
@@ -1094,13 +1094,13 @@
       var checked = S.low[key] && S.ok[key];
       var err = S.fieldErr[key];
       var val = value ? '<span>' + esc(value) + '</span>' : '<span class="empty">' + t(S.unread[key] ? 'review.unread' : 'review.empty') + '</span>';
-      var tag = src === 'doc' ? '<span class="tag">' + t('review.doc') + (S.from[key] ? ' · ' + t('up.page', { n: S.from[key] }) : '') + '</span>' : src === 'self' ? '<span class="tag self">' + t('review.self') + '</span>' : '';
+      var tag = src === 'doc' ? '<span class="tag">' + t('review.doc') + (S.from[key] ? ', ' + t('up.page', { n: S.from[key] }) : '') + '</span>' : src === 'self' ? '<span class="tag self">' + t('review.self') + '</span>' : '';
       return '<div class="row' + (low ? ' low' : '') + '"><div class="row-main"><dt>' + label + '</dt><dd>' + val + tag + (checked ? '<span class="checked">' + icon('check') + t('review.checked') + '</span>' : '') + '</dd>' +
         '<button type="button" class="row-edit" data-go="' + goTo + '" aria-label="' + esc(t('review.editOf', { what: label })) + '">' + t('review.edit') + '</button></div>' +
         (err ? '<p class="err" role="alert">' + esc(err) + '</p>' : '') +
         (low ? '<p class="row-note">' + (S.conf[key] ? t('review.conflict', { v: esc(S.conf[key]) }) : t('review.blurry')) + '</p><button type="button" class="ok-btn" data-act="ok" data-k="' + key + '">' + icon('check') + t('review.yes') + '</button>' : '') + '</div>';
     }
-    var timeText = f.tStart !== '' && f.tEnd !== '' ? hh(f.tStart) + ' ~ ' + hh(f.tEnd) + (f.brk !== '' ? ' · ' + t('q4.break') + ' ' + brkName(f.brk) : '') : f.dayHours ? t('cal.hoursShort', { h: f.dayHours }) : '';
+    var timeText = f.tStart !== '' && f.tEnd !== '' ? hh(f.tStart) + ' ~ ' + hh(f.tEnd) + (f.brk !== '' ? ', ' + t('q4.break') + ' ' + brkName(f.brk) : '') : f.dayHours ? t('cal.hoursShort', { h: f.dayHours }) : '';
     var dayText2 = f.days.map(function (on, i) { return on ? t('day.' + i) : ''; }).filter(Boolean).join(' ');
     var rec = workDays().length;
     var moreRows = f.more.map(function (m) { return row(m.month ? ymName(m.month) : t('q6.extraMonth'), m.paid !== '' ? won(m.paid) : '', 'more', 'q6'); }).join('');
@@ -1193,7 +1193,7 @@
       if (it.missing) { if (missing.indexOf(it.name) < 0) missing.push(it.name); return ''; }
       if (it.amount === 0 && /^(OVERTIME|NIGHT|HOLIDAY)$/.test(it.code) && recorded.indexOf(it.month) < 0) return '';
       if (it.amount === 0 && CARD_ITEM[it.code] && has(CARD_ITEM[it.code])) {
-        cardZero.push('<li><b>' + esc(it.label) + ' · ' + money(0) + '</b> <button type="button" class="btn-text" data-act="item" data-i="' + i + '">' + t('result.zeroWhyBtn') + '</button></li>');
+        cardZero.push('<li><b>' + esc(it.label) + ': ' + money(0) + '</b> <button type="button" class="btn-text" data-act="item" data-i="' + i + '">' + t('result.zeroWhyBtn') + '</button></li>');
         return '';
       }
       if (it.amount === 0) { zero.push('<button type="button" class="chip" data-act="item" data-i="' + i + '">' + esc(it.label) + '</button>'); return ''; }
@@ -1203,7 +1203,7 @@
         (it.estimated || sub ? '<small>' + (it.estimated ? '<span class="tag">' + t('result.estimated') + '</span> ' : '') + esc(sub) + '</small>' : '') + '</span>' + right + icon('chev', 'chev') + '</button></li>';
     }).join('');
     if (missing.length) {
-      items += '<li><button type="button" class="item-row miss-row" data-act="miss-go"><span class="item-name">' + t('result.missRow', { n: missing.length }) + '<small>' + esc(missing.join(' · ')) + '</small></span>' +
+      items += '<li><button type="button" class="item-row miss-row" data-act="miss-go"><span class="item-name">' + t('result.missRow', { n: missing.length }) + '<small>' + esc(missing.join(', ')) + '</small></span>' +
         '<span class="item-status">' + t('result.input') + '</span>' + icon('chev', 'chev') + '</button></li>';
     }
     var zeroBox = zero.length ? '<div class="zero-box"><span class="hint">' + t('result.zero') + '</span><div class="chips">' + zero.join('') + '</div></div>' : '';
@@ -1455,7 +1455,7 @@
         (miss ? '<p id="' + id + '-err" class="err">' + esc(miss) + '</p>' : '') + '</div>';
     }
     function docTag(k) { return S.src[k] === 'doc' ? ' <span class="tag">' + t('form.fromDoc') + '</span>' : ''; }
-    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd><span data-auto-company>' + esc(S.f.company || S.p.company || t('form.noCompany')) + '</span> · ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + docTag('company') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + docTag('start') + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
+    var auto = '<dl class="kv"><dt>' + t('form.kCompany') + '</dt><dd><span data-auto-company>' + esc(S.f.company || S.p.company || t('form.noCompany')) + '</span>, ' + t(S.f.size === 'under' ? 'size.under' : 'size.five') + docTag('company') + '</dd><dt>' + t('form.kPeriod') + '</dt><dd>' + esc(dotDate(S.f.start)) + ' ~ ' + esc(S.f.employed === 'yes' ? t('result.employed') : dotDate(S.f.end)) + docTag('start') + '</dd><dt>' + t('form.kUnpaid') + '</dt><dd><strong>' + money(R.total) + '</strong></dd></dl>';
     var nDoc = Object.keys(S.psrc || {}).filter(function (k) { return S.psrc[k] === 'doc' && p[k]; }).length;
     var docNote = nDoc ? '<p class="note" role="status">' + icon('check') + ' ' + t('form.docNote', { n: nDoc }) + '</p>' : '';
     var got = READY.filter(function (k) { return S.ready[k]; }).length;
@@ -1542,7 +1542,7 @@
       '<article class="paper" lang="ko"><h2 class="doc-title">' + esc(d.draftKo.title) + '</h2>' + ko +
       '<p class="sign">' + signMonth() + ' [  ]일<br>진정인 ' + esc(S.p.name || '[이름]') + ' (서명)</p>' +
       '<p class="foot">' + esc(d.disclaimer) + ' 제출 전 내용이 사실과 같은지 확인하세요.</p></article>' +
-      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(trName) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') +
+      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(trName) + ' ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') +
       '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(plainText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
@@ -1672,7 +1672,7 @@
       '<article class="paper" lang="ko"><h2 class="doc-title" id="lt-title" tabindex="-1">내 용 증 명</h2>' + ko +
       '<p class="sign">' + todayDot() + '<br>발신인 ' + esc(p.name || '[이름]') + ' (서명 또는 날인)</p>' +
       '<p class="foot">' + esc(d.disclaimer) + ' 보내기 전 내용이 사실과 같은지 확인하세요.</p></article>' +
-      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(langOf(trLang).name) + ' · ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') + '</div>' +
+      (showTr ? '<article class="paper tr-col" lang="' + trLang + '" aria-label="' + t('cp.trLabel') + '"><p class="hint">' + esc(langOf(trLang).name) + ' ' + t('cp.trLabel') + '</p>' + tr + '</article>' : '') + '</div>' +
       (S.copyFallback ? '<div class="field no-print"><label for="copybox">' + t('cp.copyBox') + '</label><textarea id="copybox" class="input copybox" readonly lang="ko">' + esc(letterText()) + '</textarea></div>' : '') +
       '</div><aside class="side no-print">' +
       cta(saveBtns(), ' ') +
@@ -1958,9 +1958,9 @@
     var rows = DEADLINES.filter(function (x) { return dl[x.from]; }).map(function (x) {
       var due = addTo(dl[x.from], x.plus), left = Math.round((due - today) / 864e5);
       var cls = left < 0 ? 'dj-bad' : left <= 30 ? 'dj-warn' : 'dj-step';
-      var src = (x.sources || []).map(function (s) { return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" lang="ko">' + esc(s.name) + '</a>'; }).join(' · ');
+      var src = (x.sources || []).map(function (s) { return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" lang="ko">' + esc(s.name) + '</a>'; }).join(', ');
       return '<li class="' + cls + '">' + icon(left < 0 ? 'x' : 'clock') + '<span><strong>' + esc(pick(x.title)) + '</strong><br>' +
-        t('dl.due', { d: krOrLocal(ymdOf(due)) }) + ' · <b>' + (left < 0 ? t('dl.past', { n: -left }) : left === 0 ? t('dl.today') : t('dl.left', { n: left })) + '</b>' +
+        t('dl.due', { d: krOrLocal(ymdOf(due)) }) + ', <b>' + (left < 0 ? t('dl.past', { n: -left }) : left === 0 ? t('dl.today') : t('dl.left', { n: left })) + '</b>' +
         '<br>' + esc(pick(x.what)) + '<br><small>' + src + '</small></span></li>';
     }).join('');
     return '<div class="split">' +
@@ -2274,7 +2274,7 @@
     (res.conflicts || []).forEach(function (c) {
       var row = ROW_OF[c.key];
       if (!row) return;
-      S.conf[row] = c.values.map(function (v) { return t('up.page', { n: v.page }) + ' ' + shown(v.value); }).join(' · ');
+      S.conf[row] = c.values.map(function (v) { return t('up.page', { n: v.page }) + ' ' + shown(v.value); }).join(', ');
       S.low[row] = true;
       S.ok[row] = false;
     });
