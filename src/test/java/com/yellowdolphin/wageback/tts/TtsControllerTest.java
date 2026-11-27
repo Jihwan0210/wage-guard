@@ -87,7 +87,7 @@ class TtsControllerTest {
         srv.createContext("/v1beta/interactions", ex -> {
             seen.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             String pcm = Base64.getEncoder().encodeToString(new byte[200]);
-            int c = seen.get().contains("\"model\":\"limited\"") ? 429 : code;
+            int c = seen.get().contains("\"model\":\"limited\"") ? 429 : seen.get().contains("\"model\":\"nostyle\"") && seen.get().contains("annotations") ? 400 : code;
             byte[] out = (c == 200 ? "{\"steps\":[{\"type\":\"model_output\",\"content\":[{\"type\":\"audio\",\"data\":\"" + pcm + "\"}]}]}" : "{}")
                     .getBytes(StandardCharsets.UTF_8);
             ex.sendResponseHeaders(c, out.length);
@@ -141,10 +141,10 @@ class TtsControllerTest {
         AtomicReference<String> seen = new AtomicReference<>();
         HttpServer srv = fakeGemini(200, seen);
         try {
-            TtsController t = new TtsController("no-such-edge-tts-command", dir, 1000, "k1", "http://127.0.0.1:" + srv.getAddress().getPort(), "limited,second", 5000);
+            TtsController t = new TtsController("no-such-edge-tts-command", dir, 1000, "k1", "http://127.0.0.1:" + srv.getAddress().getPort(), "limited,nostyle", 5000);
             var res = t.speak(new TtsController.TtsRequest("다음 모델로 읽어요."));
             assertThat(res.getHeaders().getFirst("X-Tts-Voice")).isEqualTo("Charon");
-            assertThat(seen.get()).contains("\"model\":\"second\"");
+            assertThat(seen.get()).contains("\"model\":\"nostyle\"").doesNotContain("annotations");
         } finally {
             srv.stop(0);
         }

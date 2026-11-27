@@ -152,25 +152,31 @@ public class TtsController {
         int status = 0;
         for (String model : models) {
             for (String key : keys) {
-                status = tryGemini(model, key, text, wav);
+                status = tryGemini(model, key, text, wav, true);
+                if (status == 400) { // 말투 지시를 받지 않는 모델이 있다
+                    status = tryGemini(model, key, text, wav, false);
+                }
                 if (status == 200) {
                     log.info("tts gemini model={}", model);
                     return;
                 }
+                log.warn("tts gemini http {} {}", status, model);
                 if (status != 429) {
-                    throw new IOException("gemini http " + status + " " + model);
+                    break; // 이 모델은 안 되니 다음 모델로
                 }
             }
         }
         throw new IOException("gemini http " + status);
     }
 
-    private int tryGemini(String model, String key, String text, Path wav) throws IOException {
+    private int tryGemini(String model, String key, String text, Path wav, boolean style) throws IOException {
         ObjectNode body = json.createObjectNode();
         body.put("model", model);
         ObjectNode content = body.putArray("input").addObject().put("type", "user_input").putArray("content").addObject();
         content.put("type", "text").put("text", text);
-        content.putArray("annotations").addObject().put("type", "speech_metadata").put("style", STYLE);
+        if (style) {
+            content.putArray("annotations").addObject().put("type", "speech_metadata").put("style", STYLE);
+        }
         body.putObject("response_format").put("type", "audio");
         body.putObject("generation_config").putArray("speech_config").addObject().put("voice", GEMINI_VOICE);
         String req = json.writeValueAsString(body);
