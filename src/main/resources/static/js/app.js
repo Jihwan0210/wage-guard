@@ -261,13 +261,11 @@
   function icon(name, cls) {
     return '<svg class="ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ICONS[name] + '</svg>';
   }
-  // 노란돌고래 마스코트 (favicon.svg 와 같은 그림)
-  function dolphin(cls) {
-    return '<svg class="' + cls + '" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g transform="translate(2 4)" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" fill="#FFC21A">' +
-      '<path d="M33 20.5c1-5 4-8.5 8.5-9.5-1.2 3.4-1.2 6.6-.2 10z"/><path d="M11 45c3.5-14 15.5-23.5 30-23 6 .2 10.5 2.6 13.5 5.8l5 1.4c.6 1-.4 2.2-2 2.2h-4c-4 5.5-11.5 9.6-21.5 9.6-8 0-14.6 1.4-18.6 6.5"/>' +
-      '<path d="M13.5 46.5c-3.5-1-7.5-.4-10 2.5 3.8.2 7 1.5 9.2 4.5"/><path d="M33.5 40c.3 4-2 7.4-6 8.6 1.6-2.8 2.2-5.6 2-8.3"/></g>' +
-      '<circle cx="49.5" cy="29.5" r="2" fill="currentColor"/>' +
-      (cls === 'mascot' ? '<path class="wave" d="M4 60c5-3 9-3 14 0s9 3 14 0 9-3 14 0 9 3 14 0" fill="none" stroke-width="3" stroke-linecap="round"/>' : '') + '</svg>';
+  // 월급지킴이 로고 (js/logo.js). 한국어는 글자 로고, 다른 언어는 동전 표시 + 그 언어 이름
+  function brandMark() {
+    var L = window.LOGO || {};
+    if (S.lang === 'ko' && L.word) return '<span class="brand-mark alt">' + (L.mark || '') + '</span><span class="brand-t brand-word" aria-hidden="true">' + L.word + '</span><span class="sr">' + t('brand') + '</span>';
+    return '<span class="brand-mark">' + (L.mark || '') + '</span><span class="brand-t">' + t('brand') + '</span>';
   }
 
   // ---------- 서버 ----------
@@ -610,8 +608,8 @@
     var steps = [1, 2, 3, 4].map(function (i) {
       return '<li' + (step === i ? ' aria-current="step"' : step > i ? ' class="done"' : '') + '><b>' + (step > i ? icon('check') : i) + '</b>' + stepName(i) + '</li>';
     }).join('');
-    // 상표(돌고래 + 이름)는 어느 화면에서나 시작 화면으로 가는 링크. 쓰던 값은 그대로 두고, 시작 화면에 '이어서 하기'가 뜬다
-    var brand = '<a class="brand" href="#start" data-act="home">' + dolphin('') + '<span class="brand-t">' + t('brand') + '</span><span class="sr">, ' + t('brand.home') + '</span></a>';
+    // 상표(로고)는 어느 화면에서나 시작 화면으로 가는 링크. 쓰던 값은 그대로 두고, 시작 화면에 '이어서 하기'가 뜬다
+    var brand = '<a class="brand" href="#start" data-act="home">' + brandMark() + '<span class="sr">, ' + t('brand.home') + '</span></a>';
     var left = r === 'start'
       ? brand
       : '<button type="button" class="icon-btn" data-act="back" aria-label="' + t('top.back') + '">' + icon('arrow-l') + '</button>' +
@@ -658,7 +656,8 @@
   // 시작 화면 아래에만: 저장 안내 + 쉬운 말 사전 + 내 정보 지우기 (다른 화면은 결과의 목록 줄에서)
   function footer() {
     return '<footer class="foot-bar no-print"><p class="hint">' + icon('lock') + ' ' + t('foot.saved') + '</p>' +
-      '<div class="nav-list">' + navRow('data-go="words"', 'book', t('title.words')) + navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div></footer>';
+      '<div class="nav-list">' + navRow('data-go="words"', 'book', t('title.words')) + navRow('data-act="wipe"', 'trash', t('wipe.btn')) + '</div>' +
+      '<p class="hint team">' + t('foot.team') + '</p></footer>';
   }
   function progress(step) {
     var bars = [1, 2, 3, 4].map(function (i) { return '<span' + (i < step ? ' class="on"' : i === step ? ' class="now"' : '') + '></span>'; }).join('');
@@ -684,7 +683,7 @@
       '<div class="btn-row"><button type="button" class="btn btn-primary" data-act="resume"><span>' + t('resume.go') + '</span></button>' +
       '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     return '<div class="split wide-side">' +
-      '<div class="start-main"><section class="hero">' + dolphin('mascot') +
+      '<div class="start-main"><section class="hero">' +
       '<h1 tabindex="-1">' + t('start.title') + '</h1>' +
       '<p class="lead">' + t('start.lead') + '</p>' +
       '<p class="trust">' + icon('lock') + t('start.trust') + '</p></section>' + resume +
@@ -2048,6 +2047,7 @@
     var dock = app.querySelector('.dock'), c = app.querySelector('main .cta');
     if (mobile.matches && c) dock.insertBefore(c, dock.firstChild);
     var h0 = mobile.matches ? dock.offsetHeight : 0;
+    document.title = t('brand');
     if (h0 !== dockH) { dockH = h0; document.documentElement.style.setProperty('--dock-h', h0 + 'px'); }
     if (transition) {
       window.scrollTo(0, 0);

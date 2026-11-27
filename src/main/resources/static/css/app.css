@@ -1,4 +1,4 @@
-/* 노란돌고래 · 화면 스타일
+/* 월급지킴이 · 화면 스타일
    레이아웃: 휴대폰은 한 열 + 아래 고정 버튼, 960px 이상은 상단 단계 표시 + 두 열(본문 · 옆 칸)
    디자인 토큰은 아래 :root 한 곳에만 둔다 → docs/디자인_시스템.md
    방향: 흰 종이 · 먹남색 잉크 · 노랑 형광펜. 색은 먹남색(글씨 · 주 단추)과 노랑(지금 고른 것 · 결과 금액) 둘만 쓴다.
@@ -125,7 +125,10 @@ input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 .top-title { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: var(--fs-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand { display: inline-flex; align-items: center; gap: var(--s2); min-height: 44px; min-width: 44px; padding-inline: 6px; margin-inline: -6px; border-radius: var(--r-sm); font-weight: 700; font-size: var(--fs-md); letter-spacing: -0.01em; text-decoration: none; transition: background var(--t-fast); }
 .brand:hover { background: var(--surface); }
-.brand svg { width: 32px; height: 32px; flex-shrink: 0; }
+.brand-mark { display: inline-flex; flex-shrink: 0; }
+.brand-mark svg { width: 30px; height: 30px; }
+.brand-mark.alt { display: none; } /* 한국어 글자 로고 안에 동전이 이미 있다 */
+.brand-word svg { display: block; height: 26px; width: auto; }
 .brand small { font-weight: 400; color: var(--muted); font-size: var(--fs-sm); }
 .brand-desk { display: inline-flex; min-width: 0; }
 .steps-nav { display: none; margin: 0 auto; padding: 0; list-style: none; gap: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
@@ -154,7 +157,8 @@ input, textarea { caret-color: var(--fg); accent-color: var(--fg); }
 /* 두 열: 넓은 화면에서 본문 + 옆 칸 */
 @media (max-width: 959px) {
   .only-d { display: none !important; }
-  .brand-desk .brand-t { display: none; } /* 휴대폰 안쪽 화면: 돌고래만 (누르면 시작 화면) */
+  .brand-desk .brand-t { display: none; } /* 휴대폰 안쪽 화면: 동전 표시만 (누르면 시작 화면) */
+  .brand-desk .brand-mark.alt { display: inline-flex; }
 }
 .note .ico, .hint .ico { vertical-align: -4px; }
 .brand-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -291,9 +295,7 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 
 /* 시작 */
 .hero { position: relative; display: flex; flex-direction: column; gap: var(--s4); padding-top: var(--s2); }
-.hero h1 { font-size: var(--fs-3xl); line-height: 1.3; letter-spacing: -0.015em; padding-right: 72px; }
-.mascot { position: absolute; right: -4px; top: 0; width: 68px; height: auto; }
-.mascot .wave { stroke: var(--brand); }
+.hero h1 { font-size: var(--fs-3xl); line-height: 1.3; letter-spacing: -0.015em; }
 .trust { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
 .trust .ico { width: 18px; height: 18px; color: var(--fg); }
 .agree-box { padding: var(--s4); border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }
@@ -487,7 +489,6 @@ dialog .stack { gap: var(--s4); }
   .split .cta { margin-top: 0; }
   .hero { padding-top: 0; gap: var(--s4); }
   .hero h1 { padding-right: 0; max-width: 11em; }
-  .mascot { position: static; width: 104px; order: -1; }
   .start-side { padding: var(--s5); border-radius: var(--r-lg); background: var(--bg); border: 1px solid var(--line); }
   /* 시작 화면은 한 화면(1280x800)에 스크롤 없이: 왼쪽 = 소개 · 언어 · 확인 · 시작 단추, 오른쪽 = 상황(세 줄) · 더 확인할 것 · 저장 안내.
      상황을 골라도 높이가 그대로라 아래 묶음이 움직이지 않는다 */
@@ -501,7 +502,6 @@ dialog .stack { gap: var(--s4); }
   .wide-side .agree-box { padding: var(--s3) var(--s4); gap: var(--s2); }
   .wide-side .start-main > fieldset { gap: var(--s2); }
   .split.wide-side > .foot-bar .nav-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s4); }
-  .wide-side .mascot { display: none; }
   .wide-side .hero { gap: var(--s1); }
   .wide-side .hero h1 { font-size: 1.75rem; max-width: none; }
   .start-main .cta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
@@ -653,6 +653,14 @@ a.small-btn { color: var(--fg); text-decoration: none; }
 .lang-btn .ico { width: 18px; height: 18px; color: var(--muted); }
 /* 아래 고정 영역: 주 버튼 + 탭 막대. 본문은 그 높이만큼 아래를 비운다 */
 .dock:empty { display: none; }
+/* 좁은 휴대폰 안쪽 화면: 화면 제목이 잘리지 않게 언어 단추는 지구 표시만(이름은 aria-label), 동전 표시는 조금 작게 */
+@media (max-width: 400px) {
+  .top-in:has(.brand-desk) .lang-btn { padding: 0; width: 44px; justify-content: center; }
+  .top-in:has(.brand-desk) .lang-btn span { display: none; }
+  .brand-desk .brand-mark svg { width: 24px; height: 24px; }
+  .brand-desk { margin-right: var(--s1); }
+  .top-title { white-space: normal; text-overflow: clip; line-height: 1.2; text-wrap: balance; word-break: keep-all; }
+}
 .tabbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tab { min-height: 56px; padding: 6px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: var(--fs-sm); font-weight: 600; line-height: 1.25; cursor: pointer; transition: color var(--t-fast), transform var(--t-fast); }
 .tab .ico { width: 24px; height: 24px; padding: 0; border-radius: 12px; }
@@ -791,10 +799,9 @@ dialog h3.label { margin: 0; }
 /* 요일 단추 7개는 한 줄에 (휴대폰에서 '일'만 다음 줄로 떨어지지 않게) */
 .days { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 
-/* 시작 화면 제목은 한 줄: 휴대폰에서는 돌고래를 제목 위로 올리고 글자를 화면 폭에 맞춘다 */
+/* 시작 화면 제목은 한 줄: 휴대폰에서는 글자를 화면 폭에 맞춘다 */
 @media (max-width: 959px) {
-  .hero h1 { padding-right: 0; font-size: clamp(1.375rem, 6.2vw, 2.25rem); }
-  .mascot { position: static; width: 56px; order: -1; margin-bottom: calc(var(--s2) * -1); }
+  .hero h1 { font-size: clamp(1.375rem, 6.2vw, 2.25rem); }
 }
 .input-time { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .opt-row-d > summary.opt-row::after { content: none; }
