@@ -41,7 +41,7 @@ public final class ContractCheck {
         List<Finding> findings = new ArrayList<>();
         List<String> notChecked = new ArrayList<>();
         // 제17조 ① · 시행령 제8조 (law.go.kr lsiSeq=285279 · 270551, 2026-11-15 확인)
-        Basis art17 = RuleEngine.basis("근로기준법", "제17조", "계약할 때 임금 · 일하는 시간 · 휴일 · 연차 · 일하는 곳과 할 일을 적어 줘야 해요");
+        Basis art17 = RuleEngine.basis("근로기준법", "제17조", "계약할 때 임금, 일하는 시간, 휴일, 연차, 일하는 곳과 할 일을 적어 줘야 해요");
         for (String code : REQUIRED) {
             if (code.equals("ANNUAL_LEAVE") && "UNDER_FIVE".equals(r.size()) && !written.contains(code)) {
                 // 시행령 별표1: 5인 미만에는 제60조(연차)가 적용되지 않는다
@@ -49,7 +49,7 @@ public final class ContractCheck {
             } else if (written.contains(code)) {
                 ok.add(code);
             } else {
-                findings.add(new Finding(code, "MISSING", "계약서에 '" + name(code) + "'이(가) 안 보여요.", art17));
+                findings.add(new Finding(code, "MISSING", "계약서에서 '" + name(code) + "' 내용이 안 보여요.", art17));
             }
         }
 
@@ -99,12 +99,12 @@ public final class ContractCheck {
                     RuleEngine.basis("근로기준법", "제53조", "서로 합의해도 연장 근로는 일주일 12시간까지예요")));
         }
         return new Result(year, min == null ? null : min.longValue(), hourly, formula, ok, findings, notChecked,
-                "법률 자문이 아니에요. 계약서 내용은 직접 확인한 대로 판단했어요.");
+                "법률 상담이 아니에요. 계약서 내용은 직접 확인한 대로 판단했어요.");
     }
 
     static String name(String code) {
         return switch (code) {
-            case "WAGE" -> "임금(구성 · 계산 · 주는 방법)";
+            case "WAGE" -> "임금(구성, 계산, 주는 방법)";
             case "HOURS" -> "일하는 시간";
             case "HOLIDAY" -> "쉬는 날(주휴일)";
             case "ANNUAL_LEAVE" -> "연차 휴가";

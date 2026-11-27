@@ -41,6 +41,8 @@ public class ExplanationService {
             - 자리표시자에는 단위(원, 년 · 월, KRW, tháng)가 이미 들어 있으니 앞뒤에 단위를 또 쓰지 않는다
             - status 가 NO_DATA 면 정보가 없어 계산하지 않았으니 해당되면 입력해 달라고, INCLUDED_IN_WAGE 면 월급에 이미 들어 있다고 쓴다
             - estimated 가 true 면 추정한 금액이라 실제와 다를 수 있다고 밝힌다
+            - 한국어면 해요체로 쓰고, 달이 있으면 달을 먼저 쓴다. 예: "{{X.month}}에 못 받은 월급은 {{X.amount}}이에요."
+            - label 의 어려운 한자어(미지급, 가산 등)는 쉬운 말(못 받은, 더 얹어 주는)로 풀어 쓴다
             - 법률 판단이나 주어지지 않은 사실을 지어내지 않는다
             - summary 는 summaryPlaceholder 를 넣은 한 문장
             답은 JSON 한 개만: {"items":[{"key":"OVERTIME","text":"..."}],"summary":"..."}
@@ -49,11 +51,11 @@ public class ExplanationService {
     private static final Map<String, String> LANG_NAMES = Map.of("ko", "한국어", "en", "English", "vi", "Tiếng Việt");
 
     private static final String[][] FIXED = { // CALCULATED, NO_DATA, INCLUDED_IN_WAGE, 합계 (ko, en, vi)
-            { "%s %s을 받아야 하는 것으로 계산됐어요.", "%s: calculated as %s.", "%s: được tính là %s." },
+            { "%s: 받아야 할 돈은 %s이에요.", "%s: calculated as %s.", "%s: được tính là %s." },
             { "%s: 입력한 정보가 없어 계산하지 않았어요. 해당되면 입력해 주세요.", "%s: not calculated because no information was entered. Please enter it if it applies.",
                     "%s: chưa tính vì chưa có thông tin. Nếu có, hãy nhập thêm." },
             { "%s: 월급 안에 이미 들어 있어요.", "%s: already included in your monthly wage.", "%s: đã bao gồm trong lương tháng." },
-            { "모두 합쳐 %s을 아직 받지 못한 것으로 계산됐어요.", "In total, %s is calculated as unpaid.", "Tổng cộng %s được tính là chưa được trả." } };
+            { "아직 받지 못한 돈은 모두 %s이에요.", "In total, %s is calculated as unpaid.", "Tổng cộng %s được tính là chưa được trả." } };
 
     private static final String[] ESTIMATED = { " (추정)", " (estimated)", " (ước tính)" };
 

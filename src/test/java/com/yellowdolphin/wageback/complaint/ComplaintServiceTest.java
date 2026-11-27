@@ -44,7 +44,7 @@ class ComplaintServiceTest {
         for (String p : sent) {
             assertFalse(p.contains("홍길동") || p.contains("김사장") || p.contains("010-1111-2222") || p.contains("서울시"), p);
         }
-        assertEquals("홍길동 · 010-1111-2222\n서울시 어딘가", d.draftKo().sections().get(0).body());
+        assertEquals("홍길동, 010-1111-2222\n서울시 어딘가", d.draftKo().sections().get(0).body());
         assertEquals("2026년 9월분 미지급 임금 456,880원\n2026년 9월분 연장근로수당 161,976원\n합계 618,856원", d.draftKo().sections().get(3).body());
         assertTrue(d.draftKo().sections().get(4).body().endsWith("\n다듬은 문단입니다."));
         assertEquals("vi", d.translation().lang());
@@ -101,7 +101,7 @@ class ComplaintServiceTest {
         var ko = d.draftKo().sections();
         assertEquals("내용증명", d.draftKo().title());
         assertEquals(8, ko.size());
-        assertEquals("홍길동 · 010-1111-2222\n서울시 어딘가", ko.get(0).body());
+        assertEquals("홍길동, 010-1111-2222\n서울시 어딘가", ko.get(0).body());
         assertEquals("○○식당 (대표 김사장)\n서울시 가게", ko.get(1).body());
         assertEquals("2026년 9월분 미지급 임금 456,880원\n2026년 9월분 연장근로수당 161,976원\n합계 금 육십일만팔천팔백오십육원(₩618,856)", ko.get(4).body());
         assertTrue(ko.get(3).body().startsWith("발신인은 2025. 3. 3.부터 2026. 10. 31.까지 수신인의 사업장에서 주방 보조 업무로 근무하고 퇴직하였으나"), ko.get(3).body());
@@ -153,7 +153,7 @@ class ComplaintServiceTest {
         Request r = new Request(new Person("홍길동", "010-1111-2222", " "), new Company("○○식당", "김사장", "서울시 가게", null),
                 "주방 보조", false, null, "ko");
         var ko = service.draft(RESULT, r).draftKo().sections();
-        assertEquals("홍길동 · 010-1111-2222", ko.get(0).body());
+        assertEquals("홍길동, 010-1111-2222", ko.get(0).body());
         assertEquals("○○식당 (대표 김사장)\n서울시 가게", ko.get(1).body());
     }
 

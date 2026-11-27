@@ -68,14 +68,14 @@ public class ComplaintService {
 
         String opening = "진정인은 " + (start.isEmpty() ? "[입사일]" : Words.dateKo(start)) + "부터 "
                 + (employed || end.isEmpty() ? "현재" : Words.dateKo(end)) + "까지 피진정인 사업장에서 "
-                + (blank(req.job()) ? "" : req.job() + " 업무로 ") + "근무하였으며, 아래 체불 내역의 금품을 지급받지 못하였습니다.";
+                + (blank(req.job()) ? "" : req.job() + " 업무로 ") + "근무하였으며, 위 체불 내역의 금품을 지급받지 못하였습니다.";
         Polished p = blank(req.extraFacts()) ? new Polished("", true) : polish(POLISH, req.extraFacts(), me, co);
         String content = opening + (p.text().isEmpty() ? "" : "\n" + p.text());
 
         List<Section> ko = List.of(
-                new Section("진정인", or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
+                new Section("진정인", or(me.name(), "[이름]") + ", " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
                 new Section("피진정인", or(co.companyName(), "[회사 이름]") + " (대표 " + or(co.ownerName(), "[사장님 이름]") + ")\n"
-                        + or(co.address(), "[사업장 주소]") + opt(" · ", co.phone())),
+                        + or(co.address(), "[사업장 주소]") + opt(", ", co.phone())),
                 new Section("근로 내용", work(start, end, employed, req.job(), "ko")),
                 new Section("체불 내역", unpaid(result, "ko")),
                 new Section("진정 내용", content),
@@ -216,7 +216,7 @@ public class ComplaintService {
                 { "3. 법적 근거", "3. Legal basis", "3. Căn cứ pháp lý" }, { "4. 요청 사항", "4. Request", "4. Yêu cầu" },
                 { "5. 기한을 넘기면", "5. If not paid", "5. Nếu không trả" } };
         return List.of(
-                new Section(h[0][li], or(me.name(), "[이름]") + " · " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
+                new Section(h[0][li], or(me.name(), "[이름]") + ", " + or(me.phone(), "[휴대폰 번호]") + opt("\n", me.address())),
                 new Section(h[1][li], or(co.companyName(), "[회사 이름]") + new String[] { " (대표 ", " (CEO ", " (Đại diện " }[li] + or(co.ownerName(), "[사장님 이름]") + ")\n" + or(co.address(), "[사업장 주소]")),
                 new Section(h[2][li], new String[] { "미지급 임금 등 지급 청구", "Demand for payment of unpaid wages", "Yêu cầu trả tiền lương chưa trả" }[li]),
                 new Section(h[3][li], opening + (facts.isEmpty() ? "" : "\n" + facts)),

@@ -8,7 +8,7 @@
       "plus": { "days": 15 },
       "title": { "ko": "회사가 돈을 다 줘야 하는 날 (그만두고 14일)", "en": "Employer must pay everything (14 days after leaving)", "vi": "Hạn công ty phải trả hết (14 ngày sau khi nghỉ)" },
       "what": {
-        "ko": "그만두면 회사는 14일 안에 월급 · 퇴직금을 모두 줘야 해요. 늦으면 늦은 날만큼 연 20% 이자(지연이자)도 줘야 해요. 서로 합의하면 날짜를 늦출 수 있어요.",
+        "ko": "그만두면 회사는 14일 안에 월급과 퇴직금을 모두 줘야 해요. 늦으면 늦은 날만큼 연 20% 이자(지연이자)도 줘야 해요. 서로 합의하면 날짜를 늦출 수 있어요.",
         "en": "After you leave, the employer must pay all wages and severance within 14 days. If late, it must also pay 20% yearly interest for the late days. Both sides can agree to a later date.",
         "vi": "Sau khi bạn nghỉ, công ty phải trả hết lương và trợ cấp thôi việc trong 14 ngày. Nếu trễ, phải trả thêm lãi 20%/năm cho số ngày trễ. Hai bên có thể thỏa thuận lùi ngày."
       },

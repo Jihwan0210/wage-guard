@@ -67,7 +67,7 @@ final class RuleEngine {
                     basis("근로기준법", "제46조 제1항", "회사 사정으로 쉬게 하면 평균임금의 70% 이상을 줘야 해요. 70%가 통상임금보다 많으면 통상임금을 줘도 돼요."),
                     basis("근로기준법 시행령", "제26조", "쉬는 동안 일부를 받았으면, 그만큼 빼고 계산해요.")),
             "DELAY_INTEREST", List.of(
-                    basis("근로기준법", "제37조 제1항", "그만둔 뒤 14일 안에 주지 않은 임금·퇴직금에는 그다음 날부터 이자가 붙어요. 2025년 10월 23일부터는 일하는 중에 월급날 주지 않은 임금에도 붙어요."),
+                    basis("근로기준법", "제37조 제1항", "그만둔 뒤 14일 안에 주지 않은 임금과 퇴직금에는 그다음 날부터 이자가 붙어요. 2025년 10월 23일부터는 일하는 중에 월급날 주지 않은 임금에도 붙어요."),
                     basis("근로기준법 시행령", "제17조", "그 이자는 1년에 20%예요.")));
 
     private static final Map<String, List<Basis>> BASIS = Map.of(
@@ -166,7 +166,7 @@ final class RuleEngine {
         List<NotApplied> notApplied = new ArrayList<>();
         long due = 0, paid = 0;
         if (underFive) {
-            warn("UNDER_FIVE_EMPLOYEES", "5인 미만 사업장은 연장·야간·휴일 가산수당이 적용되지 않아 가산분을 0원으로 계산했어요. (근로기준법 제11조)");
+            warn("UNDER_FIVE_EMPLOYEES", "5인 미만 사업장은 연장, 야간, 휴일 가산수당이 적용되지 않아 가산분을 0원으로 계산했어요. (근로기준법 제11조)");
         }
         if (type.equals("MONTHLY") && weekly.compareTo(FORTY) != 0) {
             warn("MONTHLY_HOURS_CHECK", "주 40시간이 아니어서 월 기준시간을 " + hours(monthlyHours) + "시간으로 계산했어요. 계약서의 월 기준시간과 다르면 확인이 필요해요.");
@@ -486,7 +486,7 @@ final class RuleEngine {
         long late = Math.max(0, ChronoUnit.DAYS.between(from, baseDate) + 1);
         long principal = items.stream().filter(i -> !Set.of("DISMISSAL_NOTICE", "SHUTDOWN_ALLOWANCE").contains(i.code()))
                 .mapToLong(i -> i.amount() == null ? 0 : i.amount()).sum();
-        warn("DELAY_INTEREST_CHECK", "지연이자는 그만둔 날 다음 날부터 14일이 지난 날부터 " + baseDate + "까지 센 추정이에요. 해고예고수당 · 휴업수당은 빼고 셌어요. 확인이 필요해요.");
+        warn("DELAY_INTEREST_CHECK", "지연이자는 그만둔 날 다음 날부터 14일이 지난 날부터 " + baseDate + "까지 센 추정이에요. 해고예고수당과 휴업수당은 빼고 셌어요. 확인이 필요해요.");
         String f = won(principal) + " × 20% × " + late + "일 ÷ 365 (" + from + "부터 " + baseDate + "까지)";
         return item("DELAY_INTEREST", null, true, trunc(div(dec(principal).multiply(dec(late)).multiply(dec(20)), dec(36500))), f);
     }
@@ -547,7 +547,7 @@ final class RuleEngine {
             boolean recorded = sorted.stream().anyMatch(d -> YearMonth.from(d.date()).toString().equals(m.month()));
             out.add(recorded ? fromDays(m, sorted) : m);
         }
-        warn("DAILY_RECORDS", "하루 기록이 있는 달은 기록에서 연장·야간·휴일 시간을 나눠 계산했어요. 쉬는 시간은 밤 10시~아침 6시가 아닌 때에 쉬었다고 보고, 달이 바뀌는 주는 한 주로 이어서 세어 주 40시간을 넘겨 일한 날이 든 달에 연장 시간을 넣었어요.");
+        warn("DAILY_RECORDS", "하루 기록이 있는 달은 기록에서 연장, 야간, 휴일 시간을 나눠 계산했어요. 쉬는 시간은 밤 10시~아침 6시가 아닌 때에 쉬었다고 보고, 달이 바뀌는 주는 한 주로 이어서 세어 주 40시간을 넘겨 일한 날이 든 달에 연장 시간을 넣었어요.");
         return out;
     }
 
