@@ -1001,5 +1001,9 @@
   "sit.docLead": "급여명세서나 근로계약서 사진을 올리면 글자를 읽어 빈칸을 채워요.",
   "sit.next": "다음",
   "sit.wait": "다 읽으면 바로 넘어가요",
-  "sit.failTitle": "서류 글자를 읽지 못했어요."
+  "sit.failTitle": "서류 글자를 읽지 못했어요.",
+  "start.or": "또는",
+  "start.noDocTitle": "서류가 없어도 돼요",
+  "start.noDocBody": "몇 가지 질문에 답하면 받을 돈을 계산해요.",
+  "easy.start.noDocBody": "질문 몇 개에 답하면 받을 돈을 계산해요."
 }
