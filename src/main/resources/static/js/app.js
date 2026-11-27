@@ -581,6 +581,7 @@
     try {
       if (inFrame) history.replaceState(null, '', url);
       else if (!opts || !opts.fromPop) history.pushState(null, '', url);
+      else if (location.hash !== url) history.replaceState(null, '', url); // 뒤로 가기로 온 화면을 다른 화면으로 돌렸으면 주소도 맞춘다
     } catch (e) {}
     render(dir);
   }
