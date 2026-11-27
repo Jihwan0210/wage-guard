@@ -1949,7 +1949,7 @@
         var law = f.basis.law + ' ' + f.basis.article, lawTag = law === lastLaw ? '' : ' <small lang="ko">' + esc(law) + '</small>';
         lastLaw = law;
         var bad = f.level === 'PROBLEM';
-        return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span><strong>' + t(bad ? 'ct.bad' : 'ct.miss') + '</strong> ' +
+        return '<li class="' + (bad ? 'dj-bad' : 'dj-warn') + '">' + icon(bad ? 'x' : 'info') + '<span>' + (bad ? '<strong>' + t('ct.bad') + '</strong> ' : '') + // 빠진 줄은 문장이 이미 '없어요' 라서 꼬리표를 붙이지 않는다
           (f.code === 'MIN_WAGE' ? t('ct.r.MIN_WAGE', { h: Number(r.hourlyWage).toLocaleString('ko-KR'), y: r.minimumWageYear, m: Number(r.minimumWage).toLocaleString('ko-KR') }) : f.code === 'OVER_52' ? t('ct.r.OVER_52') : t('ct.r.miss', { w: t('ct.w.' + f.code) })) +
           lawTag + '</span></li>';
       }).concat(r.ok.map(function (k) { return '<li class="dj-ok">' + icon('check') + '<span>' + t('ct.r.ok', { w: t('ct.w.' + k) }) + '</span></li>'; })).join('');
