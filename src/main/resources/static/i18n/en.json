@@ -754,5 +754,7 @@
   "form.plFail": "Search is not available now. Please type the address.",
   "form.addrFind": "Find address",
   "form.addrPh": "Tap to search for the address",
-  "form.addrFail": "Address search is not available. Please type the address."
+  "form.addrFail": "Address search is not available. Please type the address.",
+  "ct.r.missAll": "Missing from the contract: {w}",
+  "q.fromDoc": "from your document"
 }
