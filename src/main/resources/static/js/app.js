@@ -615,7 +615,8 @@
         '<span class="top-title">' + esc(TITLE[r] ? t(TITLE[r]) : '') + '</span>';
     var me = langOf(S.lang);
     return '<header class="top"><div class="top-in">' + left +
-      (hasTabs() ? tabs('tabs-top') : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
+      // 시작 화면은 아래 「이렇게 진행돼요」가 같은 네 걸음을 보여 주므로 머리줄 걸음 표시를 뺀다
+      (hasTabs() ? tabs('tabs-top') : r === 'start' ? '' : '<ol class="steps-nav" aria-label="' + t('top.steps') + '">' + steps + '</ol>') +
       '<div class="top-tools">' +
       // 쉬운 말: 한국어일 때 위쪽 메뉴에 늘 두고, 누를 때마다 켜고 끈다
       (S.lang === 'ko' ? '<button type="button" id="easy-top" class="easy-chip" data-act="easy-tg" aria-pressed="' + !!S.easy + '">' + (S.easy ? icon('check') : '') + '<span>' + t('top.easy') + '</span></button>' : '') +
@@ -666,8 +667,19 @@
   }
 
   // ---------- 화면: 시작 ----------
-  // 봉투 덮개 선
-  var ENV_ART = '<svg class="env-flap" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 0 L200 56 L400 0"/></svg>';
+  // 결과 화면 미리보기: 결과 화면과 같은 클래스로 그린 그림(누를 수 없음). 금액은 발표 캡처에 쓴 시험 입력의 결과
+  // deslop-allow fake-ui: 이 서비스가 해 주는 일이 바로 이 결과 화면이라, 실제 화면을 줄여 보여 준다
+  function preview() {
+    var amts = [499000, 165000, 4831561], names = t('start.pvRows').split('|');
+    var rows = amts.map(function (n, i) {
+      return '<li><div class="item-row"><span class="item-name">' + names[i] + '<small>' + (i === 2 ? '<span class="tag">' + t('result.estimated') + '</span> ' : '') + esc(readable(n)) + '</small></span>' +
+        '<span class="item-amt">' + money(n) + '</span>' + icon('chev', 'chev') + '</div></li>';
+    }).join('');
+    return '<div class="pv" aria-hidden="true"><div class="pv-screen"><span class="tag pv-tag">' + t('start.pvTag') + '</span>' +
+      '<div class="receipt"><div class="receipt-in"><span class="total-label">' + t('result.total') + '</span>' +
+      '<span class="total"><b>5,495,561</b><small>' + t('unit') + '</small></span><span class="total-read">' + esc(readable(5495561)) + '</span></div></div>' +
+      '<ul class="items">' + rows + '</ul><span class="btn btn-primary">' + t('result.make') + '</span></div></div>';
+  }
   function vStart() {
     // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
     var resume = resumeTo ? '<section class="resume stack" aria-labelledby="resume-t"><h2 id="resume-t">' + t('resume.title') + '</h2><p>' + t('resume.body', { where: t(TITLE[resumeTo] || 'title.q') }) + '</p>' +
@@ -675,8 +687,6 @@
       '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     // 언어 · 쉬운 말은 머리줄에만. 처음 온 외국인이 찾게 다른 언어 이름만 작은 링크로 한 번 더
     var others = LANGS.filter(function (l) { return l.code !== S.lang; }).map(function (l) { return '<span lang="' + l.code + '">' + esc(l.name) + '</span>'; }).join(', ');
-    // 월급봉투 앞면에 찍힌 지급 내역 칸처럼, 계산하는 돈 이름을 적는다(금액은 적지 않는다)
-    var envRows = t('start.envItems').split('|').map(function (x) { return '<li>' + x + '</li>'; }).join('');
     var steps = [1, 2, 3, 4].map(function (i) { return '<li><b>' + t('start.s' + i) + '</b><span>' + t('start.s' + i + 'd') + '</span></li>'; }).join('');
     return '<div class="start">' +
       '<div class="start-band">' +
@@ -687,9 +697,7 @@
       cta(primary(t('start.docBtn'), 'data-act="pick" data-v="doc"') +
         '<button type="button" class="btn btn-line" data-act="pick" data-v="manual">' + t('start.manualBtn') + '</button>' +
         '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p>', 'start-cta') + '</section>' +
-      '<figure class="env" aria-labelledby="env-t">' + ENV_ART +
-      '<figcaption id="env-t">' + t('start.envTitle') + '</figcaption><ul>' + envRows + '</ul>' +
-      '<p class="env-note">' + t('start.envNote') + '</p></figure></div>' +
+      preview() + '</div>' +
       '<section class="flow" aria-labelledby="flow-t"><h2 id="flow-t">' + t('start.flowTitle') + '</h2><ol>' + steps + '</ol></section>' +
       '<footer class="foot-bar no-print"><ul class="foot-links">' +
       [['data-go="contract"', 'title.contract'], ['data-go="deadline"', 'title.deadline'], ['data-go="after"', 'title.after'], ['data-go="words"', 'title.words'], ['data-act="wipe"', 'wipe.btn']].map(function (l) {
