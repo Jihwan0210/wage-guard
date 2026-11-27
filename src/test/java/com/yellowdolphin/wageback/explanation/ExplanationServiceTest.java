@@ -111,10 +111,10 @@ class ExplanationServiceTest {
         var e = service(WITH_DIGIT).explain(RESULT, "ko");
         assertEquals(3, prompts.size());
         assertTrue(e.fallback());
-        assertEquals("2026년 9월 연장근로수당 161,976원을 받아야 하는 것으로 계산됐어요.", e.items().get(0).text());
+        assertEquals("2026년 9월 연장근로수당: 받아야 할 돈은 161,976원이에요.", e.items().get(0).text());
         assertTrue(e.items().get(1).text().contains("입력한 정보가 없어"));
         assertTrue(e.items().get(2).text().contains("월급 안에"));
-        assertEquals("모두 합쳐 2,721,300원을 아직 받지 못한 것으로 계산됐어요.", e.summary());
+        assertEquals("아직 받지 못한 돈은 모두 2,721,300원이에요.", e.summary());
     }
 
     @Test
