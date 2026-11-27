@@ -666,6 +666,8 @@
   }
 
   // ---------- 화면: 시작 ----------
+  // 봉투 덮개 선
+  var ENV_ART = '<svg class="env-flap" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 0 L200 56 L400 0"/></svg>';
   function vStart() {
     // 이 휴대폰에 입력하던 값이 있으면 '이어서 · 처음부터'
     var resume = resumeTo ? '<section class="resume stack" aria-labelledby="resume-t"><h2 id="resume-t">' + t('resume.title') + '</h2><p>' + t('resume.body', { where: t(TITLE[resumeTo] || 'title.q') }) + '</p>' +
@@ -673,13 +675,22 @@
       '<button type="button" class="btn btn-line" data-act="restart">' + t('resume.restart') + '</button></div><p class="hint">' + t('resume.note') + '</p></section>' : '';
     // 언어 · 쉬운 말은 머리줄에만. 처음 온 외국인이 찾게 다른 언어 이름만 작은 링크로 한 번 더
     var others = LANGS.filter(function (l) { return l.code !== S.lang; }).map(function (l) { return '<span lang="' + l.code + '">' + esc(l.name) + '</span>'; }).join(', ');
+    // 월급봉투 앞면에 찍힌 지급 내역 칸처럼, 계산하는 돈 이름을 적는다(금액은 적지 않는다)
+    var envRows = t('start.envItems').split('|').map(function (x) { return '<li>' + x + '</li>'; }).join('');
+    var steps = [1, 2, 3, 4].map(function (i) { return '<li><b>' + t('start.s' + i) + '</b><span>' + t('start.s' + i + 'd') + '</span></li>'; }).join('');
     return '<div class="start">' +
+      '<div class="start-band">' +
       '<section class="hero">' +
       '<h1 tabindex="-1">' + t('start.title') + '</h1>' +
-      '<p class="lead">' + t('start.lead') + '</p></section>' + resume +
+      '<p class="lead">' + t('start.lead') + '</p>' + resume +
+      // deslop-allow two-button-hero: 서류가 있는 사람과 없는 사람의 길이 처음부터 다르다
       cta(primary(t('start.docBtn'), 'data-act="pick" data-v="doc"') +
         '<button type="button" class="btn btn-line" data-act="pick" data-v="manual">' + t('start.manualBtn') + '</button>' +
-        '<p class="trust">' + t('start.trust') + '</p>', 'start-cta') +
+        '<p class="trust">' + t('start.trust') + '<br><a href="tel:1350">' + t('start.call') + '</a></p>', 'start-cta') + '</section>' +
+      '<figure class="env" aria-labelledby="env-t">' + ENV_ART +
+      '<figcaption id="env-t">' + t('start.envTitle') + '</figcaption><ul>' + envRows + '</ul>' +
+      '<p class="env-note">' + t('start.envNote') + '</p></figure></div>' +
+      '<section class="flow" aria-labelledby="flow-t"><h2 id="flow-t">' + t('start.flowTitle') + '</h2><ol>' + steps + '</ol></section>' +
       '<footer class="foot-bar no-print"><ul class="foot-links">' +
       [['data-go="contract"', 'title.contract'], ['data-go="deadline"', 'title.deadline'], ['data-go="after"', 'title.after'], ['data-go="words"', 'title.words'], ['data-act="wipe"', 'wipe.btn']].map(function (l) {
         return '<li><button type="button" class="btn-text" ' + l[0] + '>' + t(l[1]) + '</button></li>';
@@ -2044,7 +2055,7 @@
     document.title = t('brand');
     app.innerHTML = topbar() + '<main id="main" class="wrap"><div' + (transition ? ' class="enter ' + transition + '"' : '') + '>' + VIEWS[S.route]() + '</div></main>' +
       '<div class="dock no-print">' + (hasTabs() ? tabs('tabbar') : '') + '</div>';
-    var dock = app.querySelector('.dock'), c = app.querySelector('main .cta');
+    var dock = app.querySelector('.dock'), c = app.querySelector('main .cta:not(.start-cta)'); // 시작 화면은 단추를 제목 바로 아래에 둔다
     if (mobile.matches && c) dock.insertBefore(c, dock.firstChild);
     var h0 = mobile.matches ? dock.offsetHeight : 0;
     if (h0 !== dockH) { dockH = h0; document.documentElement.style.setProperty('--dock-h', h0 + 'px'); }

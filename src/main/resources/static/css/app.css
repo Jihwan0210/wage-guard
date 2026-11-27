@@ -297,14 +297,31 @@ details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
 .sumline strong { font-size: var(--fs-lg); }
 
 /* 시작 */
-/* 시작: 제목 하나가 화면의 중심이다. 그 아래 단추 둘, 한 줄 안내, 맨 아래 작은 링크. 상자 · 아이콘 없이 글과 선만 */
-.start { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: var(--s6); padding-top: var(--s4); }
+/* 시작: 노랑 띠 위에 제목과 단추 둘, 옆에 월급봉투. 봉투 앞면은 옛 월급봉투의 지급 내역 칸처럼 계산하는 돈 이름을 적는다.
+   그 아래 머리줄 단계(1 서류 ~ 4 진정서)를 풀어 쓴 설명, 맨 아래 작은 링크 */
+.wrap:has(.start) { padding-top: 0; }
+.start { display: flex; flex-direction: column; gap: var(--s7); }
+.start-band { --band: var(--brand); position: relative; display: flex; flex-direction: column; gap: var(--s7); padding-block: var(--s6) var(--s7); background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(0 -100vmax); }
+:root[data-theme="dark"] .start-band { --band: var(--brand-soft); }
 .hero { display: flex; flex-direction: column; gap: var(--s4); }
 .hero h1 { font-size: clamp(2.125rem, 8.6vw, 3.5rem); line-height: 1.18; letter-spacing: -0.02em; font-weight: 800; max-width: 9em; }
-.hero .lead { font-size: var(--fs-lg); line-height: 1.6; }
-.start-cta { margin-top: 0; }
-.start-cta .btn-line { min-height: 56px; }
-.trust { font-size: var(--fs-sm); color: var(--muted); }
+.hero .lead { font-size: var(--fs-lg); line-height: 1.6; color: var(--fg); }
+.start-cta { margin-top: var(--s2); }
+.start-cta .btn-line { min-height: 56px; border-color: var(--fg); }
+.trust { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); line-height: 1.6; }
+.trust a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-md); font-weight: 700; color: inherit; text-underline-offset: 4px; }
+.env { position: relative; margin: 0; padding: 56px var(--s5) var(--s5); background: var(--paper); border: 2px solid var(--fg); border-radius: var(--r-xs); }
+.env-flap { position: absolute; inset: 0 0 auto 0; width: 100%; height: 48px; fill: none; stroke: var(--fg); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.env figcaption { font-size: var(--fs-lg); font-weight: 800; margin-bottom: var(--s2); }
+.env ul { margin: 0; padding: 0; list-style: none; }
+.env li { padding-block: 9px; border-bottom: 1px solid var(--line); font-size: var(--fs-md); font-weight: 600; }
+.env-note { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
+.flow h2 { font-size: var(--fs-xl); font-weight: 800; }
+.flow ol { margin: var(--s5) 0 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s5); }
+.flow li { counter-increment: st; display: grid; grid-template-columns: 26px minmax(0, 1fr); align-content: start; column-gap: var(--s3); row-gap: var(--s1); }
+.flow li::before { content: counter(st); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 0.8125rem; font-weight: 700; background: var(--surface-2); color: var(--muted); }
+.flow li b { font-size: var(--fs-lg); font-weight: 700; line-height: 26px; }
+.flow li span { grid-column: 2; color: var(--muted); }
 .foot-bar { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--s2); }
 .foot-links { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--s5); }
 .foot-links .btn-text { padding: 0; font-size: var(--fs-sm); font-weight: 500; text-decoration-thickness: 1px; }
@@ -498,7 +515,8 @@ dialog .stack { gap: var(--s4); }
   .side { position: sticky; top: 92px; }
   .wide { max-width: 1120px; }
   .split .cta { margin-top: 0; }
-  .wrap:has(.start) { padding-top: var(--s8); }
+  .start-band { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); align-items: center; gap: var(--s8); padding-block: var(--s8); }
+  .flow ol { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .start-cta { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .start-cta .btn { width: auto; min-width: 15rem; }
   .start-cta .trust { flex-basis: 100%; }
@@ -876,7 +894,7 @@ dialog h3.label { margin: 0; }
 
 /* 쉬운 말 + 휴대폰: 덜 중요한 설명을 접어 질문 · 단추에 집중 */
 @media (max-width: 959px) {
-  .easy-m .banner, .easy-m .q-legend ~ details.more, .easy-m .trust, .easy-m [data-next-hint], .easy-m .items-head .hint,
+  .easy-m .banner, .easy-m .q-legend ~ details.more, .easy-m [data-next-hint], .easy-m .items-head .hint,
   .easy-m .foot-bar > .hint { display: none !important; }
 }
 
