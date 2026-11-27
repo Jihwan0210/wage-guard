@@ -120,7 +120,7 @@
     return '<div class="skel-lines" role="status"><span class="sr">' + label + '</span>' + kinds.map(function (k) { return '<i class="skel' + (k ? ' ' + k : '') + '"></i>'; }).join('') + '</div>';
   }
   function langOf(code) { return LANGS.filter(function (l) { return l.code === code; })[0] || { code: code, name: code }; }
-  var LANG_TITLE = '언어 · Language · Ngôn ngữ';
+  var LANG_TITLE = '언어 / Language / Ngôn ngữ';
 
   var S = load();
   var sheetItem = -1;
@@ -1716,7 +1716,7 @@
       var name = it.ko;
       return '<tr><th scope="row">' + esc(name + (it.month ? ' (' + Number(it.month.slice(5)) + '월)' : '') + (it.estimated ? ' (추정)' : '')) + '</th><td class="n">' + (it.amount != null ? won(it.amount) : '정보 없음') + '</td></tr>';
     }).join('');
-    var monthsRows = ms.map(function (m) { return '<li>' + m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월 · 못 받은 돈 ' + won(by[m] || 0) + '</li>'; }).join('');
+    var monthsRows = ms.map(function (m) { return '<li>' + m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월: 못 받은 돈 ' + won(by[m] || 0) + '</li>'; }).join('');
     loadOffices();
     var office = officeOf();
     var brought = READY.filter(function (k) { return S.ready[k]; }).map(function (k) { return L.ko['ready.' + k]; });
@@ -1727,9 +1727,9 @@
       '<div class="big-sum"><span class="total-label">받지 못한 돈 합계 (참고 계산)</span><span class="total">' + won(R.total) + '</span><span>' + korRead(R.total) + '</span></div>' +
       '<dl class="kv"><dt>체불 기간</dt><dd>' + (ms.length ? ms[0].slice(0, 4) + '년 ' + Number(ms[0].slice(5)) + '월' + (ms.length > 1 ? ' ~ ' + ms[ms.length - 1].slice(0, 4) + '년 ' + Number(ms[ms.length - 1].slice(5)) + '월' : '') + ' (' + ms.length + '개월)' : '') + '</dd>' +
       '<dt>받은 돈</dt><dd>' + won(R.paid) + '</dd>' +
-      '<dt>사업장</dt><dd>' + esc(f.company || p.company || '(적지 않음)') + ' · ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
+      '<dt>사업장</dt><dd>' + esc(f.company || p.company || '(적지 않음)') + ', ' + (f.size === 'under' ? '5명 미만' : '5명 이상') + '</dd>' +
       '<dt>일한 기간</dt><dd>' + esc(dotDate(f.start)) + ' ~ ' + esc(f.employed === 'yes' ? '재직 중' : dotDate(f.end) + ' (퇴직)') + '</dd>' +
-      '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ' · ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + (workDays().length ? ' · 달력 기록 ' + workDays().length + '일' : '') + '</dd>' +
+      '<dt>근무</dt><dd>' + esc(p.job || '') + (p.job ? ', ' : '') + esc(dayText()) + (f.tStart !== '' ? ' ' + hh(f.tStart) + '~' + hh(f.tEnd) : '') + (workDays().length ? ', 달력 기록 ' + workDays().length + '일' : '') + '</dd>' +
       '<dt>약속한 급여</dt><dd>' + ({ hour: '시급 ', day: '일급 ', month: '월 ' }[f.wageType] || '') + (f.wage ? won(f.wage) : '') + (f.allowance ? ' + 수당 ' + won(f.allowance) : '') + '</dd>' +
       (office ? '<dt>관할 노동청</dt><dd>' + esc(office.name) + '</dd>' : '') + '</dl>' +
       (monthsRows ? '<section class="stack" style="gap:4px"><h2>달별 못 받은 돈</h2><ul class="counsel-months">' + monthsRows + '</ul></section>' : '') +
